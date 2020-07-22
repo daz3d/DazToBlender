@@ -1,0 +1,8 @@
+This project contains code derived from examples written by Rob Whisenant and re-licensed under the Apache 2.0 license for this project. The original code can be found at the following locations:
+
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_fbx_silent/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/nodes/convert_figure_to_props/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_obj_silent/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/actions/action_custom_create/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/actions/action_custom_remove/start
