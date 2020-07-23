@@ -1,0 +1,1238 @@
+// DAZ Studio version 4.12.0.86 filetype DAZ Script
+
+(function(){
+	
+	var s_sFilename = "DTB";
+	var s_oMainNode = null;
+	var s_aMinMorphs = [
+		"pJCMShldrUp_35_R",
+		"pJCMShldrUp_35_L",
+		"pJCMCollarUp_50_L",
+		"pJCMCollarUp_50_R",
+		"pJCMShldrDown_75_L",
+		"pJCMShldrDown_75_R",
+		"pJCMShldrFwd_95_L",
+		"pJCMShldrFwd_95_R", 
+		"pJCMShldrFwdDown_75_R",
+		"pJCMShldrFwdDown_75_L ",
+		"eCTRLBrowInnerUp-Down",
+		"eCTRLBrowInnerUp-DownL",
+		"eCTRLBrowInnerUp-DownR",
+		"eCTRLBrowOuterUp-Down",
+		"eCTRLBrowOuterUp-DownL",
+		"eCTRLBrowOuterUp-DownR",
+		"eCTRLBrowSqueeze",
+		"eCTRLBrowSqueezeL",
+		"eCTRLBrowSqueezeR",
+		"eCTRLBrowUp-Down",
+		"eCTRLBrowUp-DownL",
+		"eCTRLBrowUp-DownR",
+		"eCTRLCheekCrease",
+		"eCTRLCheekEyeFlex",
+		"eCTRLCheekEyeFlexL",
+		"eCTRLCheekEyeFlexR",
+		"eCTRLCheekFlex-Slack",
+		"eCTRLCheekFlex-SlackL",
+		"eCTRLCheekFlex-SlackR",
+		"eCTRLCheeksBalloonPucker",
+		"eCTRLCheeksBalloon-SuckIn",
+		"eCTRLCheeksBalloon-SuckInL",
+		"eCTRLCheeksBalloon-SuckInR",
+		"CTRLCheeksDimpleCreaseHD",
+		"eCTRLJawOut-In",
+		"eCTRLJawSide-Side",
+		"eCTRLAfraid_HD",
+		"eCTRLAngry_HD",
+		"eCTRLMurphySignatureSmileHD",
+		"eCTRLSahelSignatureSmileHD",
+		"eCTRLFlirting_HD",
+		"eCTRLFrown_HD",
+		"eCTRLShock_HD",
+		"eCTRLSmileFullFace_HD",
+		"eCTRLSmileOpenFullFace_HD",
+		"eCTRLSurprised_HD",
+		"eCTRLEyelidsLowerUpDown",
+		"eCTRLEyelidsLowerUpDownL",
+		"eCTRLEyelidsLowerUpDownR",
+		"eCTRLEyelidsUpperUp-Down",
+		"eCTRLEyelidsUpperUp-DownL",
+		"eCTRLEyelidsUpperUp-DownR",
+		"eCTRLEyesClosed",
+		"eCTRLEyesClosedL",
+		"eCTRLEyesClosedR",
+		"eCTRLEyesCrossed",
+		"eCTRLEyesRelax",
+		"eCTRLEyesRelaxL",
+		"eCTRLEyesRelaxR",
+		"eCTRLEyesSideSide",
+		"eCTRLEyesSquint-Widen",
+		"eCTRLEyesSquint-WidenL",
+		"eCTRLEyesSquint-WidenR",
+		"eCTRLEyesUpDown",
+		"eCTRLMouthClosed",
+		"eCTRLMouthCornerForward-Back",
+		"eCTRLMouthCornerForward-BackL",
+		"eCTRLMouthCornerForward-BackR",
+		"eCTRLMouthCornerUp-Down",
+		"eCTRLMouthCornerUp-DownL",
+		"eCTRLMouthCornerUp-DownR",
+		"eCTRLMouthFrown",
+		"eCTRLMouthOpen",
+		"eCTRLMouthSide-Side",
+		"eCTRLMouthSmile",
+		"eCTRLMouthSmileOpen",
+		"eCTRLMouthSmileSimple",
+		"eCTRLMouthSmileSimpleL",
+		"eCTRLMouthSmileSimpleR",
+		"eCTRLMouthWide-Narrow",
+		"eCTRLMouthWide-NarrowL",
+		"eCTRLMouthWide-NarrowR",
+		"eCTRLLipBottomOut-In",
+		"eCTRLLipBottomOut-InL",
+		"eCTRLLipBottomOut-InR",
+		"eCTRLLipBottomUp-Down",
+		"eCTRLLipBottomUp-DownL",
+		"eCTRLLipBottomUp-DownR",
+		"eCTRLLipTopOut-In",
+		"eCTRLLipTopOut-InL",
+		"eCTRLLipTopOut-InR",
+		"eCTRLLipTopUp-Down",
+		"eCTRLLipTopUp-DownL",
+		"eCTRLLipTopUp-DownR",
+		"eCTRLLipsClosed-BareTeeth",
+		"eCTRLLipsPart",
+		"eCTRLLipsPartCenter",
+		"eCTRLLipsPuckerWide",
+		"eCTRLLipsPucker-Pressed",
+		"eCTRLTongueBendTip",
+		"eCTRLTongueCurl",
+		"eCTRLTongueIn-Out",
+		"eCTRLTongueNarrow-Wide",
+		"eCTRLTongueRaise-Lower",
+		"eCTRLTongueSide-Side",
+		"eCTRLTongueUp-Down",
+		"eCTRLNoseScrunch",
+		"eCTRLNoseWrinkle",
+		"eCTRLNostrilsFlex",
+		"eCTRLvAA",
+		"eCTRLvEE",
+		"eCTRLvEH",
+		"eCTRLvER",
+		"eCTRLvF",
+		"eCTRLvIH",
+		"eCTRLvIY",
+		"eCTRLvK",
+		"eCTRLvL",
+		"eCTRLvM",
+		"eCTRLvOW",
+		"eCTRLvS",
+		"eCTRLvSH",
+		"eCTRLvT",
+		"eCTRLvTH",
+		"eCTRLvUW",
+		"eCTRLvW",
+		"pJCMAbdomen2Fwd_40",
+		"pJCMAbdomen2Side_24_L",
+		"pJCMAbdomen2Side_24_R",
+		"pJCMAbdomenFwd_35",
+		"pJCMAbdomenLowerFwd_Navel",
+		"pJCMAbdomenUpperFwd_Navel",
+		"pJCMBigToeDown_45_L",
+		"pJCMBigToeDown_45_R",
+		"pJCMChestFwd_35",
+		"pJCMChestSide_20_L",
+		"pJCMChestSide_20_R",
+		"pJCMCollarTwist_n30_L",
+		"pJCMCollarTwist_n30_R",
+		"pJCMCollarTwist_p30_L",
+		"pJCMCollarTwist_p30_R",
+		"pJCMCollarUp_55_L",
+		"pJCMCollarUp_55_R",
+		"pJCMCollarUp_50_L",
+		"pJCMCollarUp_50_R",
+		"pJCMFootDwn_75_L",
+		"pJCMFootDwn_75_R",
+		"pJCMFootUp_40_L",
+		"pJCMFootUp_40_R",
+		"pJCMForeArmFwd_135_L",
+		"pJCMForeArmFwd_135_R",
+		"pJCMForeArmFwd_75_L",
+		"pJCMForeArmFwd_75_R",
+		"pJCMHandDwn_70_L",
+		"pJCMHandDwn_70_R",
+		"pJCMHandUp_80_L",
+		"pJCMHandUp_80_R",
+		"pJCMHeadBack_27",
+		"pJCMHeadFwd_25",
+		"pJCMIndex1Dwn_90_L",
+		"pJCMIndex1Dwn_90_R",
+		"pJCMIndex2Dwn_105_L",
+		"pJCMIndex2Dwn_105_R",
+		"pJCMIndex3Dwn_90_L",
+		"pJCMIndex3Dwn_90_R",
+		"pJCMMid1Dwn_95_L",
+		"pJCMMid1Dwn_95_R",
+		"pJCMMid2Dwn_105_L",
+		"pJCMMid2Dwn_105_R",
+		"pJCMMid3Dwn_90_L",
+		"pJCMMid3Dwn_90_R",
+		"pJCMNeckBack_27",
+		"pJCMNeckFwd_35",
+		"pJCMNeckLowerSide_40_L",
+		"pJCMNeckLowerSide_40_R",
+		"pJCMNeckTwist_22_L",
+		"pJCMNeckTwist_22_R",
+		"pJCMNeckTwist_Reverse",
+		"pJCMNeckTwist_Reverse",
+		"pJCMNeckTwist_Reverse",
+		"pJCMPelvisFwd_25",
+		"pJCMPinky1Dwn_95_L",
+		"pJCMPinky1Dwn_95_R",
+		"pJCMPinky2Dwn_105_L",
+		"pJCMPinky2Dwn_105_R",
+		"pJCMPinky3Dwn_90_L",
+		"pJCMPinky3Dwn_90_R",
+		"pJCMRing1Dwn_95_L",
+		"pJCMRing1Dwn_95_R",
+		"pJCMRing2Dwn_105_L",
+		"pJCMRing2Dwn_105_R",
+		"pJCMRing3Dwn_90_L",
+		"pJCMRing3Dwn_90_R",
+		"pJCMShinBend_155_L",
+		"pJCMShinBend_155_R",
+		"pJCMShinBend_90_L",
+		"pJCMShinBend_90_R",
+		"pJCMShldrDown_40_L",
+		"pJCMShldrDown_40_R",
+		"pJCMShldrFront_n110_Bend_n40_L",
+		"pJCMShldrFront_n110_Bend_p90_L",
+		"pJCMShldrFront_p110_Bend_n90_R",
+		"pJCMShldrFront_p110_Bend_p40_R",
+		"pJCMShldrFwd_110_L",
+		"pJCMShldrFwd_110_R",
+		"pJCMShldrUp_90_L",
+		"pJCMShldrUp_90_R",
+		"pJCMThighBack_35_L",
+		"pJCMThighBack_35_R",
+		"pJCMThighFwd_115_L",
+		"pJCMThighFwd_115_R",
+		"pJCMThighFwd_57_L",
+		"pJCMThighFwd_57_R",
+		"pJCMThighSide_85_L",
+		"pJCMThighSide_85_R",
+		"pJCMThumb1Bend_50_L",
+		"pJCMThumb1Bend_50_R",
+		"pJCMThumb1Up_20_L",
+		"pJCMThumb1Up_20_R",
+		"pJCMThumb2Bend_65_L",
+		"pJCMThumb2Bend_65_R",
+		"pJCMThumb3Bend_90_L",
+		"pJCMThumb3Bend_90_R",
+		"pJCMToesUp_60_L",
+		"pJCMToesUp_60_R"
+	];
+	var s_sMorphWord = "head\n1\npJCM\n1\n";
+	var s_sRoot = "";
+	var s_aMorphs = [];
+	var s_aSearch = [];
+	var s_nLenName = 0;
+	var s_nMaxName = 19;
+	var s_nMaxAll = 63;
+	var s_s2Spaces = "  ";//not used
+	var s_s3Spaces = "   ";
+	var s_sTBoxText = "";
+	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
+	var s_vecDef = new DzVec3( 0, 0, 0 );
+	var s_quatDef = new DzQuat( 0, 0, 0, 1, true );
+	
+	function get_morph_list()
+	{
+		var aProperties = getElementProperties( s_oMainNode, true, true );
+		var nAlfIdx = 0;
+		var aTops = [ "Morphs", "Hidden", "Pose" ];
+		
+		var oProp;
+		var oOwner;
+		var sPath;
+		var sHead;
+		var sLabel;
+		var sTmp;
+		
+		for( var i = 0; i < aProperties.length; i += 1 ){
+			oProp = aProperties[ i ];
+			oOwner = oProp.getOwner();
+			if( !oOwner.inherits( "DzMorph" ) ){
+				continue;
+			}
+			
+			sPath = oProp.getPath();
+			sHead = "";
+			if( sPath.indexOf( "/Hidden/Correctives/Base" ) == 0 ){
+				continue;
+			}
+			
+			for( var j = 0; j < aTops.length; j += 1 ){
+				if( sPath.indexOf( "/" + aTops[j] ) == 0 ){
+					sHead = "<" + aTops[j] + ">";
+					break;
+				}
+			}
+			
+			if( sHead.isEmpty() ){
+				continue;
+			}
+			
+			while( sHead.length < 12 ){
+				sHead = sHead + " ";
+			}
+			
+			sLabel = oProp.getLabel();
+			if( (sLabel.length + 2 + s_nMaxName) > s_nMaxAll ){
+				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
+				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
+				oOwner.name = sLabel; // TODO : Changing the name of the modifier (owner) will create problems with loading/saving/presets/etc
+				nAlfIdx += 1;
+				nAlfIdx = nAlfIdx % 36;
+			}
+			
+			sLabel = oProp.getLabel();
+			s_aMorphs.push( sHead + ":" + s_s3Spaces + sLabel );
+			s_aSearch.push( sLabel );
+		}
+		
+		for( var i = 0; i < s_aMorphs.length - 1; i += 1 ){
+			for( var j = i + 1; j < s_aMorphs.length; j += 1 ){
+				if( s_aMorphs[i] > s_aMorphs[j] ){
+					sTmp = s_aMorphs[i];
+					s_aMorphs[i] = s_aMorphs[j];
+					s_aMorphs[j] = sTmp;
+				}
+			}
+		}
+	};
+
+
+// --- START node_properties ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
+ 
+ 	// - Extraccted functions
+ 
+	/*********************************************************************/
+	// Array<DzProperty> : A function for getting a list of the properties in a group
+	function getGroupProperties( oGroup, bTraverse, bRecurse )
+	{
+		// Declare an array to hold properties
+		var aProperties = [];
+		
+		// If a group is not passed in
+		if( !oGroup ){
+			// We are done, return an empty array
+			return aProperties;
+		}
+		
+		// Get the number of proeprties in the group
+		var nProperties = oGroup.getNumProperties();
+		// Pre-size the properties array
+		aProperties = new Array( nProperties );
+		// Iterate over the properties, setting each element in the array
+		for( var i = 0; i < nProperties; i += 1 ){
+			// Assign the property to the position in the array
+			aProperties[ i ] = oGroup.getProperty( i );
+		}
+		
+		// If we are recursing
+		if( bRecurse ){
+			// Concatenate the properties array from child groups
+			aProperties = aProperties.concat(
+				getGroupProperties( oGroup.getFirstChild(), true, bRecurse ) );
+		}
+		
+		// If we are traversing
+		if( bTraverse ){
+			// Concatenate the properties array from sibling groups
+			aProperties = aProperties.concat(
+				getGroupProperties( oGroup.getNextSibling(), bTraverse, bRecurse ) );
+		}
+ 		
+		// Return the array of properties
+		return aProperties;
+	};
+	
+	/*********************************************************************/
+	// Array<DzProperty> : A function for getting the list properties for an element
+	function getElementProperties( oElement, bTraverse, bRecurse )
+	{
+		// Get the property group tree for the element
+		var oPropertyGroupTree = oElement.getPropertyGroups();
+		
+		// If the application version is 4.9.4.101 or newer and we want all properties
+		if( App.version64 >= 0x0004000900040065 && bTraverse && bRecurse ){
+			// Return the properties for the element
+			return oPropertyGroupTree.getAllProperties();
+		}
+		
+		// Get the first group in the tree
+		var oPropertyGroup = oPropertyGroupTree.getFirstChild();
+		// Return the properties for the element
+		return getGroupProperties( oPropertyGroup, bTraverse, bRecurse );
+	};
+	
+// --- END node_properties ----
+
+
+// --- START export_fbx_silent ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_fbx_silent/start
+
+	// - Minor changes for this specific use case
+
+	function export_fbx()
+	{
+		// Get the export manager
+		var oExportMgr = App.getExportMgr();
+		// Define the class name the for Autodesk Filmbox (*.fbx) exporter
+		var sClassName = "DzFbxExporter";
+		// Find the exporter
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		// If the exporter exists
+		if( oExporter ){
+			// Create a settings object
+			var oSettings = new DzFileIOSettings();
+			
+			// Define whether or not to show options
+			var bShowOptions = false;
+			
+			// Define whether or not to show options before prompting for a path;
+			// requires 4.9.3.22 or later
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			
+			// Get the options for the exporter
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				// We're done...
+				return;
+			}
+			
+			// Selected
+			oSettings.setBoolValue( "doSelected", false );
+			// No Hidden
+			oSettings.setBoolValue( "doVisible", true );
+			// Figures
+			oSettings.setBoolValue( "doFigures", true );
+			// Props
+			oSettings.setBoolValue( "doProps", false );
+			// Lights
+			oSettings.setBoolValue( "doLights",false );
+			// Cameras
+			oSettings.setBoolValue( "doCameras", false );
+			// Animations
+			oSettings.setBoolValue( "doAnims", false );
+			// Morphs
+			oSettings.setBoolValue( "doMorphs", true );
+			
+			// Morph Rules
+			// Format for rules is "Match1\nAction1\nMatch2\nAction2\nMatch3\nAction3",
+			// where Match# is a string to search for and Action# is one of Bake|Export|Ignore
+			// The names of the morphs are in the form: node_name.parameter_name
+			// The default action is to Bake
+			// So "FBMHeavy\nExport\nThin\nExport" would export all morphs that have FBMHeavy and all morphs that have Thin in the name
+			oSettings.setStringValue( "rules", s_sMorphWord );
+			
+			// Format
+			// Format for format is "Year# -- Type",
+			// where Year# is one of 2006|2009|2010|2011|2012|2013|2014 and
+			// Type is one of Ascii|Binary
+			oSettings.setStringValue( "format", "FBX 2014 -- Binary" );
+			
+			// Embed Textures
+			oSettings.setBoolValue( "doEmbed", false );
+			// Collect Textures To Folder
+			oSettings.setBoolValue( "doCopyTextures", false );
+			// Merge Diffuse and Opacity Textures
+			oSettings.setBoolValue( "doDiffuseOpacity", false );
+			// Merge Clothing Into Figure Skeleton
+			oSettings.setBoolValue( "doMergeClothing", true );
+			// Convert Clothing to Static Geometry
+			oSettings.setBoolValue( "doStaticClothing", false );
+			// Allow Degraded Skinning
+			oSettings.setBoolValue( "degradedSkinning", false );
+			// Allow Degraded Scaling
+			oSettings.setBoolValue( "degradedScaling", true );
+			// SubD Information
+			oSettings.setBoolValue( "doSubD", false );
+			// Collapse UV Tiles
+			oSettings.setBoolValue( "doCollapseUVTiles", false );
+			//
+			oSettings.setBoolValue( "doLocks", false );
+			oSettings.setBoolValue( "doLimits", false );
+			oSettings.setBoolValue( "doBaseFigurePoseOnly", false );
+			oSettings.setBoolValue( "doHelperScriptScripts", false );
+			oSettings.setBoolValue( "doMentalRayMaterials", false );
+			
+			// If the version is 4.9.3.22 or newer
+			if( App.version64 >= 0x0004000900030016 ){
+				// Define whether or not to show the options after prompting for a file;
+				// prior to 4.9.3.22 this exporter ignored this option entirely,
+				// running silent was implied by virtue of being run via script
+				oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			}
+			
+			// If we've got a node, construct the path using the
+			// exporter's last path, the node's name, and the
+			// exporter's extension...
+			// Otherwise, just use the exporter's last path
+			var sInitialPath = ( s_oMainNode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( s_oMainNode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			
+			var sPath = s_sRoot+ "/" + s_sFilename + ".fbx";
+			
+			// If the user didn't cancel and the file doesn't already
+			// exist, or the user wants to overwrite it
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				// Write the file using the options specified
+				oExporter.writeFile( sPath, oSettings );
+			}
+			// Clean up; don't leak memory
+			oExporter.deleteLater();
+		// We didn't find an exporter with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
+				"could not be found.").arg( sClassName ),
+				qsTr("Critical Error"), qsTr("&OK") );
+		}
+	};
+	
+// --- END export_fbx_silent ----
+
+
+// --- START export_obj_silent ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_obj_silent/start
+	
+	// - Minor changes for this specific use case
+	
+	function export_obj()
+	{
+		// Get the export manager
+		var oExportMgr = App.getExportMgr();
+		// Define the class name the for Wavefront Object (*.obj) exporter
+		var sClassName = "DzObjExporter";
+		// Find the exporter
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		// If the exporter exists
+		if( oExporter ){
+			// Create a settings object
+			var oSettings = new DzFileIOSettings();
+			
+			// Define whether or not to show options
+			var bShowOptions = false;
+			
+			// Define whether or not to show options before prompting for a path;
+			// requires 4.9.3.22 or later
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			
+			// Get the options for the exporter
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				// We're done...
+				return;
+			}
+			
+			// Set the scale to write the data
+			oSettings.setFloatValue( "Scale", 100.0 );
+			// Set the lateral axis to X
+			oSettings.setStringValue( "LatAxis", "X" );
+			// Set the vertical axis to Y
+			oSettings.setStringValue( "VertAxis", "Y" );
+			// Set the depth axis to Z
+			oSettings.setStringValue( "DepthAxis", "Z" );
+			// Do not invert the lateral axis
+			oSettings.setBoolValue( "InvertLat", false );
+			// Do not invert the vertical axis
+			oSettings.setBoolValue( "InvertVert", false );
+			// Do not invert the depth axis
+			oSettings.setBoolValue( "InvertDepth", false );
+			// Do not ignore the geometry of invisible nodes
+			oSettings.setBoolValue( "IgnoreInvisible", true );
+			// Do not weld seams between parent and child bones on legacy figures - deprecated
+			oSettings.setBoolValue( "WeldSeams", false );
+			// Do not remove vertices that are floating, connected to nothing - i.e. LOD
+			oSettings.setBoolValue( "RemoveUnusedVerts", true );
+			// Write vertex textures - UVs
+			oSettings.setBoolValue( "WriteVT", true );
+			// Do not write vertex normals
+			oSettings.setBoolValue( "WriteVN", false );
+			// Do not write object statements for each root node - i.e. figures, props
+			oSettings.setBoolValue( "WriteO", false );
+			
+			// Write facet groups
+			oSettings.setBoolValue( "WriteG", false );
+			// Write facet groups according to whatever the geometry already has
+			oSettings.setBoolValue( "GroupGeom", false );
+			// Do not write facet groups according to the node it is associated with
+			oSettings.setBoolValue( "GroupNodes", false );
+			// Do not write facet groups according to surface groups
+			oSettings.setBoolValue( "GroupSurfaces", false );
+			// Do not write one facet group
+			oSettings.setBoolValue( "GroupSingle", false );
+			
+			// Write surface groups
+			oSettings.setBoolValue( "WriteUsemtl", true );
+			
+			// Do not write a material library
+			oSettings.setBoolValue( "WriteMtllib", true );
+			
+			oSettings.setBoolValue( "OriginalMaps", true );
+			// Do not collect texture maps
+			oSettings.setBoolValue( "CollectMaps", false );
+			// Do not convert texture maps
+			oSettings.setBoolValue( "ConvertMaps", false );
+			
+			// If the version is 4.5.0.114 or newer
+			if( App.version64 >= 0x0004000500000072 ){
+				// Do not limit export to selection
+				oSettings.setBoolValue( "SelectedOnly", false );
+				// Do not limit export to the selected roots
+				oSettings.setBoolValue( "SelectedRootsOnly", false );
+				// Do not limit export to the primary selected root;
+				// this setting overrides SelectedRootsOnly
+				oSettings.setBoolValue( "PrimaryRootOnly", false );
+				// Do not export items that are parented to the selection
+				oSettings.setBoolValue( "IncludeParented", false );
+				// Do not triangulate n-gons
+				oSettings.setBoolValue( "TriangulateNgons", false );
+			}
+			
+			// If the version is 4.9.3.22 or newer
+			if( App.version64 >= 0x0004000900030016 ){
+				// Do not collapse UVs Tiles
+				oSettings.setBoolValue( "CollapseUVTiles", false );
+				
+				// Show individual settings in the dialog
+				oSettings.setBoolValue( "ShowIndividualSettings", false );
+			}
+			
+			// If the version is 4.10.0.73 or newer
+			if( App.version64 >= 0x0004000a00000049 ){
+				// Set floating point precision; default is 8
+				oSettings.setIntValue( "FloatPrecision", 6 );
+			}
+			
+			// Define whether or not to show the options after prompting for a file
+			oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			
+			// If we've got a node, construct the path using the
+			// exporter's last path, the node's name, and the
+			// exporter's extension...
+			// Otherwise, just use the exporter's last path
+			var sInitialPath = ( s_oMainNode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( s_oMainNode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			
+			var sPath = s_sRoot + "/" + s_sFilename + ".obj";
+			
+			// If the user didn't cancel and the file doesn't already
+			// exist, or the user wants to overwrite it
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				// Write the file using the options specified
+				oExporter.writeFile( sPath, oSettings );
+			}
+			
+			// Clean up; don't leak memory
+			oExporter.deleteLater();
+		// We didn't find an exporter with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
+				"could not be found.").arg( sClassName ),
+				qsTr("Critical Error"), qsTr("&OK") );
+		}
+	};
+	
+// --- END export_obj_silent ----
+	
+	function getMorphWord2()
+	{
+		var sResult = "";
+		
+		var sMorph;
+		for( var i = 0; i < s_aMinMorphs.length; i += 1 ){
+			sMorph = s_aMinMorphs[i];
+			sResult += sMorph + "\n1\n"
+			if( sMorph.startsWith( "eCTRL" ) ){
+				sResult += "head__" + sMorph + "\n1\n";
+			}
+		}
+		
+		return sResult;
+	};
+	
+	function addTopImage( wDlg )
+	{
+		var imagefile = new DzDir( "" ).homePath() + "/Documents/DTB/resources/daz-logo-main.png";
+		var img1 = new Image( imagefile );
+		var pmap = new Pixmap();
+		pmap.fromImage( img1 );
+		var wLabel = new DzLabel( wDlg );
+		wLabel.pixmap = pmap;
+		wDlg.addWidget( wLabel );
+	};
+	
+	function getMorphWord()
+	{
+		var wDlg = new DzBasicDialog();
+		
+		var wOptGB = new DzVGroupBox( wDlg );
+		wOptGB.flat = true;
+		wOptGB.columns = 1;
+		
+		var wOpt1Btn = new DzCheckBox( wOptGB );
+		wOpt1Btn.text = "<-CEHCK ! ! ! If Export only MINIMAL morphs!";
+		wOpt1Btn.checked = true;
+		wDlg.addWidget( wOpt1Btn );
+		
+		addTopImage( wDlg );
+		wDlg.caption = "Input Morph Names. (Separated by line)";
+		
+		var lbl_1 = new DzLabel( wDlg );
+		lbl_1.text = "-Empty is OK. Partial words is OK (Three or more letters required).-"
+		wDlg.addWidget( lbl_1 );
+		
+		var tbox = new DzTextEdit( wDlg );
+		tbox.text = "";
+		wDlg.addWidget( tbox );
+		
+		var lbl_2 = new DzLabel( wDlg );
+		lbl_2.text = "-Valid Morph names. Double-click to copy a line to the top.-";
+		wDlg.addWidget( lbl_2 );
+		
+		var dlbox = new DzListBox( wDlg );
+		connect( dlbox, "doubleClicked(int)", cmbAction );
+		
+		function cmbAction()
+		{
+			var t = dlbox.currentText;
+			t = t.substr( 16 );
+			tbox.append( t );
+		};
+		
+		for( var i = 0; i < s_aMorphs.length; i += 1 ){
+			dlbox.insertItem( s_aMorphs[i] );
+		}
+		wDlg.addWidget( dlbox );
+		
+		var sKey = wDlg.caption.replace( new RegExp(" ", "g"), "" ) + "Dlg";
+		
+		var oWidget = wDlg.getWidget();
+		oWidget.objectName = sKey;
+		
+		var sizeHint = oWidget.minimumSizeHint;
+		var nHeight = sizeHint.height;
+		wDlg.setFixedSize( sizeHint.width, sizeHint.height * 2 );
+		
+		if( wDlg.exec() ){
+			if( wOpt1Btn.checked ){
+				s_sMorphWord = getMorphWord2();
+			}
+			
+			var ans = tbox.text;
+			s_sTBoxText = ans;
+			var array = ans.split( /\r\n|\r|\n/ );
+			for( var i = 0; i < array.length; i += 1 ){
+				if( array[i].indexOf( "head" ) < 0 && array[i] != "Anything"
+				&& array[i].indexOf( "pJCM" ) < 0 && array[i].length > 2 ){
+					s_sMorphWord += array[i] + "\n1\n";
+				}
+			}
+			s_sMorphWord += "Anything\n0";
+			
+			return true;
+		} else {
+			return false;
+		}
+	};
+	
+	//Morph names that are too long will cause an error in Blender 2.79.
+	function name_under_max()
+	{
+		var nCount = 0;
+		var aSkels = Scene.getSkeletonList();
+		var sTmp;
+		for( var i = 0; i < aSkels.length; i += 1 ){
+			if( aSkels[i].name.length >= s_nMaxName ){
+				sTmp = aSkels[i].name.substring( 0, s_nMaxName - 2 );
+				nCount = nCount % 36;
+				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
+				aSkels[i].name = sTmp;
+				s_nLenName = s_nMaxName;
+				nCount = nCount + 1;
+			} else {
+				if( aSkels[i].name.length > s_nLenName ){
+					s_nLenName = aSkels[i].name.length;
+				}
+			}
+		}
+	};
+	
+	//Delete previous file
+	function adjust_files()
+	{
+		var oDir = new DzDir( "" );
+		
+		var sDir = oDir.homePath() + "/";
+		var aSubs = [ "Documents", "DTB" ];
+		for( var i = 0; i < aSubs.length; i += 1 ){
+			sDir += aSubs[i] + "/";
+			oDir.setPath( sDir );
+			if( !oDir.exists() ){
+				oDir.mkdir( sDir );
+			}
+		}
+		
+		s_sRoot = sDir;
+		print( s_sRoot );
+		
+		var sFile;
+		var aExts = [ ".fbx", ".obj", ".mtl", ".dat" ];
+		for( var i = 0; i < aExts.length; i += 1 ){
+			sFile = sDir + s_sFilename + aExts[i];
+			if( oDir.exists( sFile ) ){
+				oDir.remove( sFile );
+			}
+		}
+	};
+	
+	//Decide subdivison level Dialog.
+	function getLevel()
+	{
+		var nLevel = -1;
+		
+		var wDlg = new DzDialog;
+		wDlg.caption = "Select Subdiv Level";
+		
+		var wLyt = new DzVBoxLayout( wDlg );
+		wLyt.autoAdd = true;
+		
+		var wOptBG = new DzVButtonGroup( wDlg );
+		wOptBG.columns = 1;
+		
+		var aRBtns = new Array( 3 );
+		for( var i = 0; i < 3; i += 1 ){
+			aRBtns[i] = new DzRadioButton( wOptBG );
+			aRBtns[i].text = "SubDiv " + String( i );
+			if( i == 0 ){
+				aRBtns[i].checked = true;
+			}
+		}
+		
+		var wBtnGrp = new DzVButtonGroup( wDlg );
+		wBtnGrp.columns = 2;
+		
+		var wOkBtn = new DzPushButton( wBtnGrp );
+		wOkBtn.text = "Accept";
+		
+		var wNoBtn = new DzPushButton( wBtnGrp );
+		wNoBtn.text = "Cancel";
+		
+		wDlg.setAcceptButton( wOkBtn );
+		wDlg.setRejectButton( wNoBtn );
+		
+		if( wDlg.exec() ){
+			for( var i = 0; i <= 2; i += 1 ){
+				if( aRBtns[i].checked ){
+					nLevel = i;
+					break;
+				}
+			}
+		}
+		
+		return nLevel;
+	};
+	
+	//No eyelashes on .OBJ
+	function ctl_visible_eyelash( oNode, bFbx )
+	{
+		var oNode;
+		
+		var aHide = [ "Eyelashes", "Eye_1", "Eye_2", "_Shell" ];
+		var aNodes = Scene.getNodeList();
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( oNode.getNodeParent() == oNode && !oNode.isRootNode() ){
+				print( oNode.name + "eyelash?" );
+				for( var j = 0; j < aHide.length; j += 1 ){ 
+					if( oNode.name.indexOf( aHide[j] ) > 0 ){
+						oNode.setVisible( bFbx );
+					}
+				}
+			}
+		}
+	};
+	
+	function hideNotGenesis38()
+	{
+		var oNode;
+		
+		var nIdx = -1;
+		var aNodes = Scene.getNodeList();
+		for( var z = 0; z < 2; z += 1 ){
+			for( var i = 0; i < aNodes.length; i += 1 ){
+				oNode = aNodes[i];
+				if( oNode.isRootNode() ){
+					if( z == 0 &&
+						(oNode.name == "Genesis8Female"
+						|| oNode.name == "Genesis8Male"
+						|| oNode.name == "Genesis3Male"
+						|| oNode.name == "Genesis3Female")
+					){
+						nIdx = i;
+						break;
+					}
+					
+					if( z > 0 ){
+						if( nIdx > -1 && i != nIdx ){
+							oNode.setVisible( false );
+						}
+					}
+				}
+			}
+		}
+		
+		if( nIdx > -1 && nIdx < aNodes.length ){
+			return aNodes[nIdx];
+		} else {
+			return null;
+		}
+	};
+	
+	//Make sure node is Genital
+	function isGenital( oNode )
+	{
+		var aKeys = [ "genital", "malegen_" ];
+		if( is_faced_mesh_single( oNode ) <= 0 ){
+			return false;
+		}
+		
+		var sName = oNode.name.toLowerCase();
+		for( var i = 0; i < aKeys.length; i += 1 ){
+			if( sName.length == 2 && sName == aKeys[i]
+			|| sName.length > 2 && sName.indexOf( aKeys[i] ) >= 0 ){
+				if( oNode.findNodeChild( 'hip', false ) ){
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	};
+	
+	//Mesh consisting of only edges and points cannot be FBX transferred.
+	//Even if it is invisible, it will be transferred, so there is no choice but to delete it.
+	function hide_not_faced_mesh()
+	{
+		var oNode;
+		
+		var aNodes = Scene.getNodeList();
+		var aDelNodes = new Array( aNodes.length );
+		
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( oNode.isRootNode() ){
+				continue;
+			}
+			
+			if( is_faced_mesh_single( oNode ) == 2 ){
+				aDelNodes[i] = oNode;
+			}
+		}
+		
+		aDelNodes = aDelNodes.filter( Boolean );
+		
+		for( var i = 0; i < aDelNodes.length; i += 1 ){
+			oNode = aDelNodes[i];
+			s_oMainNode.removeNodeChild( oNode, true );
+			oNode.setVisible( false );
+			if( oNode.getLabel().endsWith( "dForce" ) ){
+				Scene.removeNode( oNode );
+			}
+		}
+	};
+	
+	//Mesh with 1 or more faces
+	function is_faced_mesh_single( oNode )
+	{
+		if( !oNode ){
+			return 0;
+		}
+		
+		if( oNode.inherits( "DzBone" ) ){
+			return 0;
+		}
+		
+		var oObject = oNode.getObject();
+		if( !oObject ){
+			 return -2;
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return 0;
+		}
+		
+		var oMesh = oShape.getGeometry();
+		if( !oMesh ){
+			return 0;
+		}
+		
+		var nFacets = oMesh.getNumFacets();
+		if( nFacets < 1 && oMesh.name.toLowerCase().indexOf( "eyebrow" ) < 0 ){
+			return -2;
+		}
+		
+		if( nFacets > 14000 ){
+			return 3;
+		}
+		
+		if( oNode.isRootNode() ){
+			 return 0;
+		}
+		
+		return 1;
+	};
+	
+	function exp_bonemesh( bary ){
+		var dfile = new DzFile( s_sRoot + s_sFilename + ".dat" );
+		dfile.open( DzFile.WriteOnly );
+		for( var i = 0; i < bary.length; i += 1 ){
+			dfile.writeLine( bary[i] );
+		}
+		dfile.close();
+	};
+	
+	//The mesh attached to the bone moves directly under the figure
+	function move_bone_children_mesh()
+	{
+		var bary = new Array();
+		var aNodes = Scene.getNodeList();
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			if( !aNodes[i].isRootNode() ){
+				var ary = aNodes[i].getNodeChildren( false );
+				for( var j = 0; j < ary.length; j += 1 ){
+					var ifms = is_faced_mesh_single( ary[j] );
+					var loc = ary[j].getLocalPos();
+					var rot = ary[j].getLocalRot();
+					var scl = ary[j].getLocalScale();
+					//It's mesh(child)
+					if( ifms > 0 ){
+						var prt_ifms = is_faced_mesh_single( aNodes[i] );
+						//Parent is bone
+						var isbone = prt_ifms ==-1;
+						if( isbone ){
+							var line = getPlace( ary[j], loc, scl );
+							var aname = ary[j].name;
+							for( var a = 1; a <= 10; a += 1 ){
+								if( ary[j].getLabel().endsWith( " (" + a + ")" ) ){
+									aname += "_dup_" + a;
+								}
+							}
+							bary.push( aNodes[i].name + "," + aname + "," + line );
+							s_oMainNode.addNodeChild( ary[j], true );
+							ary[j].setLocalPos( loc );
+							ary[j].setLocalRot( rot );
+							//ary[j].setLocalPos( s_vecDef );
+							//ary[j].setLocalRot( s_quatDef );
+							ary[j].setLocalScale( scl );
+						} else if( prt_ifms < 1 ){
+							s_oMainNode.addNodeChild( ary[j], true );
+							ary[j].setLocalPos( loc );
+							ary[j].setLocalRot( rot );
+							//ary[j].setLocalPos( s_vecDef );
+							//ary[j].setLocalRot( s_quatDef );
+						}
+					//Empty
+					} else if( ifms ==-3 ){
+						var kary = ary[j].getNodeChildren( false );
+						for( var k = 0; k < kary.length; k += 1 ){
+							//child is mesh.
+							if( is_faced_mesh_single( kary[k] ) > 0 ){
+								var kloc = kary[k].getLocalPos();
+								var krot = kary[k].getLocalRot();
+								var kscl = kary[k].getLocalScale();
+								s_oMainNode.addNodeChild( kary[k], true );
+								
+								kloc.x += loc.x;
+								kloc.y += loc.y;
+								kloc.z += loc.z;
+								krot.x += rot.x;
+								krot.y += rot.y;
+								krot.z += rot.z;
+								
+								var line = getPlace( kary[k], kloc, kscl );
+								var aname = kary[k].name;
+								for( var a = 1; a <= 10; a += 1 ){
+									if (ary[j].getLabel().endsWith(" (" + a + ")")){
+										aname += "_dup_" + a;
+									}
+								}
+								
+								//Empty's parent is bone.
+								if( aNodes[i].getNodeParent() != null && is_faced_mesh_single( aNodes[i].getNodeParent() ) ==-1 ){
+									bary.push( aNodes[i].getNodeParent().name + "," + aname + "," + line );
+								}
+								kary[k].setLocalPos( kloc );
+								kary[k].setLocalRot( krot );
+								//kary[k].setLocalPos( s_vecDef );
+								//kary[k].setLocalRot( s_quatDef );
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if( bary.length > 0 ){
+			exp_bonemesh( bary );
+		}
+	};
+	
+	function dolock( oNode ){
+		oNode.getToolXRotControl().lock( true );
+		oNode.getToolYRotControl().lock( true );
+		oNode.getToolZRotControl().lock( true );
+		oNode.getOrientXControl().lock( true );
+		oNode.getOrientYControl().lock( true );
+		oNode.getOrientZControl().lock( true );
+	};
+	
+	function getPlace( oNode, loc, scl ){
+		var loc = oNode.getLocalPos();
+		var scl = oNode.getLocalScale();
+		var line = loc.x + "," + loc.y + "," + loc.z + ",";// + rot.x + "," + rot.y + "," + rot.z + ",";
+		line += oNode.getXRotControl().getLocalValue()+",";
+		line += oNode.getYRotControl().getLocalValue()+",";
+		line += oNode.getZRotControl().getLocalValue()+",";
+		line += scl.m11 + "," + scl.m22 + "," + scl.m33 + "," + oNode.getLabel();
+		return line;
+	};
+	
+	//Apply subdivision levels to figures and genitals.
+	function setSubdivAll( nLevel )
+	{
+		var bIsBody;
+		var bIsGen;
+		var nLev;
+		var oNode;
+		
+		var aNodes = Scene.getNodeList();
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			bIsBody = oNode == s_oMainNode;
+			bIsGen = !bIsBody && isGenital( oNode );
+			nLev = 0;
+			if( bIsBody || bIsGen ){
+				nLev = nLevel;
+			}
+			
+			setSubDivOne( oNode, nLev );
+		}
+	};
+	
+	function setSubDivOne( oNode, nLevel )
+	{
+		var aProps = [ "lodlevel", "SubDIALevel" ];
+		var oObject = oNode.getObject();
+		if( oObject ){
+			var oShape = oObject.getCurrentShape();
+			if( oShape ){
+				var oProp;
+				for( var i = 0; i < aProps.length; i += 1 ){
+					oProp = oShape.findProperty( aProps[i] );
+					if( oProp ){
+						if( oProp.isLocked() ){
+							oProp.lock( false );
+						}
+						
+						if( i == 0 && nLevel == 0 ){
+							oProp.setValue( "Basic" );
+						} else {
+							oProp.setValue( nLevel );
+						}
+						
+						if( nLevel > 0 ){
+							oProp.lock( true );
+						}
+					}
+				}
+			}
+		}
+	};
+	
+	s_oMainNode = hideNotGenesis38();
+	if( s_oMainNode ){
+		print( s_oMainNode.name );
+	} else {
+		MessageBox.information( "There is no Genesis3/8 figure.", "ERROR", "OK" );
+		return;
+	}
+	
+	name_under_max();
+	var nLevel = getLevel();
+	if( nLevel < 0 ){
+		return
+	}
+	
+	setSubdivAll( nLevel );
+	get_morph_list();
+	
+	if( !getMorphWord() ){
+		return;
+	}
+	
+	if( !s_sMorphWord.isEmpty() ){
+		adjust_files();
+		move_bone_children_mesh();
+		ctl_visible_eyelash( false );
+		export_obj( s_oMainNode );
+		ctl_visible_eyelash( true );
+		hide_not_faced_mesh();
+		export_fbx();
+	}
+	
+})();
