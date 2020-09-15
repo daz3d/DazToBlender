@@ -1046,8 +1046,13 @@
 	
 	function writeDataFile( aData )
 	{
-		var oFile = new DzFile( s_sRoot + s_sFilename + ".dat" );
-		oFile.open( DzFile.WriteOnly );
+		var sFilename = s_sRoot + s_sFilename + ".dat";
+		var oFile = new DzFile( sFilename );
+		if( !oFile.open( DzFile.WriteOnly ) ){
+			print( String( "Unable to open \"%1\" for writing." ).arg( sFilename ) );
+			
+			return;
+		}
 		
 		for( var i = 0; i < aData.length; i += 1 ){
 			oFile.writeLine( aData[i] );
