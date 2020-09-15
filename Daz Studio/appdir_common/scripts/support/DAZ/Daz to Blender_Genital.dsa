@@ -5,7 +5,8 @@
 	var s_oMainNode = null;
 	var s_sRoot = "";
 	
-	function export_all_genitals( oNode, oParentNode )
+	//Note: destructive - modifies the scene contents
+	function exportFollowerMorphsOBJ( oNode, oParentNode )
 	{
 		var aProperties = getElementProperties( oNode, true, true );
 		var aMorphProps = new Array( aProperties.length );
@@ -44,7 +45,7 @@
 			oProp.setValue( 1 );
 			
 			sLabel = oProp.getLabel();
-			export_obj( oParentNode, sLabel );
+			exportOBJ( oParentNode, sLabel );
 			
 			oProp.setValue( aMorphProps[i][1] );
 		}
@@ -146,7 +147,7 @@
 	
 	// - Minor changes for this specific use case
 	
-	function export_obj( oNode, sObjName )
+	function exportOBJ( oNode, sObjName )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -299,7 +300,8 @@
 // --- END export_obj_silent ----
 
 	//Decide subdivison level Dialog.
-	function getLevel()
+	// TODO : inconsistent with Daz to Blender.dsa - why?
+	function promptMeshResolution()
 	{
 		var nLevel = -1;
 		
@@ -351,20 +353,20 @@
 		
 		var nIdx = -1;
 		var aNodes = Scene.getNodeList();
-		for( var z = 0; z < 2; z += 1 ){
-			for( var i = 0; i < aNodes.length; i += 1 ){
-				oNode = aNodes[i];
+		for( var i = 0; i < 2; i += 1 ){
+			for( var j = 0; j < aNodes.length; j += 1 ){
+				oNode = aNodes[j];
 				if( oNode.isRootNode() ){
-					if( z == 0 &&
+					if( i == 0 &&
 						(oNode.name == "Genesis8Female"
 						|| oNode.name == "Genesis8Male")
 					){
-						nIdx = i;
+						nIdx = j;
 						break;
 					}
 					
-					if( z > 0 ){
-						if( nIdx > -1 && i != nIdx ){
+					if( i > 0 ){
+						if( nIdx > -1 && j != nIdx ){
 							oNode.setVisible( false );
 						}
 					}
@@ -380,7 +382,9 @@
 	};
 	
 	//set Subdivision Level
-	function setSubdivAll( nLevel )
+	// TODO : not used?
+	// TODO : inconsistent with Daz to Blender.dsa - why?
+	function setSubDivLevelAll( nLevel )
 	{
 		var bIsBody;
 		var bIsGen;
@@ -397,11 +401,11 @@
 				nLev = nLevel;
 			}
 			
-			setSubDivOne( oNode, nLevel );
+			setSubDivLevel( oNode, nLevel );
 		}
 	};
 	
-	function setSubDivOne( oNode, nLevel )
+	function setSubDivLevel( oNode, nLevel )
 	{
 		var aProps = [ "lodlevel", "SubDIALevel" ];
 		var oObject = oNode.getObject();
@@ -431,8 +435,8 @@
 		}
 	};
 	
-	//find Eyelas and Genital
-	function getChild( sName )
+	//find Eyelash and Genital
+	function findNodeChild( sName )
 	{
 		var oNode;
 		
@@ -479,8 +483,8 @@
 		return false;
 	};
 	
-	//Delete previous Object
-	function adjust_files()
+	//Delete previous export
+	function prepareForExport()
 	{
 		var oDir = new DzDir( "" );
 		
@@ -558,7 +562,8 @@
 		return 1;
 	};
 	
-	function ctl_visible( oLashes, oGenital, bSee )
+	//Note: destructive - modifies the scene contents
+	function setExportVisibility( oLashes, oGenital, bOnOff )
 	{
 		var oNode;
 		var oChild;
@@ -569,12 +574,12 @@
 			oNode = aNodes[i];
 			if( oNode == s_oMainNode
 			|| oNode.getNodeParent() == s_oMainNode ){
-				//hide eyelash when export mainfiture and genital
+				//hide eyelash when exporting main figure and genital
 				if( oNode == oLashes ){
-					oNode.setVisible( bSee );
-				//hide mainFigure and genital when export eyelash
+					oNode.setVisible( bOnOff );
+				//hide main figure and genital when exporting eyelash
 				} else if( oNode == oGenital || oNode == s_oMainNode ){
-					oNode.setVisible( !bSee );
+					oNode.setVisible( !bOnOff );
 				} else {
 					aChildren = oNode.getNodeChildren( true );
 					for( var j = 0; j < aChildren.length; j += 1 ){
@@ -594,28 +599,28 @@
 	
 	s_oMainNode = hideNotGenesis8();
 	if( s_oMainNode ){
-		adjust_files();
-		var nLevel = getLevel();
+		prepareForExport();
+		var nLevel = promptMeshResolution();
 		if( nLevel < 0 ){
 			return;
 		}
 		
-		setSubDivOne( s_oMainNode, nLevel );
+		setSubDivLevel( s_oMainNode, nLevel );
 		
-		var oGenital = getChild( "Genital" );
+		var oGenital = findNodeChild( "Genital" );
 		
-		var oEyelash = getChild( "Eyelash" );
+		var oEyelash = findNodeChild( "Eyelash" );
 		
 		if( oEyelash ){
-			setSubDivOne( oEyelash, 0 );
-			ctl_visible( oEyelash, oGenital, true );
-			export_obj( oEyelash, "Eyelash" );
+			setSubDivLevel( oEyelash, 0 );
+			setExportVisibility( oEyelash, oGenital, true );
+			exportOBJ( oEyelash, "Eyelash" );
 		}
 		
 		if( oGenital ){
-			setSubDivOne( oGenital, nLevel );
-			ctl_visible( oEyelash, oGenital, false );
-			export_all_genitals( oGenital, s_oMainNode );
+			setSubDivLevel( oGenital, nLevel );
+			setExportVisibility( oEyelash, oGenital, false );
+			exportFollowerMorphsOBJ( oGenital, s_oMainNode );
 		}
 	}
 	

@@ -231,21 +231,20 @@
 		"pJCMToesUp_60_L",
 		"pJCMToesUp_60_R"
 	];
-	var s_sMorphWord = "head\n1\npJCM\n1\n";
+	var s_sMorphRules = "head\n1\npJCM\n1\n";
 	var s_sRoot = "";
 	var s_aMorphs = [];
 	var s_aSearch = [];
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
 	var s_nMaxAll = 63;
-	var s_s2Spaces = "  ";//not used
 	var s_s3Spaces = "   ";
-	var s_sTBoxText = "";
 	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
 	var s_vecDef = new DzVec3( 0, 0, 0 );
 	var s_quatDef = new DzQuat( 0, 0, 0, 1, true );
 	
-	function get_morph_list()
+	//Note: destructive - modifies the scene contents
+	function buildMorphList()
 	{
 		var aProperties = getElementProperties( s_oMainNode, true, true );
 		var nAlfIdx = 0;
@@ -290,7 +289,7 @@
 			if( (sLabel.length + 2 + s_nMaxName) > s_nMaxAll ){
 				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
 				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
-				oOwner.name = sLabel; // TODO : Changing the name of the modifier (owner) will create problems with loading/saving/presets/etc
+				oOwner.name = sLabel;
 				nAlfIdx += 1;
 				nAlfIdx = nAlfIdx % 36;
 			}
@@ -310,8 +309,8 @@
 			}
 		}
 	};
-
-
+	
+	
 // --- START node_properties ----
 	/**********************************************************************
 	
@@ -325,9 +324,9 @@
 	
 	**********************************************************************/
 	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
- 
+ 	
  	// - Extraccted functions
- 
+ 	
 	/*********************************************************************/
 	// Array<DzProperty> : A function for getting a list of the properties in a group
 	function getGroupProperties( oGroup, bTraverse, bRecurse )
@@ -389,8 +388,8 @@
 	};
 	
 // --- END node_properties ----
-
-
+	
+	
 // --- START export_fbx_silent ----
 	/**********************************************************************
 	
@@ -404,10 +403,10 @@
 	
 	**********************************************************************/
 	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_fbx_silent/start
-
+	
 	// - Minor changes for this specific use case
-
-	function export_fbx()
+	
+	function exportFBX()
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -456,7 +455,7 @@
 			// The names of the morphs are in the form: node_name.parameter_name
 			// The default action is to Bake
 			// So "FBMHeavy\nExport\nThin\nExport" would export all morphs that have FBMHeavy and all morphs that have Thin in the name
-			oSettings.setStringValue( "rules", s_sMorphWord );
+			oSettings.setStringValue( "rules", s_sMorphRules );
 			
 			// Format
 			// Format for format is "Year# -- Type",
@@ -528,8 +527,8 @@
 	};
 	
 // --- END export_fbx_silent ----
-
-
+	
+	
 // --- START export_obj_silent ----
 	/**********************************************************************
 	
@@ -546,7 +545,7 @@
 	
 	// - Minor changes for this specific use case
 	
-	function export_obj()
+	function exportOBJ()
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -688,7 +687,7 @@
 	
 // --- END export_obj_silent ----
 	
-	function getMorphWord2()
+	function getMinimalMorphRules()
 	{
 		var sResult = "";
 		
@@ -704,7 +703,7 @@
 		return sResult;
 	};
 	
-	function addTopImage( wDlg )
+	function addBanner( wDlg )
 	{
 		var imagefile = new DzDir( "" ).homePath() + "/Documents/DTB/resources/daz-logo-main.png";
 		var img1 = new Image( imagefile );
@@ -715,7 +714,7 @@
 		wDlg.addWidget( wLabel );
 	};
 	
-	function getMorphWord()
+	function promptMorphRules()
 	{
 		var wDlg = new DzBasicDialog();
 		
@@ -728,7 +727,7 @@
 		wOpt1Btn.checked = true;
 		wDlg.addWidget( wOpt1Btn );
 		
-		addTopImage( wDlg );
+		addBanner( wDlg );
 		wDlg.caption = "Input Morph Names. (Separated by line)";
 		
 		var lbl_1 = new DzLabel( wDlg );
@@ -769,19 +768,18 @@
 		
 		if( wDlg.exec() ){
 			if( wOpt1Btn.checked ){
-				s_sMorphWord = getMorphWord2();
+				s_sMorphRules = getMinimalMorphRules();
 			}
 			
 			var ans = tbox.text;
-			s_sTBoxText = ans;
 			var array = ans.split( /\r\n|\r|\n/ );
 			for( var i = 0; i < array.length; i += 1 ){
 				if( array[i].indexOf( "head" ) < 0 && array[i] != "Anything"
 				&& array[i].indexOf( "pJCM" ) < 0 && array[i].length > 2 ){
-					s_sMorphWord += array[i] + "\n1\n";
+					s_sMorphRules += array[i] + "\n1\n";
 				}
 			}
-			s_sMorphWord += "Anything\n0";
+			s_sMorphRules += "Anything\n0";
 			
 			return true;
 		} else {
@@ -790,29 +788,36 @@
 	};
 	
 	//Morph names that are too long will cause an error in Blender 2.79.
-	function name_under_max()
+	//Note: destructive - modifies the scene contents
+	function truncateSkeletonNames()
 	{
 		var nCount = 0;
-		var aSkels = Scene.getSkeletonList();
+		
 		var sTmp;
-		for( var i = 0; i < aSkels.length; i += 1 ){
-			if( aSkels[i].name.length >= s_nMaxName ){
-				sTmp = aSkels[i].name.substring( 0, s_nMaxName - 2 );
+		var oSkeleton;
+		var sSkelName;
+		
+		var aSkeletons = Scene.getSkeletonList();
+		for( var i = 0; i < aSkeletons.length; i += 1 ){
+			oSkeleton = aSkeletons[i];
+			sSkelName = oSkeleton.name;
+			if( sSkelName.length >= s_nMaxName ){
+				sTmp = sSkelName.substring( 0, s_nMaxName - 2 );
 				nCount = nCount % 36;
 				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
-				aSkels[i].name = sTmp;
+				oSkeleton.name = sTmp;
 				s_nLenName = s_nMaxName;
 				nCount = nCount + 1;
 			} else {
-				if( aSkels[i].name.length > s_nLenName ){
-					s_nLenName = aSkels[i].name.length;
+				if( sSkelName.length > s_nLenName ){
+					s_nLenName = sSkelName.length;
 				}
 			}
 		}
 	};
 	
-	//Delete previous file
-	function adjust_files()
+	//Delete previous export
+	function prepareForExport()
 	{
 		var oDir = new DzDir( "" );
 		
@@ -840,7 +845,7 @@
 	};
 	
 	//Decide subdivison level Dialog.
-	function getLevel()
+	function promptMeshResolution()
 	{
 		var nLevel = -1;
 		
@@ -887,7 +892,7 @@
 	};
 	
 	//No eyelashes on .OBJ
-	function ctl_visible_eyelash( oNode, bFbx )
+	function setEyelashVisibility( oNode, bOnOff )
 	{
 		var oNode;
 		
@@ -899,7 +904,7 @@
 				print( oNode.name + "eyelash?" );
 				for( var j = 0; j < aHide.length; j += 1 ){ 
 					if( oNode.name.indexOf( aHide[j] ) > 0 ){
-						oNode.setVisible( bFbx );
+						oNode.setVisible( bOnOff );
 					}
 				}
 			}
@@ -912,22 +917,22 @@
 		
 		var nIdx = -1;
 		var aNodes = Scene.getNodeList();
-		for( var z = 0; z < 2; z += 1 ){
-			for( var i = 0; i < aNodes.length; i += 1 ){
-				oNode = aNodes[i];
+		for( var i = 0; i < 2; i += 1 ){
+			for( var j = 0; j < aNodes.length; j += 1 ){
+				oNode = aNodes[j];
 				if( oNode.isRootNode() ){
-					if( z == 0 &&
+					if( i == 0 &&
 						(oNode.name == "Genesis8Female"
 						|| oNode.name == "Genesis8Male"
 						|| oNode.name == "Genesis3Male"
 						|| oNode.name == "Genesis3Female")
 					){
-						nIdx = i;
+						nIdx = j;
 						break;
 					}
 					
-					if( z > 0 ){
-						if( nIdx > -1 && i != nIdx ){
+					if( i > 0 ){
+						if( nIdx > -1 && j != nIdx ){
 							oNode.setVisible( false );
 						}
 					}
@@ -965,7 +970,8 @@
 	
 	//Mesh consisting of only edges and points cannot be FBX transferred.
 	//Even if it is invisible, it will be transferred, so there is no choice but to delete it.
-	function hide_not_faced_mesh()
+	//Note: destructive - modifies the scene contents
+	function removeIncompatibleNodes()
 	{
 		var oNode;
 		
@@ -1037,102 +1043,155 @@
 		return 1;
 	};
 	
-	function exp_bonemesh( bary ){
-		var dfile = new DzFile( s_sRoot + s_sFilename + ".dat" );
-		dfile.open( DzFile.WriteOnly );
-		for( var i = 0; i < bary.length; i += 1 ){
-			dfile.writeLine( bary[i] );
+	function writeDataFile( aData )
+	{
+		var oFile = new DzFile( s_sRoot + s_sFilename + ".dat" );
+		oFile.open( DzFile.WriteOnly );
+		
+		for( var i = 0; i < aData.length; i += 1 ){
+			oFile.writeLine( aData[i] );
 		}
-		dfile.close();
+		
+		oFile.close();
 	};
 	
 	//The mesh attached to the bone moves directly under the figure
-	function move_bone_children_mesh()
+	//Note: destructive - modifies the scene contents
+	function flattenObjectHierarchy()
 	{
-		var bary = new Array();
+		var oNode;
+		
+		var oChildLvl1;
+		var oChildLvl2;
+		var aChildrenLvl1;
+		var aChildrenLvl2;
+		
+		var ifms;
+		var vecChildLvl1Pos;
+		var quatChildLvl1Rot;
+		var mtxChildLvl1Scale;
+		
+		var prt_ifms;
+		var vecChildLvl2Pos;
+		var quatChildLvl2Rot;
+		var mtxChildLvl2Scale;
+		
+		var sTransform;
+		
+		var sChildLvl1Name;
+		var sChildLvl1Label;
+		
+		var sChildLvl2Name;
+		var sChildLvl2Label;
+		
 		var aNodes = Scene.getNodeList();
-		for( var i = 0; i < aNodes.length; i += 1 ){
-			if( !aNodes[i].isRootNode() ){
-				var ary = aNodes[i].getNodeChildren( false );
-				for( var j = 0; j < ary.length; j += 1 ){
-					var ifms = is_faced_mesh_single( ary[j] );
-					var loc = ary[j].getLocalPos();
-					var rot = ary[j].getLocalRot();
-					var scl = ary[j].getLocalScale();
-					//It's mesh(child)
-					if( ifms > 0 ){
-						var prt_ifms = is_faced_mesh_single( aNodes[i] );
-						//Parent is bone
-						var isbone = prt_ifms ==-1;
-						if( isbone ){
-							var line = getPlace( ary[j], loc, scl );
-							var aname = ary[j].name;
-							for( var a = 1; a <= 10; a += 1 ){
-								if( ary[j].getLabel().endsWith( " (" + a + ")" ) ){
-									aname += "_dup_" + a;
-								}
+		var nNodes = aNodes.length;
+		
+		var aData = new Array( nNodes );
+		
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			if( oNode.isRootNode() ){
+				continue;
+			}
+			
+			aChildrenLvl1 = oNode.getNodeChildren( false );
+			for( var j = 0, nChildren = aChildrenLvl1.length; j < nChildren; j += 1 ){
+				oChildLvl1 = aChildrenLvl1[j];
+				
+				ifms = is_faced_mesh_single( oChildLvl1 );
+				vecChildLvl1Pos = oChildLvl1.getLocalPos();
+				quatChildLvl1Rot = oChildLvl1.getLocalRot();
+				mtxChildLvl1Scale = oChildLvl1.getLocalScale();
+				
+				//It's mesh(child)
+				if( ifms > 0 ){
+					prt_ifms = is_faced_mesh_single( oNode );
+					
+					//Parent is bone
+					if( prt_ifms == -1 ){
+						sTransform = getTransformAsCSV( oChildLvl1, vecChildLvl1Pos, mtxChildLvl1Scale );
+						sChildLvl1Name = oChildLvl1.name;
+						sChildLvl1Label = oChildLvl1.getLabel();
+						for( var a = 1; a <= 10; a += 1 ){
+							if( sChildLvl1Label.endsWith( " (" + a + ")" ) ){
+								sChildLvl1Name += "_dup_" + a;
 							}
-							bary.push( aNodes[i].name + "," + aname + "," + line );
-							s_oMainNode.addNodeChild( ary[j], true );
-							ary[j].setLocalPos( loc );
-							ary[j].setLocalRot( rot );
-							//ary[j].setLocalPos( s_vecDef );
-							//ary[j].setLocalRot( s_quatDef );
-							ary[j].setLocalScale( scl );
-						} else if( prt_ifms < 1 ){
-							s_oMainNode.addNodeChild( ary[j], true );
-							ary[j].setLocalPos( loc );
-							ary[j].setLocalRot( rot );
-							//ary[j].setLocalPos( s_vecDef );
-							//ary[j].setLocalRot( s_quatDef );
 						}
-					//Empty
-					} else if( ifms ==-3 ){
-						var kary = ary[j].getNodeChildren( false );
-						for( var k = 0; k < kary.length; k += 1 ){
-							//child is mesh.
-							if( is_faced_mesh_single( kary[k] ) > 0 ){
-								var kloc = kary[k].getLocalPos();
-								var krot = kary[k].getLocalRot();
-								var kscl = kary[k].getLocalScale();
-								s_oMainNode.addNodeChild( kary[k], true );
-								
-								kloc.x += loc.x;
-								kloc.y += loc.y;
-								kloc.z += loc.z;
-								krot.x += rot.x;
-								krot.y += rot.y;
-								krot.z += rot.z;
-								
-								var line = getPlace( kary[k], kloc, kscl );
-								var aname = kary[k].name;
-								for( var a = 1; a <= 10; a += 1 ){
-									if (ary[j].getLabel().endsWith(" (" + a + ")")){
-										aname += "_dup_" + a;
-									}
+						
+						aData.[i] = oNode.name + "," + sChildLvl1Name + "," + sTransform + "," + sChildLvl1Label;
+						
+						s_oMainNode.addNodeChild( oChildLvl1, true );
+						
+						oChildLvl1.setLocalPos( vecChildLvl1Pos );
+						oChildLvl1.setLocalRot( quatChildLvl1Rot );
+						//oChildLvl1.setLocalPos( s_vecDef );
+						//oChildLvl1.setLocalRot( s_quatDef );
+						oChildLvl1.setLocalScale( mtxChildLvl1Scale );
+					} else if( prt_ifms < 1 ){
+						s_oMainNode.addNodeChild( oChildLvl1, true );
+						oChildLvl1.setLocalPos( vecChildLvl1Pos );
+						oChildLvl1.setLocalRot( quatChildLvl1Rot );
+						//oChildLvl1.setLocalPos( s_vecDef );
+						//oChildLvl1.setLocalRot( s_quatDef );
+					}
+				//Empty
+				} else if( ifms == -3 ){
+					aChildrenLvl2 = oChildLvl1.getNodeChildren( false );
+					for( var k = 0, nGrandChildren = aChildrenLvl2.length; k < nGrandChildren; k += 1 ){
+						oChildLvl2 = aChildrenLvl2[k];
+						
+						//child is mesh.
+						if( is_faced_mesh_single( oChildLvl2 ) > 0 ){
+							vecChildLvl2Pos = oChildLvl2.getLocalPos();
+							quatChildLvl2Rot = oChildLvl2.getLocalRot();
+							mtxChildLvl2Scale = oChildLvl2.getLocalScale();
+							
+							s_oMainNode.addNodeChild( oChildLvl2, true );
+							
+							vecChildLvl2Pos.x += vecChildLvl1Pos.x;
+							vecChildLvl2Pos.y += vecChildLvl1Pos.y;
+							vecChildLvl2Pos.z += vecChildLvl1Pos.z;
+							
+							quatChildLvl2Rot.x += quatChildLvl1Rot.x;
+							quatChildLvl2Rot.y += quatChildLvl1Rot.y;
+							quatChildLvl2Rot.z += quatChildLvl1Rot.z;
+							
+							sTransform = getTransformAsCSV( oChildLvl2, vecChildLvl2Pos, mtxChildLvl2Scale );
+							sChildLvl2Name = oChildLvl2.name;
+							sChildLvl2Label = oChildLvl2.getLabel();
+							for( var a = 1; a <= 10; a += 1 ){
+								if( oChildLvl1.getLabel().endsWith(" (" + a + ")") ){ //TODO : oChildLvl1.getLabel() or sChildLvl2Label?
+									sChildLvl2Name += "_dup_" + a;
 								}
-								
-								//Empty's parent is bone.
-								if( aNodes[i].getNodeParent() != null && is_faced_mesh_single( aNodes[i].getNodeParent() ) ==-1 ){
-									bary.push( aNodes[i].getNodeParent().name + "," + aname + "," + line );
-								}
-								kary[k].setLocalPos( kloc );
-								kary[k].setLocalRot( krot );
-								//kary[k].setLocalPos( s_vecDef );
-								//kary[k].setLocalRot( s_quatDef );
 							}
+							
+							//Empty's parent is bone.
+							if( oNode.getNodeParent() && is_faced_mesh_single( oNode.getNodeParent() ) == -1 ){
+								aData.[i] = oNode.getNodeParent().name + "," + sChildLvl2Name + "," + sTransform + "," + sChildLvl2Label;
+							}
+							
+							oChildLvl2.setLocalPos( vecChildLvl2Pos );
+							oChildLvl2.setLocalRot( quatChildLvl2Rot );
+							//oChildLvl2.setLocalPos( s_vecDef );
+							//oChildLvl2.setLocalRot( s_quatDef );
 						}
 					}
 				}
 			}
 		}
 		
-		if( bary.length > 0 ){
-			exp_bonemesh( bary );
+		aData = aData.filter( Boolean );
+		
+		if( aData.length > 0 ){
+			writeDataFile( aData );
 		}
 	};
 	
-	function dolock( oNode ){
+	// TODO : not used?
+	//Note: destructive - modifies the scene contents
+	function lockNodeTransforms( oNode )
+	{
 		oNode.getToolXRotControl().lock( true );
 		oNode.getToolYRotControl().lock( true );
 		oNode.getToolZRotControl().lock( true );
@@ -1141,19 +1200,21 @@
 		oNode.getOrientZControl().lock( true );
 	};
 	
-	function getPlace( oNode, loc, scl ){
-		var loc = oNode.getLocalPos();
-		var scl = oNode.getLocalScale();
-		var line = loc.x + "," + loc.y + "," + loc.z + ",";// + rot.x + "," + rot.y + "," + rot.z + ",";
-		line += oNode.getXRotControl().getLocalValue()+",";
-		line += oNode.getYRotControl().getLocalValue()+",";
-		line += oNode.getZRotControl().getLocalValue()+",";
-		line += scl.m11 + "," + scl.m22 + "," + scl.m33 + "," + oNode.getLabel();
-		return line;
+	function getTransformAsCSV( oNode, vecPos, mtxScale )
+	{
+		var sResult = vecPos.x + "," + vecPos.y + "," + vecPos.z + ",";
+		
+		sResult += oNode.getXRotControl().getLocalValue() + ",";
+		sResult += oNode.getYRotControl().getLocalValue() + ",";
+		sResult += oNode.getZRotControl().getLocalValue() + ",";
+		
+		sResult += mtxScale.m11 + "," + mtxScale.m22 + "," + mtxScale.m33;
+		
+		return sResult;
 	};
 	
 	//Apply subdivision levels to figures and genitals.
-	function setSubdivAll( nLevel )
+	function setSubDivLevelAll( nLevel )
 	{
 		var bIsBody;
 		var bIsGen;
@@ -1170,35 +1231,39 @@
 				nLev = nLevel;
 			}
 			
-			setSubDivOne( oNode, nLev );
+			setSubDivLevel( oNode, nLev );
 		}
 	};
 	
-	function setSubDivOne( oNode, nLevel )
+	function setSubDivLevel( oNode, nLevel )
 	{
 		var aProps = [ "lodlevel", "SubDIALevel" ];
 		var oObject = oNode.getObject();
-		if( oObject ){
-			var oShape = oObject.getCurrentShape();
-			if( oShape ){
-				var oProp;
-				for( var i = 0; i < aProps.length; i += 1 ){
-					oProp = oShape.findProperty( aProps[i] );
-					if( oProp ){
-						if( oProp.isLocked() ){
-							oProp.lock( false );
-						}
-						
-						if( i == 0 && nLevel == 0 ){
-							oProp.setValue( "Basic" );
-						} else {
-							oProp.setValue( nLevel );
-						}
-						
-						if( nLevel > 0 ){
-							oProp.lock( true );
-						}
-					}
+		if( !oObject ){
+			return;
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return;
+		}
+		
+		var oProp;
+		for( var i = 0; i < aProps.length; i += 1 ){
+			oProp = oShape.findProperty( aProps[i] );
+			if( oProp ){
+				if( oProp.isLocked() ){
+					oProp.lock( false );
+				}
+				
+				if( i == 0 && nLevel == 0 ){
+					oProp.setValue( "Basic" );
+				} else {
+					oProp.setValue( nLevel );
+				}
+				
+				if( nLevel > 0 ){
+					oProp.lock( true );
 				}
 			}
 		}
@@ -1212,27 +1277,27 @@
 		return;
 	}
 	
-	name_under_max();
-	var nLevel = getLevel();
+	truncateSkeletonNames();
+	var nLevel = promptMeshResolution();
 	if( nLevel < 0 ){
-		return
-	}
-	
-	setSubdivAll( nLevel );
-	get_morph_list();
-	
-	if( !getMorphWord() ){
 		return;
 	}
 	
-	if( !s_sMorphWord.isEmpty() ){
-		adjust_files();
-		move_bone_children_mesh();
-		ctl_visible_eyelash( false );
-		export_obj( s_oMainNode );
-		ctl_visible_eyelash( true );
-		hide_not_faced_mesh();
-		export_fbx();
+	setSubDivLevelAll( nLevel );
+	buildMorphList();
+	
+	if( !promptMorphRules() ){
+		return;
+	}
+	
+	if( !s_sMorphRules.isEmpty() ){
+		prepareForExport();
+		flattenObjectHierarchy();
+		setEyelashVisibility( false );
+		exportOBJ( s_oMainNode );
+		setEyelashVisibility( true );
+		removeIncompatibleNodes();
+		exportFBX();
 	}
 	
 })();

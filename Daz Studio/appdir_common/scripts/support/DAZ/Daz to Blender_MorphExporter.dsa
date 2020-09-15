@@ -6,7 +6,6 @@
 	var s_sRoot = "";
 	var s_sGenName = "";
 	
-
 // --- START export_obj_silent ----
 	/**********************************************************************
 	
@@ -23,7 +22,7 @@
 	
 	// - Minor changes for this specific use case
 	
-	function export_obj( sObjName )
+	function exportOBJ( sObjName )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -169,8 +168,9 @@
 	};
 	
 // --- END export_obj_silent ----
-
-	function adjust_files( sName )
+	
+	//Delete previous export
+	function prepareForExport( sName )
 	{
 		var oDir = new DzDir( "" );
 		
@@ -229,7 +229,8 @@
 		return 1;
 	};
 	
-	function ctl_visible()
+	//Note: destructive - modifies the scene contents
+	function setExportVisibility()
 	{
 		var oNode;
 		var oChild;
@@ -238,7 +239,8 @@
 		var aNodes = Scene.getNodeList();
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			if( oNode.getNodeParent() == s_oMainNode && !oNode.isRootNode() ){
+			if( oNode.getNodeParent() == s_oMainNode
+			&& !oNode.isRootNode() ){
 				print( oNode.name );
 				if( oNode.name.indexOf( "Eyelashes" ) > 0 ){
 					oNode.setVisible( false );
@@ -269,22 +271,22 @@
 		
 		var nIdx = -1;
 		var aNodes = Scene.getNodeList();
-		for( var z = 0; z < 2; z += 1 ){
-			for( var i = 0; i < aNodes.length; i += 1 ){
-				oNode = aNodes[i];
+		for( var i = 0; i < 2; i += 1 ){
+			for( var j = 0; j < aNodes.length; j += 1 ){
+				oNode = aNodes[j];
 				if( oNode.isRootNode() && is_faced_mesh_single( oNode ) > 1 ){
-					if( z == 0 &&
+					if( i == 0 &&
 						(oNode.name == "Genesis8Female"
 						|| oNode.name == "Genesis8Male"
 						|| oNode.name == "Genesis3Male"
 						|| oNode.name == "Genesis3Female")
 					){
-						nIdx = i;
+						nIdx = j;
 						break;
 					}
 					
-					if( z > 0 ){
-						if( nIdx > -1 && i != nIdx ){
+					if( i > 0 ){
+						if( nIdx > -1 && j != nIdx ){
 							oNode.setVisible( false );
 						}
 					}
@@ -303,7 +305,7 @@
 	function isGenital( oNode )
 	{
 		var aKeys = [ "genital", "malegen_" ];
-		if( is_faced_mesh_single(oNode) < 1 ){
+		if( is_faced_mesh_single( oNode ) < 1 ){
 			return false;
 		}
 		
@@ -317,15 +319,17 @@
 				}
 			}
 		}
+		
 		return false;
 	};
 	
 	//set Subdivision Level
-	function setSubdivAll( nLevel )
+	// TODO : inconsistent with Daz to Blender.dsa - why?
+	function setSubDivLevelAll( nLevel )
 	{
 		var bIsBody;
 		var bIsGen;
-		var nLev;
+		var nLev; // TODO : not used.
 		var oNode;
 		
 		var aNodes = Scene.getNodeList();
@@ -338,42 +342,46 @@
 				nLev = nLevel;
 			}
 			
-			setSubDivOne( oNode, nLevel );
+			setSubDivLevel( oNode, nLevel );
 		}
 	};
 	
-	function setSubDivOne( oNode, nLevel )
+	function setSubDivLevel( oNode, nLevel )
 	{
 		var aProps = [ "lodlevel", "SubDIALevel" ];
 		var oObject = oNode.getObject();
-		if( oObject ){
-			var oShape = oObject.getCurrentShape();
-			if( oShape ){
-				var oProp;
-				for( var i = 0; i < aProps.length; i += 1 ){
-					oProp = oShape.findProperty( aProps[i] );
-					if( oProp ){
-						if( oProp.isLocked() ){
-							oProp.lock( false );
-						}
-						
-						if( i == 0 && nLevel == 0 ){
-							oProp.setValue( "Basic" );
-						} else {
-							oProp.setValue( nLevel );
-						}
-						
-						if( nLevel > 0 ){
-							oProp.lock( true );
-						}
-					}
+		if( !oObject ){
+			return;
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return;
+		}
+		
+		var oProp;
+		for( var i = 0; i < aProps.length; i += 1 ){
+			oProp = oShape.findProperty( aProps[i] );
+			if( oProp ){
+				if( oProp.isLocked() ){
+					oProp.lock( false );
+				}
+				
+				if( i == 0 && nLevel == 0 ){
+					oProp.setValue( "Basic" );
+				} else {
+					oProp.setValue( nLevel );
+				}
+				
+				if( nLevel > 0 ){
+					oProp.lock( true );
 				}
 			}
 		}
 	};
 	
 	//Decide subdivison level Dialog.
-	function getLevel()
+	function promptMeshResolution()
 	{
 		var nLevel = -1;
 		
@@ -428,24 +436,25 @@
 		MessageBox.information( "There is no Genesis3/8 figure.", "ERROR", "OK" );
 		return;
 	}
-	var nLevel = getLevel();
+	
+	var nLevel = promptMeshResolution();
 	if( nLevel < 0 ){
-		return
+		return;
 	}
 	
-	setSubdivAll( nLevel );
-	ctl_visible( s_oMainNode );
-
-	adjust_files( "to_blender_morph" );
+	setSubDivLevelAll( nLevel );
+	setExportVisibility();
+	
+	prepareForExport( "to_blender_morph" );
 	
 	var dateNow = new Date();
 	
 	if( s_sGenName.isEmpty() ){
 		s_sGenName = s_oMainNode.name;
 	} else {
-		var a = s_sGenName.indexOf( "_" );
-		if( a >- 1 ){
-			s_sGenName = s_sGenName.substring( 0, a );
+		var nIdx = s_sGenName.indexOf( "_" );
+		if( nIdx > -1 ){
+			s_sGenName = s_sGenName.substring( 0, nIdx );
 		}
 	}
 	s_sGenName += "_" + level;
@@ -456,6 +465,6 @@
 	s_sGenName += "" + dateNow.getMinutes();
 	s_sGenName += "" + dateNow.getSeconds();
 	
-	export_obj( s_sGenName );
+	exportOBJ( s_sGenName );
 	
 })();
