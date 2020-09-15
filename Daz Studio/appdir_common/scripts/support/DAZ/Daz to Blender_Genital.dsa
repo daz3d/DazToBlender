@@ -2,6 +2,10 @@
 
 (function(){
 	
+	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
+	var s_sToolName = s_oFileInfo.baseName();
+	s_oFileInfo.deleteLater();
+	
 	var s_oMainNode = null;
 	var s_sRoot = "";
 	
@@ -50,8 +54,8 @@
 			oProp.setValue( aMorphProps[i][1] );
 		}
 	};
-
-
+	
+	
 // --- START node_properties ----
 	/**********************************************************************
 	
@@ -65,9 +69,9 @@
 	
 	**********************************************************************/
 	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
- 
+ 	
  	// - Extraccted functions
- 
+ 	
 	/*********************************************************************/
 	// Array<DzProperty> : A function for getting a list of the properties in a group
 	function getGroupProperties( oGroup, bTraverse, bRecurse )
@@ -129,8 +133,8 @@
 	};
 	
 // --- END node_properties ----
-
-
+	
+	
 // --- START export_obj_silent ----
 	/**********************************************************************
 	
@@ -291,14 +295,14 @@
 		// We didn't find an exporter with the class name we wanted
 		} else {
 			// Inform the user
-			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
-				"could not be found.").arg( sClassName ),
-				qsTr("Critical Error"), qsTr("&OK") );
+			MessageBox.critical( qsTr( "An exporter with the class name \"%1\" " +
+				"could not be found." ).arg( sClassName ),
+				s_sToolName, qsTr( "&OK" ) );
 		}
 	};
 	
 // --- END export_obj_silent ----
-
+	
 	//Decide subdivison level Dialog.
 	// TODO : inconsistent with Daz to Blender.dsa - why?
 	function promptMeshResolution()

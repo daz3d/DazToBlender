@@ -2,6 +2,10 @@
 
 (function(){
 	
+	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
+	var s_sToolName = s_oFileInfo.baseName();
+	s_oFileInfo.deleteLater();
+	
 	var s_oMainNode = null;
 	var s_sRoot = "";
 	var s_sGenName = "";
@@ -162,9 +166,9 @@
 		// We didn't find an exporter with the class name we wanted
 		} else {
 			// Inform the user
-			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
-				"could not be found.").arg( sClassName ),
-				qsTr("Critical Error"), qsTr("&OK") );
+			MessageBox.critical( qsTr( "An exporter with the class name \"%1\" " +
+				"could not be found." ).arg( sClassName ),
+				s_sToolName, qsTr( "&OK" ) );
 		}
 	};
 	
@@ -434,7 +438,9 @@
 	if( s_oMainNode ){
 		print( s_oMainNode.name );
 	} else {
-		MessageBox.information( "There is no Genesis3/8 figure.", "ERROR", "OK" );
+		MessageBox.information(
+			qsTr( "There is no Genesis 3/8 figure." ),
+			s_sToolName, qsTr( "&OK" ) );
 		return;
 	}
 	
