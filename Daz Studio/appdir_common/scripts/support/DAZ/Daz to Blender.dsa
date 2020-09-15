@@ -893,7 +893,7 @@
 	};
 	
 	//No eyelashes on .OBJ
-	function setEyelashVisibility( oNode, bOnOff )
+	function setEyelashVisibility( bOnOff )
 	{
 		var oNode;
 		
