@@ -22,7 +22,7 @@
 	
 	// - Minor changes for this specific use case
 	
-	function exportOBJ( sObjName )
+	function exportOBJ( oNode, sObjName )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -140,14 +140,15 @@
 			// exporter's last path, the node's name, and the
 			// exporter's extension...
 			// Otherwise, just use the exporter's last path
-			var sInitialPath = ( s_oMainNode ?
+			var sInitialPath = ( oNode ?
 				String( "%1/%2.%3" )
 					.arg( oExportMgr.getExportPath() )
-					.arg( s_oMainNode.name )
+					.arg( oNode.name )
 					.arg( oExporter.getExtension() ) :
 				oExportMgr.getExportPath() );
 			
-			var sPath = s_sRoot + "/" + sObjName + ".obj";
+			var sPath = s_sRoot + "/";
+			sPath += sObjName + ".obj";
 			
 			// If the user didn't cancel and the file doesn't already
 			// exist, or the user wants to overwrite it
@@ -465,6 +466,6 @@
 	s_sGenName += "" + dateNow.getMinutes();
 	s_sGenName += "" + dateNow.getSeconds();
 	
-	exportOBJ( s_sGenName );
+	exportOBJ( s_oMainNode, s_sGenName );
 	
 })();
