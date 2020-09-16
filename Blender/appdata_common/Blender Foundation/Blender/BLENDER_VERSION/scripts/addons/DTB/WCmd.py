@@ -1,13 +1,12 @@
 import bpy
 import os
-import math
 import sys
 sys.path.append(os.path.dirname(__file__))
 from . import DataBase
 from . import Versions
 from . import MatDct
-from . import DtbShaders
-from pathlib import Path
+from . import DtbMaterial
+from . import Util
 from . import Global
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty
@@ -23,6 +22,7 @@ class ImportFilesCollection(bpy.types.PropertyGroup):
     )
 
 bpy.utils.register_class(ImportFilesCollection)
+
 class IMP_OT_dir(bpy.types.Operator, ImportHelper):
     bl_idname = "imp.material"
     bl_label = "Import material"
@@ -47,7 +47,7 @@ class IMP_OT_dir(bpy.types.Operator, ImportHelper):
             self.filepath = self.filepath[0:len(self.filepath)-1]
         md.makeDctFromDirectory(self.filepath)
         dct = md.getResult()
-        DtbShaders.readImages(dct)
+        DtbMaterial.readImages(dct)
         return{'FINISHED'}
 
 bpy.utils.register_class(IMP_OT_dir)
@@ -65,6 +65,7 @@ class IMP_OT_object(Operator, ImportHelper):
     def execute(self, context):
         dirname = os.path.dirname(self.filepath)
         for i, f in enumerate(self.files, 1):
+            print("f===",f)
             durPath = (os.path.join(dirname, f.name))
             from . import ToHighReso
             tgm = ToHighReso.get_Morph(durPath, get_obj_name)
@@ -95,120 +96,32 @@ class IMP_OT_dazG8_pose(Operator, ImportHelper):
     files = bpy.props.CollectionProperty(type=ImportFilesCollection)
 
     def execute(self, context):
-
         dirname = os.path.dirname(self.filepath)
         for i, f in enumerate(self.files, 1):
             durPath = (os.path.join(dirname, f.name))
-            self.pose_copy(durPath)
+            up = Util.Posing()
+            up.pose_copy(durPath)
         return {'FINISHED'}
-
-    def pose_copy(self,dur):
-        if os.path.exists(dur) == False:
-            return
-        with open(dur, errors='ignore', encoding='utf-8') as f:
-            ls = f.readlines()
-        ptn = ['"url" : ','"keys" : ']
-        xyz = ["/x/value","/y/value","/z/value"]
-        v3ary = []
-        v3 = []
-        for l in ls:
-            for i in range(2):
-                f = l.find(ptn[i])
-                if f >=0:
-                    l = l[f+len(ptn[i]):]
-                else:
-                    continue
-                if '#' in l:
-                    continue
-                if i == 0:
-                    k = "@selection/"
-                    f = l.find(k)
-                    if f >= 0:
-                        l = l[f+len(k):]
-                        f = l.find("rotation")
-                        if f>=0:
-                            v3 = []
-                            v3.append(l[:f-2])
-                            for kidx,k in enumerate(xyz):
-                                if k in l:
-                                    v3.append(kidx)
-                                    break
-                elif i == 1 and len(v3) == 2:
-                    a = l.find(",")
-                    if a > 0:
-                        l = l[a+1:]
-                        a = l.find("]")
-                        if a > 0:
-                            l = l[:a]
-                            v3.append(float(l.strip()))
-                            v3ary.append(v3)
-        self.make_pose(v3ary)
-
-    def make_pose(self,v3ary):
-        db = DataBase.DB()
-        cur = db.g8_blimit
-        pbs = Global.getAmtr().pose.bones
-        cur.append(['hip', 'YZX'])
-        for rows in cur:
-            odr = rows[1]
-            bname = rows[0]
-            for v3 in v3ary:
-                if v3[0] !=bname:
-                    continue
-                flg_zi = False
-                z_invert = ['neckUpper','chestUpper','chestLower','neckLower','abdomenUpper','abdomenLower']
-                for zi in z_invert:
-                    if zi==v3[0]:
-                        flg_zi = True
-                        break
-                if (odr == 'YZX' or odr == 'XYZ') and flg_zi==False:
-                    if v3[1]==2:
-                        v3[2] = 0-v3[2]
-                xy_invert = ['rCollar', 'rShldrBend', 'rForearmBend', 'rForearmTwist', 'rShldrTwist', 'rThumb2', 'rThumb3',
-                             'rThumb1', 'rHand','rThighTwist','lThighTwist']
-                for xyi in xy_invert:
-                    if bname == xyi:
-                        if v3[1] !=2:
-                            v3[2] = 0-v3[2]
-                if odr == 'XZY' or odr == 'XYZ':
-                    if v3[1]==0:
-                        v3[1] = 1
-                    elif v3[1]==1:
-                        v3[1] = 0
-                if odr == 'ZYX':  # YZ switch
-                    if v3[1] == 1:
-                        v3[1] = 2
-                    elif v3[1] == 2:
-                        v3[1] = 1
-                x_invert = ['rIndex', 'rMid', 'rPinky', 'rRing']
-                for xi in x_invert:
-                    if xi in bname:
-                        if v3[1] == 0:
-                            v3[2] = 0 - v3[2]
-                if bname=='hip':
-                    if v3[1] == 1:
-                        v3[1] = 2
-                    elif v3[1] == 2:
-                        v3[1] = 1
-                y_invert = ['Shin']
-                for yi in y_invert:
-                    if yi in bname:
-                        if v3[1] == 1:
-                            v3[2] = 0 - v3[2]
-
-                z_invert2 = ['Foot','lThumb1']
-                for zi in z_invert2:
-                    if zi in bname:
-                        if v3[1] == 2:
-                            v3[2] = 0 - v3[2]
-                if v3[0] in pbs:
-                    pbs[v3[0]].rotation_euler[v3[1]] = math.radians(v3[2])
 
 bpy.utils.register_class(IMP_OT_dazG8_pose)
 
 class Command:
     def __init__(self,key,context):
         key = Global.orthopedic_sharp(key)
+        Util.active_object_to_current_collection()
+        not_erace = ['getpose', 'accessory']
+        kwd = ['getface', 'getbody', 'gethand', 'rentface', 'rentbody', 'renthand', "getleg", "rentleg"]
+        flg_morph = False
+        for kw in kwd:
+            if key.startswith(kw):
+                if Global.getAmtr() is None and Global.getRgfy() is not None:
+                    Versions.msg("This feature does not work in Rigify mode", "I'm sorry", "INFO")
+                    w_mgr = context.window_manager
+                    w_mgr.search_prop = ""
+                    flg_morph = False
+                else:
+                    flg_morph = True
+                break
         if key=='getpose':
             if Global.getAmtr() is None:
                 Versions.msg("Invalid Command", "Message")
@@ -229,63 +142,69 @@ class Command:
             if Global.getSize() == 1:
                 Versions.msg("Already Real Size", "Message", 'INFO')
                 return
-            Global.changeSize(1)
-        elif key=='symmetry':
-            pass
+            Global.changeSize(1,[])
+            Global.scale_environment()
         elif key=='gettexture':
             bpy.ops.imp.material('INVOKE_DEFAULT')
         elif key=='clearextrabones':
             Global.deselect()
-            Versions.select(Global.getAmtr(),True)
-            Versions.active_object(Global.getAmtr())
-            Global.setOpsMode("EDIT")
-            db = DataBase.DB()
-            dels = []
-            for eb in Global.getAmtr().data.edit_bones:
-                for bb in db.tbl_basic_bones:
-                    if eb.name.startswith(bb[0]+".00"):
-                        dels.append(eb)
-                        break
-            for d in dels:
-                Global.getAmtr().data.edit_bones.remove(d)
-            Global.deselect()
-            Global.setOpsMode("POSE")
+            Versions.active_object_none()
+            for obj in Util.myacobjs():
+                if obj.type != 'ARMATURE':
+                    continue
+                Versions.select(obj, True)
+                Versions.active_object(obj)
+                Global.setOpsMode("EDIT")
+                db = DataBase.DB()
+                dels = []
+                for eb in obj.data.edit_bones:
+                    for bb in db.tbl_basic_bones:
+                        if eb.name.startswith(bb[0] + ".00"):
+                            dels.append(eb)
+                            break
+                for d in dels:
+                    obj.data.edit_bones.remove(d)
+                Global.deselect()
+                Global.setOpsMode("POSE")
         elif key=='geograft':
             print("IsMan",Global.getIsMan(),"--GetIdx",Global.get_geo_idx())
         elif key=='spliteyelash' and Global.getIsG3()==False:
-            #from . import ToHighReso
             Global.deselect()
             Global.setOpsMode("OBJECT")
             Versions.select(Global.getBody(),True)
             Versions.active_object(Global.getBody())
             removeEyelash()
             Global.setOpsMode("OBJECT")
-        elif Global.getIsPro():
-            kwd = ['getface','getbody','gethand','rentface','rentbody','renthand',"getleg","rentleg"]
-            flg_morph = False
-            for kw in kwd:
-                if key.startswith(kw):
-                    flg_morph = True
-                    break
-            if flg_morph:
-                if Global.getAmtr() is None and Global.getRgfy() is not None:
-                    Versions.msg("This feature does not work in Rigify mode","I'm sorry","INFO")
-                    w_mgr = context.window_manager
-                    w_mgr.search_prop = ""
-                    flg_morph = False
-                    return
-            if flg_morph:
-                global get_obj_name
-                Versions.active_object(Global.getBody())
-                Global.setOpsMode("OBJECT")
-                get_obj_name = key
-                bpy.ops.imp.object('INVOKE_DEFAULT')
-            elif key=='fitbone':
-                from . import FitBone
-                FitBone.FitBone(False)
-            else:
-                Versions.msg("Invalid Command","Message")
-        if key!='getpose':
+        elif key=='realskin':
+            DtbMaterial.skin_levl(True)
+        elif key=='easyskin':
+            DtbMaterial.skin_levl(False)
+        elif key=='myheros':
+            print(Global.getAmtr(),Global.getRgfy(),Global.getBody(),Global.getEnvRoot(),Global.getSize(),Util.cur_col_name(),
+                  "*",Global.get_Amtr_name(),Global.get_Rgfy_name(),Global.get_Body_name())
+        elif key=='onedrive':
+            db = DataBase.DB()
+            from . import DtbShapeKeys
+            sk = DtbShapeKeys.DtbShapeKeys(False)
+            sk.makeOneDriver(db)
+        elif key=='clearmorph':
+            from . import DtbShapeKeys
+            sk = DtbShapeKeys.DtbShapeKeys(False)
+            sk.delete_oneobj_sk_from_command()
+        elif flg_morph:
+            global get_obj_name
+            Versions.active_object(Global.getBody())
+            Global.setOpsMode("OBJECT")
+            get_obj_name = key
+            bpy.ops.imp.object('INVOKE_DEFAULT')
+        elif key=='fitbone':
+            from . import FitBone
+            FitBone.FitBone(False)
+        elif key in not_erace:
+            pass
+        else:
+            Versions.msg("Invalid Command","Message")
+        if key not in not_erace:
             w_mgr = context.window_manager
             w_mgr.search_prop = ""
 
@@ -323,8 +242,8 @@ class Get_Genital:
     _EYLS = ""
     def eyls(self):
         if self._EYLS!="":
-            if self._EYLS in bpy.data.objects:
-                return bpy.data.objects[self._EYLS]
+            if self._EYLS in Util.myccobjs():
+                return Util.myccobjs().get(self._EYLS)
         return None
 
     def __init__(self):
@@ -340,7 +259,7 @@ class Get_Genital:
                 if el[len(el) - 4:] == '.obj':
                     Versions.import_obj(ey_dir + el)
                     new_obj_name = Global.what_new()
-                    new_obj = bpy.data.objects[new_obj_name]
+                    new_obj = Util.myccobjs().get(new_obj_name)
                     Versions.select(new_obj,True)
                     Versions.active_object(new_obj)
                     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -360,7 +279,7 @@ class Get_Genital:
             if self.eyls() is not None:
                 Versions.active_object(self.eyls())
                 now_eyls_obj = bpy.data.objects.new('EYELASH' + str(lidx), self.eyls().data)
-                Versions.set_link(now_eyls_obj,True)
+                Versions.set_link(now_eyls_obj,True,'DAZ_HIDE')
             body = Versions.import_obj(dir+l)
             if body is None:
                 continue
@@ -377,17 +296,17 @@ class Get_Genital:
             else:
                 continue
             if len(body.data.vertices) != len(Global.getBody().data.vertices):
-                bpy.data.objects.remove(body)
+                Util.allobjs().remove(body)
                 continue
             Versions.select(body,True)
             Versions.select(Global.getBody(),True)
             Versions.active_object(Global.getBody())
             bpy.ops.object.join_shapes()
             self.toMsGen()
-            bpy.data.objects.remove(body)
+            Util.allobjs().remove(body)
             Global.deselect()
         if self.eyls() is not None:
-            bpy.data.objects.remove(self.eyls())
+            Util.allobjs().remove(self.eyls())
 
     def toMsGen(self):
         mesh = Global.getBody().data

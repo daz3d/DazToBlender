@@ -78,7 +78,6 @@ class DtbDazMorph():
             kblen = len(mesh.shape_keys.key_blocks)
             if kblen > 0:
                 bpy.context.active_object.active_shape_key_index = kblen - 1
-
 ##########export################################################################################
     def top_exsport(self):
         dobj = Versions.get_active_object()
@@ -168,7 +167,6 @@ class DtbDazMorph():
             for pl in mesh.polygons:
                 line = 'f'
                 for vi in pl.vertices:
-
                     if self.flg_human and vi > self.human_max:
                         line = "break"
                         break

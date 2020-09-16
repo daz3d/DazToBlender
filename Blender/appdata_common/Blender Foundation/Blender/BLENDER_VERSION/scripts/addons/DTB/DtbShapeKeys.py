@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(__file__))
 from . import Global
 from . import DataBase
 from . import Versions
+from . import Util
 class DtbShapeKeys:
     root = Global.getRootPath()
     flg_rigify = False
@@ -13,8 +14,8 @@ class DtbShapeKeys:
         self.flg_rigify = flg_rigify
 
     def makeDrives(self,db):
-        for dobj in bpy.data.objects:
-            if dobj.type=='MESH':
+        for dobj in Util.myccobjs():
+            if Global.isRiggedObject(dobj):
                 self.makeDrive(dobj,db)
 
     def delete001_sk(self):
@@ -59,7 +60,24 @@ class DtbShapeKeys:
             if sp[0] in rtn:
                 rtn = rtn.replace(sp[0],sp[1])
         return rtn
-        
+
+    def makeOneDriver(self,db):
+        cur = db.tbl_mdrive
+        aobj = Global.getBody()
+        if Global.getIsG3():
+            cur.extend(db.tbl_mdrive_g3)
+        for row in cur:
+            sk_name =aobj.active_shape_key.name
+            if row[0] in sk_name and sk_name.endswith(".001") == False:
+                dvr = aobj.data.shape_keys.key_blocks[sk_name].driver_add('value')
+                dvr.driver.type = 'SCRIPTED'
+                var = dvr.driver.variables.new()
+                Versions.set_debug_info(dvr)
+                self.setDriverVariables(var, 'val', Global.getAmtr(), row[1], row[2])
+                exp = row[3]
+                dvr.driver.expression = exp
+                break
+
     def makeDrive(self,dobj,db):
         mesh_name = dobj.data.name
         Versions.active_object(dobj)
@@ -228,7 +246,6 @@ class DtbShapeKeys:
             bpy.ops.object.shape_key_remove(all=False)
             ms += 1
 
-
     def deleteEyelashes(self):
         Global.setOpsMode('OBJECT')
         dobj = Global.getBody()
@@ -274,53 +291,63 @@ class DtbShapeKeys:
                     if vg.name==fs[1]:
                         vg.name = fs[0]
 
-    def delete_unuse_sk(self):
-        for obj in bpy.data.objects:
-            if obj.type=='MESH':
-                msh = obj.data
-                verts = msh.vertices
-                if msh is None or msh.shape_keys is None:
-                    continue
-                Versions.active_object(obj)
-                del_list = []
-                for sk_idx,kb in enumerate(msh.shape_keys.key_blocks):
-                    cnt = 0
-                    if sk_idx==0:
-                        continue
-                    for idx, dat in enumerate(kb.data):
-                        if idx >= len(verts):
-                            break
-                        v = verts[idx]
-                        xyz = [dat.co[0]-v.co[0],dat.co[1]-v.co[1],dat.co[2]-v.co[2]]
-                        if xyz[0]!=0.0 or xyz[1]!=0.0 or xyz[2]!=0.0:
-                            cnt += 1
-                        if cnt > 5:
-                            break
-                    if cnt < 5:
-                        del_list.insert(0,sk_idx)
-                for didx in del_list:
-                    Versions.get_active_object().active_shape_key_index = didx
-                    bpy.ops.object.shape_key_remove(all=False)
+    def delete_oneobj_sk_from_command(self):
+        wm = bpy.context.window_manager
+        wm.progress_begin(0, 100)
+        aobj = Versions.get_active_object()
+        if aobj is None:
+            return
+        self.delete_oneobj_sk(0,100, 0,aobj, wm)
+        wm.progress_end()
 
-    def delete_unuse_sk_quick(self):
-        for obj in bpy.data.objects:
+    def delete_oneobj_sk(self,min,onesa,oidx,obj,wm):
+        v = min + onesa * oidx
+        wm.progress_update(int(v))
+        Versions.active_object(obj)
+        if obj.data.shape_keys is None:
+            return
+        kbs = obj.data.shape_keys.key_blocks
+        root_kb = [d.co[0] for didx,d in enumerate(kbs[0].data) if didx%4==0]
+        max = len(kbs)
+        z0_same_idx_ary = []
+        dels = []
+        for z in range(2):
+            if z == 0:
+                decisa = onesa / (2.0 * max)
+                old_dv = v
+                for i in range(1, max):
+                    dv = int(v + decisa * i)
+                    if old_dv != dv:
+                        wm.progress_update(dv)
+                    kb = kbs[i]
+                    if root_kb == [d.co[0] for didx,d in enumerate(kb.data) if didx%4==0 ]:
+                        z0_same_idx_ary.append(i)
+                    old_dv = dv
+            else:
+                decisa = onesa / (2.0 * len(z0_same_idx_ary))
+                old_dv = v
+                if z0_same_idx_ary == []:
+                    break
+                root_kb_yz = [[d.co[1], d.co[2]] for didx,d in enumerate(kbs[0].data) if didx%4==0]
+                for i in z0_same_idx_ary:
+                    dv = int(v + onesa / 2.0 + decisa * i)
+                    if old_dv != dv:
+                        wm.progress_update(dv)
+                    kb = kbs[i]
+                    if root_kb_yz == [[d.co[1], d.co[2]] for didx,d in enumerate(kb.data) if didx%4==0]:
+                        dels.append(i)
+                    old_dv = dv
+            dels.sort(reverse=True)
+            for d in dels:
+                Versions.get_active_object().active_shape_key_index = d
+                bpy.ops.object.shape_key_remove(all=False)
+
+    def delete_all_extra_sk(self, min, max, wm):
+        objs = []
+        for obj in Util.myccobjs():
             if obj.type=='MESH':
-                msh = obj.data
-                verts = msh.vertices
-                if msh is None or msh.shape_keys is None:
-                    continue
-                Versions.active_object(obj)
-                del_list = []
-                if len(msh.shape_keys.key_blocks)==0:
-                    continue;
-                base = msh.shape_keys.key_blocks[0].data
-                blist = [v for v in base]
-                for sk_idx,kb in enumerate(msh.shape_keys.key_blocks):
-                    if sk_idx==0:
-                        continue
-                    klist = [v for v in kb.data]
-                    if blist == klist:
-                        del_list.insert(0,sk_idx)
-                for didx in del_list:
-                    Versions.get_active_object().active_shape_key_index = didx
-                    bpy.ops.object.shape_key_remove(all=False)
+                objs.append(obj)
+        allsa = max-min
+        onesa = allsa/len(objs)
+        for oidx,obj in enumerate(objs):
+            self.delete_oneobj_sk(min,onesa,oidx,obj,wm)

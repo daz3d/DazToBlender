@@ -1,11 +1,6 @@
 
-import sys
-import bpy
 from collections import OrderedDict
 from itertools import repeat
-import pprint
-import pdb
-
 CYCLES = True
 VRAY = not CYCLES
 
@@ -129,16 +124,6 @@ def nodes_center(ntree):
     bboxmaxy = max(bboxmaxy)
     center_x = (bboxminx + bboxmaxx) / 2
     center_y = (bboxminy + bboxmaxy) / 2
-    '''
-    print ("minx:",bboxminx)
-    print ("maxx:",bboxmaxx)
-    print ("miny:",bboxminy)
-    print ("maxy:",bboxmaxy)
-
-    print ("bboxes:", bboxminx, bboxmaxx, bboxmaxy, bboxminy)
-    print ("center x:",center_x)
-    print ("center y:",center_y)
-    '''
     x = 0
     y = 0
 

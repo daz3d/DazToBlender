@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (1, 9, 6, 5),
+    "version": (1, 9,9),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -26,11 +26,11 @@ from . import ToRigify
 from . import Global
 from . import Versions
 from . import DtbDazMorph
-from . import Sharp
-from . import DtbShaders
+from . import DtbMaterial
 from . import FitBone
-from . import MatDct
 from . import CustomBones
+from . import Util
+from . import WCmd
 from bpy.props import EnumProperty
 from bpy.props import BoolProperty
 from bpy.props import StringProperty
@@ -70,25 +70,9 @@ fbx_exsported = ""
 obj_exsported = ""
 mute_bones = []
 ik_access_ban = False
-ds = DtbShaders.DtbShaders()
-region = 'TOOLS'
-if bpy.app.version < (2, 80, 0):
-    BV = 2.79
-elif bpy.app.version < (2, 81, 0):
-    BV = 2.80
-elif bpy.app.version < (2, 82, 0):
-    BV = 2.81
-elif bpy.app.version < (2, 83, 0):
-    BV = 2.82
-else:
-    BV = 2.83
-
-if Global.getIsPro():
-    if bpy.app.version >= (2,80,0):
-        region = 'UI'
-else:
-    if bpy.app.version >= (2,80,0):
-        region = 'UI'
+ds = DtbMaterial.DtbShaders()
+region = 'UI'
+BV = Versions.getBV()
 
 def get_influece_data_path(bname):
     amtr = Global.getAmtr()
@@ -133,28 +117,39 @@ class DTB_PT_Main(bpy.types.Panel):
     t_non = None
     def draw(self, context):
         l = self.layout
+        box = l.box()
         w_mgr = context.window_manager
-        l.operator('import.fbx', icon='POSE_HLT')
+        row = box.row(align=True)
+        row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
+        row.prop(w_mgr, "size_100", text="Size * 100", toggle=False)
+        box.operator('import.fbx', icon='POSE_HLT')
+        box.operator('import.env', icon='WORLD')
         if context.object and context.active_object:
+            cobj = context.active_object
             if Global.get_Body_name() == "" and Global.get_Rgfy_name() == "" and Global.get_Amtr_name() == "":
+                Global.clear_variables()
                 Global.decide_HERO()
             if context.object.type == 'ARMATURE' and Global.getRgfy() is None and Global.getAmtr() is None:
-                Global.find_AMTR(context.object)
-                Global.find_RGFY(context.object)
+                Global.clear_variables()
+                Global.find_AMTR(cobj)
+                Global.find_RGFY(cobj)
             if context.object.type == 'MESH' and Global.getBody() is None:
-                Global.find_BODY(context.object)
-            cobj = context.active_object
+                Global.clear_variables()
+                Global.find_BODY(cobj)
             if cobj.mode == 'POSE':
                 if Global.get_Amtr_name() != cobj.name and len(cobj.data.bones) > 90 and len(cobj.data.bones) < 200:
-                    Global.find_AMTR(cobj)
+                    Global.clear_variables()
+                    Global.find_Both(cobj)
                 if Global.get_Rgfy_name() != cobj.name and len(cobj.data.bones) > 600:
-                    Global.find_RGFY(cobj)
+                    Global.clear_variables()
+                    Global.find_Both(cobj)
             elif context.object.type == 'MESH':
                 if Global.get_Body_name() != "" and Global.get_Body_name() != cobj.name and len(
                         cobj.vertex_groups) > 163 \
                         and len(cobj.data.vertices) >= 16384 \
                         and len(cobj.vertex_groups) < 500 and len(cobj.data.vertices) < 321309:
-                    Global.find_BODY(cobj)
+                    Global.clear_variables()
+                    Global.find_Both(cobj)
             if ik_access_ban == False and context.active_object.mode == 'POSE':
                 l.separator()
                 if Global.amIAmtr(context.object):
@@ -221,139 +216,173 @@ class DTB_PT_Main(bpy.types.Panel):
                 row.operator('search.morph', icon='HAND')
         else:
             l.prop(w_mgr, "search_prop")
+        l.operator('remove.alldaz', icon='BOIDS')
+
 
 class IMP_OT_FBX(bpy.types.Operator):
     bl_idname = "import.fbx"
     bl_label = " Import New Genesis 3/8"
     bl_options = {'REGISTER', 'UNDO'}
+    root = Global.getRootPath()
 
     def invoke(self, context, event):
         if bpy.data.is_dirty:
             return context.window_manager.invoke_confirm(self, event)
         return self.execute(context)
 
-    def execute(self, context):
-        global ik_access_ban
-        root = Global.getRootPath()
-        if root == "":
-            self.report({"ERROR"}, "Appropriate FBX does not exist!")
-            return {'FINISHED'}
-        Versions.to_main_layer_active()
+    def finish_obj(self):
+        Versions.reverse_language()
+        Versions.pivot_active_element_and_center_and_trnormal()
+        Global.setRenderSetting(Global.getIsPro())
+
+    def layGround(self):
+        bpy.context.preferences.inputs.use_mouse_depth_navigate = True
+        Util.deleteEmptyDazCollection()
+        bpy.context.scene.render.engine = 'CYCLES'
+        bpy.context.space_data.shading.type = 'SOLID'
+        bpy.context.space_data.shading.color_type = 'OBJECT'
+        bpy.context.space_data.shading.show_shadows = False
+        Versions.set_english()
+        bco = bpy.context.object
+        if bco != None and bco.mode != 'OBJECT':
+            Global.setOpsMode('OBJECT')
+        bpy.ops.view3d.snap_cursor_to_center()
+
+    def pbar(self,v,wm):
+        wm.progress_update(v)
+
+    def import_one(self,fbx_adr):
+        Versions.active_object_none()
+        Util.decideCurrentCollection('FIG')
+        Util.clear_dzidx_material_and_nodegroup()
         wm = bpy.context.window_manager
-        cmd = Global.orthopedic_sharp(wm.search_prop)
-        skip_isk = (cmd =='#clearmorph')
-        wm.search_prop = ""
         wm.progress_begin(0, 100)
         Global.clear_variables()
         ik_access_ban = True
-        drb = DazRigBlend.DazRigBlend(root)
-        drb.layGround()
-        wm.progress_update(5)
-        fbx_adr = root + "DTB.fbx"
-
-        if os.path.exists(fbx_adr) == False:
-            self.report({"ERROR"}, "Appropriate FBX does not exist!")
-            ik_access_ban = False
-            return {'FINISHED'}
+        drb = DazRigBlend.DazRigBlend()
+        self.pbar(5,wm)
         drb.convert_file(filepath=fbx_adr)
-        wm.progress_update(20)
+        self.pbar(10, wm)
         db = DataBase.DB()
         Global.decide_HERO()
-        wm.progress_update(25)
+        self.pbar(15, wm)
         if Global.getAmtr() is not None and Global.getBody() is not None:
             Global.deselect()
+            drb.clear_pose()
+            drb.mub_ary_A()
+            drb.orthopedy_empty()
+            self.pbar(18, wm)
             drb.orthopedy_everything()
             Global.deselect()
-            wm.progress_update(30)
+            self.pbar(20, wm)
             drb.fitHeadChildren()
             Global.deselect()
             FitBone.FitBone(True)
-            wm.progress_update(35)
+            self.pbar(25, wm)
             drb.bone_limit_modify()
             drb.fitbone_roll()
             Global.meipe_bone()
             Global.deselect()
-            wm.progress_update(40)
+            self.pbar(30, wm)
             drb.unwrapuv()
             Global.deselect()
             if Global.getIsEyls():
                 drb.integrationEyelashes()
                 Global.deselect()
             ds.makeDct()
-            DtbShaders.clear_past_nodegroup()
-            DtbShaders.McySkin()
-            DtbShaders.McyEyeWet()
-            DtbShaders.McyEyeDry()
+            DtbMaterial.McySkin()
+            DtbMaterial.McyEyeWet()
+            DtbMaterial.McyEyeDry()
             ds.bodyTexture()
-            wm.progress_update(45)
-            if Global.getIsHair():
-                ds.hairs(Global.get_Hair_name())
-            ds.exeCloth()
-            wm.progress_update(50)
+            self.pbar(35, wm)
+            ds.propTexture()
+            self.pbar(40, wm)
             if Global.getIsGen():
                 drb.fixGeniWeight(db)
-            wm.progress_update(55)
             Global.deselect()
-            wm.progress_update(60)
+            self.pbar(45, wm)
             Global.setOpsMode('OBJECT')
             Global.deselect()
             dsk = DtbShapeKeys.DtbShapeKeys(False)
             dsk.deleteEyelashes()
-            wm.progress_update(65)
+            self.pbar(50, wm)
             dsk.toshortkey()
             dsk.deleteExtraSkey()
             dsk.toHeadMorphMs(db)
-            wm.progress_update(70)
-            if skip_isk:
-                dsk.delete_unuse_sk()
-            wm.progress_update(75)
+            wm.progress_update(55)
+            if wm.quick_heavy==False:
+                dsk.delete_all_extra_sk(55, 75, wm)
+            self.pbar(75,wm)
             dsk.makeDrives(db)
             Global.deselect()
-            drb.subdiv()
-            Global.deselect()
-            wm.progress_update(80)
+            self.pbar(80,wm)
             drb.makeRoot()
             drb.makePole()
             drb.makeIK()
             drb.pbone_limit()
+            drb.mub_ary_Z()
             Global.setOpsMode("OBJECT")
             CustomBones.CBones()
             Global.setOpsMode('OBJECT')
             Global.deselect()
-            wm.progress_update(90)
+            self.pbar(90,wm)
             dsk.delete001_sk()
             amt = Global.getAmtr()
             for bname in bone_name:
                 bone = amt.pose.bones[bname]
                 for bc in bone.constraints:
                     if bc.name == bname + "_IK":
-                        pbik = amt.pose.bones.get(bname+"_IK")
+                        pbik = amt.pose.bones.get(bname + "_IK")
                         amt.pose.bones[bname].constraints[bname + '_IK'].influence = 0
             drb.makeBRotationCut(db)
             Global.deselect()
-            DtbShaders.forbitMinus()
-            drb.friday()
-            wm.progress_update(95)
+            DtbMaterial.forbitMinus()
+            self.pbar(95,wm)
+            Global.deselect()
+            Versions.active_object(Global.getAmtr())
+            Global.setOpsMode("POSE")
+            drb.mub_ary_Z()
+            Global.setOpsMode("OBJECT")
             drb.finishjob()
+            Global.setOpsMode("OBJECT")
+            Util.Posing().setpose()
             bone_disp(-1, True)
-            wm.progress_update(100)
+            self.pbar(100,wm)
             ik_access_ban = False
             self.report({"INFO"}, "Success")
         else:
             self.show_error()
         wm.progress_end()
         ik_access_ban = False
+
+    def execute(self, context):
+        global ik_access_ban
+
+        if self.root == "":
+            self.report({"ERROR"}, "Appropriate FBX does not exist!")
+            return {'FINISHED'}
+        self.layGround()
+        for i in range(10):
+            fbx_adr = self.root + "FIG/FIG" + str(i) + "/B_FIG.fbx"
+            if os.path.exists(fbx_adr)==False:
+                break
+            Global.setHomeTown(self.root+"FIG/FIG" + str(i))
+            self.import_one(fbx_adr)
+        self.finish_obj()
         return {'FINISHED'}
 
     def show_error(self):
         Global.setOpsMode("OBJECT")
-        for b in bpy.data.objects:
+        for b in Util.myacobjs():
             bpy.data.objects.remove(b)
         filepath = os.path.dirname(__file__) + Global.getFileSp()+"img" + Global.getFileSp() + "Error.fbx"
         if os.path.exists(filepath):
             bpy.ops.import_scene.fbx(filepath=filepath)
             bpy.context.space_data.shading.type = 'SOLID'
             bpy.context.space_data.shading.color_type = 'TEXTURE'
+        for b in Util.myacobjs():
+            for i in range(3):
+                b.scale[i] = 0.01
 
 class MATERIAL_OT_up(bpy.types.Operator):
     bl_idname = "material.up"
@@ -364,7 +393,8 @@ class MATERIAL_OT_up(bpy.types.Operator):
 
 def adjust_material(context,is_ms):
     w_mgr = context.window_manager
-    Global.find_BODY(context.active_object)
+    Util.active_object_to_current_collection()
+
     if w_mgr.is_eye:
         arg = eyekeys[int(w_mgr.eye_prop)-1]
     else:
@@ -376,10 +406,10 @@ def adjust_material(context,is_ms):
         val = val / 10
     if w_mgr.ftime_prop:
         val = val * 4
-    if ('Normal' in arg) or ('Bump' in arg) or ('Displacement' in arg):
-        val = val * 0.01 * Global.getSize()
+    # if ('Normal' in arg) or ('Bump' in arg) or ('Displacement' in arg):
+    #     val = val * 0.01 * Global.getSize()
     if arg != '':
-        DtbShaders.adjust_material(arg, val, w_mgr.is_eye)
+        DtbMaterial.adjust_material(arg, val, w_mgr.is_eye)
 
 class MATERIAL_OT_down(bpy.types.Operator):
     bl_idname = "material.down"
@@ -393,33 +423,33 @@ class CLEAR_OT_Pose(bpy.types.Operator):
     bl_label = 'CLEAR ALL POSE'
 
     def execute(self, context):
-        if Global.getAmtr() is not None:
-            Global.getAmtr().pose.bones.get('hip').bone.select = True
-        if Global.getRgfy() is not None:
-            Global.getRgfy().pose.bones.get('torso').bone.select = True
-        bpy.ops.pose.select_all(action='TOGGLE')
-        bpy.ops.pose.select_all(action='TOGGLE')
-        bpy.ops.pose.transforms_clear()
-        bpy.ops.pose.select_all(action='DESELECT')
+        clear_pose()
         return {'FINISHED'}
+
+def clear_pose():
+    if bpy.context.object is None:
+        return
+    if Global.getAmtr() is not None and Versions.get_active_object() == Global.getAmtr():
+        for pb in Global.getAmtr().pose.bones:
+            pb.bone.select = True
+    if Global.getRgfy() is not None and Versions.get_active_object() == Global.getRgfy():
+        for pb in Global.getRgfy().pose.bones:
+            pb.bone.select = True
+    bpy.ops.pose.transforms_clear()
+    bpy.ops.pose.select_all(action='DESELECT')
 
 class TRANS_OT_Rigify(bpy.types.Operator):
     bl_idname = 'to.rigify'
     bl_label = 'To Rigify'
-
     def invoke(self, context, event):
         if bpy.data.is_dirty:
             return context.window_manager.invoke_confirm(self, event)
         return self.execute(context)
 
     def execute(self, context):
-        if Global.getAmtr() is not None:
-            Global.getAmtr().pose.bones.get('hip').bone.select = True
-        if Global.getRgfy() is not None:
-            Global.getRgfy().pose.bones.get('torso').bone.select = True
-        bpy.ops.pose.select_all(action='TOGGLE')
-        bpy.ops.pose.select_all(action='TOGGLE')
-        bpy.ops.pose.transforms_clear()
+        clear_pose()
+        Util.active_object_to_current_collection()
+
         trf = ToRigify.ToRigify()
         db = DataBase.DB()
         adjust_shin_y(2, False)
@@ -427,47 +457,22 @@ class TRANS_OT_Rigify(bpy.types.Operator):
         trf.toRigify(db, self)
         return {'FINISHED'}
 
-class EXP_OT_Fbx(bpy.types.Operator):
-    bl_idname = 'to.fbx'
-    bl_label = 'To other software'
-    fbx_name = 'to_other_software.fbx'
-
-    def execute(self, context):
-        global fbx_exsported
-        fbx_exsported = ""
-        path = Global.getRootPath() + self.fbx_name
-        import shutil
-        mat_path = path[:len(path) - 4]
-        if os.path.exists(mat_path) and os.path.isdir(mat_path):
-            shutil.rmtree(mat_path)
-        os.mkdir(mat_path)
-        md = MatDct.MatDct()
-        md.makeDctFromMt()
-        for v in dm.dct.values():
-            shutil.copyfile(v, mat_path + Global.getFileSp() + os.path.basename(v))
-        Versions.exsport_fbx(path)
-        fbx_exsported = path
-        import subprocess
-        if os.name == 'nt':
-            subprocess.Popen(['explorer', Global.getRootPath()])
-        else:
-            subprocess.call(["open", "-R", Global.getRootPath()])
-        return {'FINISHED'}
-
 class DEFAULT_OT_material(bpy.types.Operator):
     bl_idname = "df.material"
     bl_label = 'CLEAR MATERIAL'
     def execute(self, context):
+        Util.active_object_to_current_collection()
         default_material(context)
         return {'FINISHED'}
 
 def default_material(context):
     w_mgr = context.window_manager
     if w_mgr.is_eye:
-        DtbShaders.toEyeDryDefault(bpy.data.node_groups.get(DtbShaders.NGROUP3[DtbShaders.EDRY]))
-        DtbShaders.toEyeWetDefault(bpy.data.node_groups.get(DtbShaders.NGROUP3[DtbShaders.EWET]))
+        #DtbShaders.toEyeDryDefault(bpy.data.node_groups.get(DtbShaders.getGroupNode(DtbShaders.EDRY)))
+        DtbMaterial.toEyeDryDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.EDRY)))
+        DtbMaterial.toEyeWetDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.EWET)))
     else:
-        DtbShaders.toSkinDefault(bpy.data.node_groups.get(DtbShaders.NGROUP3[DtbShaders.SKIN]))
+        DtbMaterial.toSkinDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.SKIN)))
 
 class MATCH_OT_ikfk(bpy.types.Operator):
     bl_idname = 'match.ikfk'
@@ -496,6 +501,7 @@ class SCULPT_OT_push(bpy.types.Operator):
     bl_idname = 'to.sculpt'
     bl_label = 'To Sculpt'
     def execute(self, context):
+        Util.active_object_to_current_collection()
         w_mgr = bpy.context.window_manager
         ddm = DtbDazMorph.DtbDazMorph()
         if Versions.get_active_object().mode=='SCULPT':
@@ -544,6 +550,21 @@ class FK2IK_OT_button(bpy.types.Operator):
             mute_bones = []
         return {'FINISHED'}
 
+class IMP_OT_ENV(bpy.types.Operator):
+    bl_idname = "import.env"
+    bl_label = "Import New Env/Prop"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def invoke(self, context, event):
+        if bpy.data.is_dirty:
+            return context.window_manager.invoke_confirm(self, event)
+        return self.execute(context)
+
+    def execute(self, context):
+        from . import Environment
+        Environment.EnvProp()
+        return {'FINISHED'}
+
 class IK2FK_OT_button(bpy.types.Operator):
     bl_idname = "my.iktofk"
     bl_label = "FK"
@@ -562,6 +583,24 @@ class IK2FK_OT_button(bpy.types.Operator):
                 iktofk(i)
                 adjust_shin_y(i, False)
             mute_bones = []
+        return {'FINISHED'}
+
+
+class REMOVE_DAZ_OT_button(bpy.types.Operator):
+    bl_idname = "remove.alldaz"
+    bl_label = "Remove All Daz"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def invoke(self,context,event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        col = bpy.data.collections.get('DAZ_ROOT')
+        if col is not None:
+            for c in col.children:
+                for obj in c.objects:
+                    bpy.data.objects.remove(obj)
+                bpy.data.collections.remove(c)
         return {'FINISHED'}
 
 class LIMB_OT_redraw(bpy.types.Operator):
@@ -876,7 +915,7 @@ def search_morph(context):
     if len(key) < 2:
         return
     if key.startswith("#"):
-        Sharp.Command(key[1:],context)
+        WCmd.Command(key[1:], context)
         return
     cobj = bpy.context.object
     mesh = cobj.data
@@ -939,6 +978,9 @@ def adjust_shin_y(idx, flg_ik):
     bns = ['rShin', 'lShin']
     Global.setOpsMode('EDIT')
     mobj = Global.getBody()
+    if mobj is None:
+        Global.find_Both(Global.getAmtr())
+        return
     vgs = mobj.data.vertices
     fm_ikfk = [[4708 ,3418],[4428,3217]]
     vidx = 0
@@ -1031,11 +1073,10 @@ def init_props():
     w_mgr.ifk3 = BoolProperty(name="fik3", default=False, update=ifk_update3)
     w_mgr.new_morph = BoolProperty(name="_new_morph",default=False)
     w_mgr.skip_isk = BoolProperty(name = "_skip_isk",default = False)
-    w_mgr.fbx_prop = StringProperty(
-        name="",
-        default="",
-        description="",
-    )
+    w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
+    w_mgr.size_100 = BoolProperty(name="size_100", default=False)
+
+
 
 classes = (
     DTB_PT_Main,
@@ -1048,11 +1089,14 @@ classes = (
     DEFAULT_OT_material,
     SEARCH_OT_morph,
     TRANS_OT_Rigify,
-    EXP_OT_Fbx,
     MATCH_OT_ikfk,
     LIMB_OT_redraw,
     EXP_OT_morph,
-    SCULPT_OT_push
+    SCULPT_OT_push,
+    IMP_OT_ENV,
+    REMOVE_DAZ_OT_button,
+
+
 )
 
 def register():

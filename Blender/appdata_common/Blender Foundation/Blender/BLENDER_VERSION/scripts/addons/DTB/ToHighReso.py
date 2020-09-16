@@ -1,14 +1,7 @@
 import bpy
-import os
-import math
 import bmesh
-import sqlite3
-
-
 from .import Global
 from . import Versions
-from . import DtbShapeKeys
-from . import DataBase
 class ToHighReso:
     max3 = []
     def __init__(self):
@@ -95,6 +88,8 @@ class ToHighReso:
                     if avg[i + 1] > -1:
                         max += 1
                         sum = sum + avg[i + 1]
+                if max % 2 == 1:
+                    max += 1
                 all_avg_ary.append([avg[0], v.index, sum / max,vgs[avg[0]].name])
         bpy.ops.object.mode_set(mode='OBJECT')
         for a in all_avg_ary:
@@ -133,9 +128,6 @@ class ToHighReso:
         Versions.active_object(body)
         bpy.ops.object.modifier_add(type='CORRECTIVE_SMOOTH')
         Versions.set_csmooth(body,1.0,10,'armpit')
-        if Global.getSubdivLevel()>1:
-            bpy.ops.object.modifier_add(type='CORRECTIVE_SMOOTH')
-            Versions.set_csmooth(body, 0.5, 4, None)
 
 class get_Morph:
     dst_obj = None
@@ -151,13 +143,20 @@ class get_Morph:
         self.my_vscount = 0
         self.kword = kwd
         Global.decide_HERO()
+        if Global.getAmtr() is None:
+            Versions.msg("This feature is not available in Rigify mode.","Only Basic Mode", "ERROR")
+            return
         self.flg_base = kwd.startswith("get")
         self.dst_obj = Versions.import_obj(adr)
 
         if self.judge_is_correct_vcount()==False:
             bpy.data.objects.remove(self.dst_obj)
+            Versions.msg("Wrong .OBJ file","Wrong .OBJ", "ERROR")
             self.dst_obj = None
         else:
+            if (Global.getBody().dimensions[0] *50)< self.dst_obj.dimensions[0]:
+                for i in range(3):
+                    self.dst_obj.scale[i] = self.dst_obj.scale[i] * 0.01
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             if self.flg_base:
                 a = kwd.find('0.')

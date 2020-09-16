@@ -1,11 +1,10 @@
 import bpy
-import sys
 import os
 import math
 from copy import deepcopy
 from . import DataBase
 from . import Versions
-
+from . import Util
 isMan = False
 root = ""
 isGen = False
@@ -17,8 +16,7 @@ _RGFY = ""
 keep_EYLS = ""
 db = DataBase.DB()
 bone_limit_memory = []
-rigify_limit_memory = []
-is_real_scale = False
+
 Geo_Idx = 0
 now_ary = []
 pst_ary = []
@@ -27,6 +25,9 @@ _BVCount = 0
 _SIZE = 0
 root =""
 _ISG3 = 0
+_HOMETOWN = ""
+already_use_newmtl = []
+_ENVROOT = ""
 
 G3_GEOIDX = 3
     #####Female#######
@@ -43,6 +44,7 @@ max_vs = [
     [[16556,65806,262514],[17192,68350,272690],[17292,68450,272790],[17418,68744,273396]],
     [[16384,65118,259762],[17454,69398,276882],[17543,69498,276982],[17246,68056,270644]],
 ]
+
 
 IS_EMERGENCY = False
 EYLSCOUNT =464
@@ -69,7 +71,13 @@ def getIsEmergency():
 def setItsEmergency():
     global IS_EMERGENCY
     IS_EMERGENCY = True
-    
+
+def isAcs():
+    wk = bpy.context.window_manager.search_prop
+    wk = wk.strip()
+    wk = wk.lower()
+    return wk=='#accessory'
+
 def getSubdivLevel():
     naga = len(getBody().data.vertices)
     if naga>200000:
@@ -79,23 +87,7 @@ def getSubdivLevel():
     else:
         return 0
 
-def judgeSize():
-    global _SIZE
-    if getBody() is None:
-        return
-    unitscale = bpy.context.scene.unit_settings.scale_length
-    tall = getBody().dimensions[2] / unitscale
-    if tall<350:
-        _SIZE = 1
-    elif tall<3500:
-        _SIZE = 10
-    else:
-        _SIZE= 100
 
-def getSize():
-    if _SIZE==0:
-        judgeSize()
-    return _SIZE
 
 def get_root():
     return root
@@ -131,6 +123,7 @@ def isRiggedObject(dobj):
             if modifier.type == "ARMATURE" and modifier.object is not None:
                 if modifier.object.name == get_Amtr_name() or modifier.object.name == get_Rgfy_name():
                     return True
+
     return False
 
 def isRiggedObject_when_Amtr_is_None(dobj):
@@ -146,7 +139,7 @@ def store_ary(is_now):
     if is_now == False:
         now_ary = []
         pst_ary = []
-    for d in bpy.data.objects:
+    for d in Util.myccobjs():
         if is_now:
             now_ary.append(d.name)
         else:
@@ -157,11 +150,7 @@ def what_new():
         return ""
     for n in now_ary:
         hit = False
-        for p in pst_ary:
-            if n == p:
-                hit = True
-                break
-        if hit == False:
+        if n not in pst_ary:
             return n
     return ""
 
@@ -172,47 +161,29 @@ def setOpsMode(arg):
             if Versions.get_active_object().mode != arg:
                 bpy.ops.object.mode_set(mode=arg)
 
-def add_bone_limit_first(line):
-    bone_limit_memory.insert(0, line)
-
-def add_rigify_limit_first(line):
-    rigify_limit_memory.insert(0, line)
-
-def add_rigify_limit(line):
-    rigify_limit_memory.append(line)
-
-def get_rigify_limit():
-    return rigify_limit_memory
-
 def add_bone_limit(line):
     bone_limit_memory.append(line)
 
-def set_rigify_limit_value(value, r, c):
-    rigify_limit_memory[r][c] = value
-
-def set_bone_limit_value(value, r, c):
-    bone_limit_memory[r][c] = value
-
 def get_Amtr_name():
-    if _AMTR!="" and (_AMTR in bpy.data.objects):
+    if _AMTR!="" and (_AMTR in Util.allobjs()):
         return _AMTR
     else:
         return ""
 
 def get_Body_name():
-    if _BODY != "" and (_BODY in bpy.data.objects):
+    if _BODY != "" and (_BODY in Util.allobjs()):
         return _BODY
     else:
         return ""
 
 def get_Eyls_name():
-    if _EYLS != "" and (_EYLS in bpy.data.objects):
+    if _EYLS != "" and (_EYLS in Util.allobjs()):
         return _EYLS
     else:
         return ""
 
 def get_Hair_name():
-    if _HAIR != "" and (_HAIR in bpy.data.objects):
+    if _HAIR != "" and (_HAIR in Util.allobjs()):
         return _HAIR
     else:
         return ""
@@ -221,7 +192,7 @@ def get_KeepEyls_name():
     return keep_EYLS
 
 def get_Rgfy_name():
-    if _RGFY != "" and (_RGFY in bpy.data.objects):
+    if _RGFY != "" and (_RGFY in Util.allobjs()):
         return _RGFY
     else:
         return ""
@@ -243,7 +214,7 @@ def setEylsIsJoined():
     _EYLS = ""
 
 def find_RGFY_all():
-    for d in bpy.data.objects:
+    for d in Util.myccobjs():
         if find_RGFY(d):
             return True
     return False
@@ -266,6 +237,7 @@ def find_RGFY(dobj):
                         list[i + 3] += 1
             if list[3] > 100 and list[4] > 100 and list[5] > 70:
                 _RGFY = dobj.name
+                _AMTR = ""
                 return True
     return False
 
@@ -285,6 +257,7 @@ def find_AMTR(dobj):
                         point += 1
         if point > 150:
             _AMTR = dobj.name
+            _RGFY = ""
             if _ISG3==1:
                 _ISG3 = 2
             return True
@@ -312,6 +285,33 @@ def find_BODY(dobj):
                             _BODY = dobj.name
                             return True
     return False
+
+def getChildren(obj):
+    children = []
+    col = Util.getUsersCollection(obj)
+    for ob in Util.colobjs(col.name):
+        if ob.parent == obj:
+            children.append(ob)
+    return children
+
+def find_Both(obj):
+    if obj.type=='MESH':
+        for modifier in obj.modifiers:
+            if modifier.type == "ARMATURE" and modifier.object is not None:
+                if find_AMTR(modifier.object)==False:
+                    if find_RGFY(modifier.object)==False:
+                        return False
+        return find_BODY(obj)
+    elif obj.type=='ARMATURE':
+        if find_AMTR(obj) or find_RGFY(obj):
+            kids = getChildren(obj)
+            for k in kids:
+                if find_BODY(k):
+                    return True
+            return False
+    return False
+
+
 
 def find_EYLS(dobj):
     global _EYLS
@@ -355,6 +355,36 @@ def find_HAIR(dobj):
                 return True
     return False
 
+def find_ENVROOT(dobj):
+    fromtop = []
+    frombtm = []
+    cname = Util.getUsersCollectionName(dobj)
+    objs = Util.colobjs(cname)
+    global _ENVROOT
+    if len(objs) == 1:
+        _ENVROOT = objs[0].name
+        return
+    for obj in objs:
+        find = False
+        while obj.parent is not None:
+            find = True
+            obj = obj.parent
+        if find == False:
+            fromtop.append(obj)
+        else:
+            if not (obj in frombtm):
+                frombtm.append(obj)
+    if (len(fromtop) == 1 and len(frombtm) == 1) == False:
+        return
+    if fromtop[0]!=frombtm[0]:
+        return
+    if fromtop[0].type=='ARMATURE' or fromtop[0].type=='EMPTY':
+        _ENVROOT = fromtop[0].name
+
+def getEnvRoot():
+    if _ENVROOT !="" and (_ENVROOT in Util.allobjs()):
+        return Util.allobjs().get(_ENVROOT)
+
 def decide_HERO():
     global _AMTR
     global _RGFY
@@ -366,8 +396,10 @@ def decide_HERO():
     global _BVCount
     global _ISG3
     global Geo_Idx
+    global _SIZE
     bool_amtr = [False, False]
-    for dobj in bpy.data.objects:
+    clear_variables()
+    for dobj in Util.myacobjs():
         if find_AMTR(dobj):
             bool_amtr[0] = True
             break
@@ -384,7 +416,7 @@ def decide_HERO():
     bool_body = [False, False, False]
 
     for z in range(2):
-        for dobj in bpy.data.objects:
+        for dobj in Util.myccobjs():
             if z==0 and find_BODY(dobj):
                 bool_body[0] = True
                 lon = len(dobj.data.vertices)
@@ -556,9 +588,28 @@ def getRootPath():
             root = ""
     return root
 
+def clear_already_use_newmtl():
+    global already_use_newmtl
+    already_use_newmtl = []
+
+def set_already_use_newmtl(newmtl):
+    global already_use_newmtl
+    already_use_newmtl.append(newmtl)
+
+def is_already_use_newmtl(newmtl):
+    is_in = (newmtl in already_use_newmtl)
+    print("@@@",is_in,newmtl,already_use_newmtl)
+    return is_in
+
+def setHomeTown(htown):
+    global _HOMETOWN
+    _HOMETOWN = htown
+
+def getHomeTown():
+    return _HOMETOWN
+
 def clear_variables():
     global isMan
-    global root
     global isGen
     global _AMTR
     global _BODY
@@ -566,8 +617,6 @@ def clear_variables():
     global _HAIR
     global _RGFY
     global keep_EYLS
-    global bone_limit_memory
-    global rigify_limit_memory
     global Geo_Idx
     global _ISG3
     global _SIZE
@@ -575,8 +624,8 @@ def clear_variables():
     global _BVCount 
     global now_ary
     global pst_ary
+    global _ENVROOT
     isMan = False
-    root = ""
     isGen = False
     _AMTR = ""
     _BODY = ""
@@ -584,15 +633,16 @@ def clear_variables():
     _HAIR = ""
     _RGFY = ""
     keep_EYLS = ""
-    bone_limit_memory = []
-    rigify_limit_memory = []
     Geo_Idx = 0
     _ISG3 = 0
     _SIZE = 0
+    _ENVROOT = ""
     IS_EMERGENCY = False
     _BVCount  = 0
     now_ary = []
     pst_ary = []
+    #for scene in bpy.data.scenes:
+    #    scene.unit_settings.scale_length = 1
     
 def amIRigfy(cobj):
     if cobj.type=='ARMATURE' and _RGFY==cobj.name:
@@ -609,19 +659,19 @@ def amIBody(cobj):
     return False
 
 def getHair():
-    for dobj in bpy.data.objects:
+    for dobj in Util.allobjs():
         if dobj.type == 'MESH' and dobj.name == _HAIR:
             return dobj
     return None
 
 def getBody():
-    for dobj in bpy.data.objects:
+    for dobj in Util.allobjs():
         if dobj.type == 'MESH' and dobj.name == _BODY:
             return dobj
     return None
 
 def getEyls():
-    for dobj in bpy.data.objects:
+    for dobj in Util.allobjs():
         if dobj.type == 'MESH' and dobj.name == _EYLS:
             return dobj
     return None
@@ -633,10 +683,17 @@ def getRgfyBones():
     return None
 
 def getRgfy():
-    for dobj in bpy.data.objects:
+    for dobj in Util.allobjs():
         if dobj.type == 'ARMATURE' and dobj.name == _RGFY:
             return dobj
     return None
+
+def setRgfy_name(newname):
+    global _RGFY
+    if getRgfy() is None:
+        return
+    getRgfy().name = newname
+    _RGFY = newname
 
 def getAmtrBones():
     rig = getAmtr()
@@ -645,7 +702,7 @@ def getAmtrBones():
     return None
     
 def getAmtr():
-    for dobj in bpy.data.objects:
+    for dobj in Util.allobjs():
         if dobj.type == 'ARMATURE' and dobj.name == _AMTR:
             return dobj
     return None
@@ -662,7 +719,7 @@ def getAmtrConstraint(bone_name,const_name):
     return None
 
 def deselect():
-    for obj in bpy.data.objects:
+    for obj in Util.allobjs():
         Versions.select(obj,False)
 
 def toGeniVIndex(vidx):
@@ -698,6 +755,7 @@ def getRig_id():
             return d.data['rig_id']
             
 def bone_limit_modify():
+
     cur = db.g8_blimit
     if getIsG3():
         cur = cur[4:]
@@ -711,7 +769,7 @@ def bone_limit_modify():
             row.append(rows[i])
         # Z_INVERT
         if odr == 'YZX' or odr == 'XYZ':
-            if row[0] != '*rCollar':  
+            if row[0] != '*rCollar':
                 work = 0 - row[7]
                 row[7] = 0 - row[6]
                 row[6] = work
@@ -735,6 +793,10 @@ def bone_limit_modify():
                 work = row[4 + i]
                 row[4 + i] = row[6 + i]
                 row[6 + i] = work
+        if row[0][1:] == 'Foot':
+            work = 0 - row[7]
+            row[7] = 0 - row[6]
+            row[6] = work
         add_bone_limit(row)
 
 def toMergeWeight(dobj, ruler_idx, slave_idxs):
@@ -862,78 +924,146 @@ def ifNeedToSnapKnee(r_l):
     k = iks[r_l].head[2] + iks[r_l].location[2]
     return iks[r_l].head[2] > poles[r_l].head[2]
 
-def scale_environment(size):
+
+def judgeSize():
+    max = 0
+    for z in range(2):
+        if z>0 and max>0:
+            break
+        for obj in Util.myacobjs():
+            for i in range(3):
+                if z == 0:
+                    if obj.dimensions[i]>max:
+                        max = obj.dimensions[i]
+                else:
+                    if obj.location[i] > max:
+                        max = obj.location[i]
+    if max==0:
+        if bpy.context.window_manager.size_100:
+            max = 71
     global _SIZE
-    _SIZE = size
+    if max <70:
+        _SIZE = 1
+    else:
+        _SIZE= 100
+
+def want_real():
+    return bpy.context.window_manager.size_100==False
+
+def getSize():
+    if _SIZE==0:
+        judgeSize()
+    return _SIZE
+
+def scale_environment():
     for scene in bpy.data.scenes:
         scene.tool_settings.use_keyframe_insert_auto = False
         scene.unit_settings.system = 'METRIC'
-        scene.unit_settings.scale_length = 1.0/_SIZE
-    lens = [0.001*_SIZE,20*_SIZE,50.0+math.floor(0.3*_SIZE)]
+        scene.unit_settings.scale_length = 1.0/getSize()
+    lens = [0.01*getSize(),1000*getSize(),50.0+math.floor(0.3*getSize())]
     bpy.context.space_data.clip_start = lens[0]
     bpy.context.space_data.clip_end = lens[1]
     bpy.context.space_data.lens = lens[2]
-    if _SIZE == 1:
-        bpy.context.space_data.lock_cursor = True
-        bpy.context.space_data.lock_object = getBody()
-    else:
-        bpy.context.space_data.lock_cursor = False
-        bpy.context.space_data.lock_object = None
-    for screen in bpy.data.screens:
-        for area in screen.areas:
-            if area.type == "VIEW_3D":
-                area.spaces.active.lens = lens[2]
+    size_1_100 =  [[(0.2721, -0.2184, 0.9022),(-0.7137, -0.5870, -0.2612,-0.2790),3],
+                   [(7.15, -4.35, 100.0),(-0.7150, -0.5860, -0.2601, -0.2788) ,430]]
+    idx = 0 if getSize()==1 else 1
+    for area in bpy.context.screen.areas:
+        if area.type == "VIEW_3D":
+            rv3d = area.spaces[0].region_3d
+            if rv3d is not None:
+                rv3d.view_location = size_1_100[idx][0]
+                rv3d.view_rotation = size_1_100[idx][1]
+                rv3d.view_distance = size_1_100[idx][2]
+                rv3d.view_camera_zoom = 0
+    bpy.context.preferences.inputs.use_mouse_depth_navigate = True
+    normal_and_bump_to_size()
 
-def changeSize(size):
+def normal_and_bump_to_size():
+    objs = Util.myacobjs()
+    for obj in objs:
+        if obj==getBody():
+            continue
+        for slot in obj.material_slots:
+            mat = bpy.data.materials.get(slot.name)
+            if mat is None or mat.node_tree is None:
+                print(mat,mat.node_tree)
+                continue
+            ROOT = mat.node_tree.nodes
+
+            for n in ROOT:
+                if n.type=='BUMP':
+                    n.inputs['Strength'].default_value = 0.01 * getSize()
+                    n.inputs['Distance'].default_value = 0.01 * getSize()
+                elif n.type=='NORMAL_MAP':
+                    n.inputs['Strength'].default_value = 0.01 * getSize()
+
+def changeSize(size, mub_ary):
     global _SIZE
     if _SIZE==0:
         getSize()
-    wariai = size/_SIZE
-    if wariai==1.0:
-        Versions.msg('Already changed to the desired size','Message','INFO')
-        return
-    armature = None
-    if getAmtr() is not None:
+    flg_env = False
+    if getAmtr() is not None and (get_Amtr_name() in Util.myacobjs()):
         armature = getAmtr()
-    else:
+    elif getRgfy() is not None and (get_Rgfy_name() in Util.myacobjs()):
         armature = getRgfy()
-    _SIZE = size
-    Versions.active_object(armature)
-    Versions.select(armature,True)
+    elif getEnvRoot() is not None and (_ENVROOT in Util.myacobjs()):
+        armature = getEnvRoot()
+        flg_env = True
+    else:
+        return
+    change_size = 1 if size == 100 else 0.01
     setOpsMode("OBJECT")
     for i in range(3):
-        armature.scale[i] = wariai
-    bpy.ops.object.transform_apply(scale=True)
+        if armature.scale[i]!=change_size:
+            armature.scale[i] = change_size
     deselect()
-    for obj in bpy.data.objects:
-        if isRiggedObject(obj):
-            Versions.select(obj,True)
-            Versions.active_object(obj)
-            bpy.ops.object.transform_apply(scale=True)
-        elif obj.type=='LIGHT' or obj.type=='CAMERA':
-            for i in range(3):
-                obj.scale[i] = wariai
-            Versions.select(obj, True)
-            Versions.active_object(obj)
-            bpy.ops.object.transform_apply(scale=True)
-        deselect()
+    if mub_ary !=[]:
+        for obj in Util.myacobjs():
+            if obj.name in mub_ary:
+                Versions.active_object(obj)
+                Versions.select(obj, True)
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                Versions.active_object_none()
+                Versions.select(obj, False)
+    if flg_env==False:
+        Versions.active_object(armature)
+        Versions.select(armature, True)
+        bpy.ops.object.transform_apply(scale=True)
+    deselect()
+    if flg_env==False:
+        for obj in Util.myacobjs():
+            if isRiggedObject(obj):
+                Versions.select(obj,True)
+                Versions.active_object(obj)
+                bpy.ops.object.transform_apply(scale=True)
+            elif obj.type=='LIGHT' or obj.type=='CAMERA':
+                for i in range(3):
+                    if obj.scale[i] != change_size:
+                        obj.scale[i] = change_size
+                Versions.select(obj, True)
+                Versions.active_object(obj)
+                bpy.ops.object.transform_apply(scale=True)
+            deselect()
     find = False
-    for d in bpy.data.objects:
-        if d.type=='CAMERA':
+    for d in Util.colobjs('DP'):
+        if d.type=='CAMERA' or d.type=='LIGHT':
             find = True
             for i in range(3):
-                d.location[i] = d.location[i]*wariai
-    if find==False:
-        Versions.make_camera()
-    Versions.select(getBody(), True)
-    from . import DtbShaders
-    DtbShaders.default_material()
-    scale_environment(size)
+                if d.scale[i] !=change_size:
+                    d.location[i] = d.location[i]*change_size
+                    d.scale[i] = change_size
+    _SIZE = size
+    if getBody() is not None:
+        Versions.select(getBody(), True)
+        from . import DtbMaterial
+        DtbMaterial.default_material()
+
+    #scale_environment(size)
     deselect()
-    Versions.select(armature,True)
-    Versions.active_object(armature)
-    setOpsMode("POSE")
-    Versions.view_from_camera()
+    # Versions.select(armature,True)
+    # Versions.active_object(armature)
+    # setOpsMode("POSE")
+    #Versions.view_from_camera()
 
 def heigou_vgroup():
     vgs = getBody().vertex_groups

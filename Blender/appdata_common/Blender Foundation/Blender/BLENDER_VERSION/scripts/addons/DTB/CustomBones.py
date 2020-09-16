@@ -1,9 +1,7 @@
 import bpy
-import os
-import math
-import bmesh
 from . import Global
 from . import Versions
+from . import Util
 hikfikpole=[0.7,1.7,0.3]
 class CBones:
     face_bones = []
@@ -19,6 +17,7 @@ class CBones:
         self.limb_bones = []
         if len(self.shapes) > 12:
             self.shapes = self.shapes[0:12]
+        Global.setOpsMode("EDIT")
         self.makeRootBone()
         Global.deselect()
         self.makeMesh()
@@ -31,7 +30,7 @@ class CBones:
         Global.setOpsMode('OBJECT')
         Global.deselect()
         self.makeEyes()
-        Versions.to_other_layer(self.shapes, "bshapes")
+        Util.to_other_collection_byname(self.shapes,'DAZ_HIDE',Util.cur_col_name())
 
     def makeMesh(self):
         vertss = [
@@ -49,10 +48,12 @@ class CBones:
             [[-0.1, 2, 0], [0.1, 2, 0], [0.1, -2, 0], [-0.1, -2, 0]]
         ]
         for sidx,sp in enumerate(self.shapes):
+            if sp in Util.colobjs('DAZ_HIDE'):
+                continue
             me = bpy.data.meshes.new(sp+'_mesh')
-            ob = bpy.data.objects.new(sp, me)
+            ob = Util.allobjs().new(sp, me)
             ob.show_name = True
-            Versions.set_link(ob, True)
+
             edges = []
             e2 = []
             for i in range(len(vertss[sidx])-1):
@@ -94,6 +95,8 @@ class CBones:
         Global.setOpsMode('OBJECT')
         f2 = ['cube1', 'cube2']
         for i in range(2):
+            if f2[i] in Util.colobjs('DAZ_HIDE'):
+                continue
             bpy.ops.mesh.primitive_cube_add()
             Global.setOpsMode('EDIT')
             bpy.ops.transform.resize(value=(0.5, 0.5, 0.01))
@@ -102,6 +105,9 @@ class CBones:
             self.shapes.append(f2[i])
         for i in range(4):
             Global.deselect()
+            name = 'maru' + str(i+1)
+            if name in Util.colobjs('DAZ_HIDE'):
+                continue
             bpy.ops.mesh.primitive_circle_add()
             bpy.context.object.name = 'maru'+str(i+1)
             Global.setOpsMode('EDIT')
@@ -160,31 +166,31 @@ class CBones:
             pbone = Global.getAmtr().pose.bones[fb]
             bai = 0.06
             if Global.getAmtr().data.bones[fb].parent.name =='lowerFaceRig':
-                ob = bpy.data.objects['rhombus2']
+                ob = Util.allobjs()['rhombus2']
             elif 'tongue' in fb:
-                ob = bpy.data.objects['rect2']
+                ob = Util.allobjs()['rect2']
                 bai = 0.2
             else:
-                ob = bpy.data.objects['rhombus1']
+                ob = Util.allobjs()['rhombus1']
             if 'ear' in fb.lower():
                 if Global.getIsMan():
-                    ob = bpy.data.objects['octagon1']
+                    ob = Util.allobjs()['octagon1']
                     bai = 1.2
                 else:
-                    ob = bpy.data.objects['octagon2']
+                    ob = Util.allobjs()['octagon2']
                     bai = 1.5
             end_bones.append(fb)
             if ('eyelidinner' in fb.lower()) or ('eyelidouter' in fb.lower()):
-                ob = bpy.data.objects['triang_yoko']
+                ob = Util.allobjs()['triang_yoko']
                 bai = 0.08
             elif 'eyelid' in fb.lower():
                 if 'lower' in fb.lower():
-                    ob = bpy.data.objects['triang_down']
+                    ob = Util.allobjs()['triang_down']
                 else:
-                    ob = bpy.data.objects['triang_up']
+                    ob = Util.allobjs()['triang_up']
                 bai = 0.05
             elif fb.lower()== 'lowerjaw':
-                ob = bpy.data.objects['octagon2']
+                ob = Util.allobjs()['octagon2']
                 bai = 3
             self.limit_location(pbone)
             pbone.custom_shape = ob
@@ -195,28 +201,28 @@ class CBones:
             if ( lb in bpy.context.object.pose.bones) == False:
                 continue
             end_bones.append(lb)
-            ob = bpy.data.objects['octagon1']
+            ob = Util.allobjs()['octagon1']
             pbone = bpy.context.object.pose.bones[lb]
             bai = 0.34
             if ('carpal' in lb.lower()) or lb.lower().endswith('thumb1'):
-                ob = bpy.data.objects['rect2']
+                ob = Util.allobjs()['rect2']
                 bai = 0.1
                 if lb.lower().endswith('thumb1'):
                     bai = 0.12
             elif 'metatarsals' in lb.lower():
-                ob = bpy.data.objects['rect1']
+                ob = Util.allobjs()['rect1']
                 bai = 0.1
             elif lb.endswith("1") and ('toe' in lb.lower())==False:
                 bai = 0.18
             elif lb.lower().endswith("toe") and len(lb)==4:
-                ob = bpy.data.objects['octagon2']
+                ob = Util.allobjs()['octagon2']
             pbone.custom_shape = ob
             pbone.custom_shape_scale = bai
         for lb in limb4:
             if ( lb in bpy.context.object.pose.bones) == False:
                 continue
             end_bones.append(lb)
-            ob = bpy.data.objects['maru3']
+            ob = Util.allobjs()['maru3']
             pbone = bpy.context.object.pose.bones[lb]
             pbone.custom_shape = ob
             bai = 0.5
@@ -226,39 +232,39 @@ class CBones:
             if plower == 'lowerfacerig' or plower=='upperfacerig':
                 Global.getAmtr().data.bones.get(pb.name).hide = True
             if 'twist' in plower:
-                pb.custom_shape = bpy.data.objects['pentagon']
+                pb.custom_shape = Util.allobjs()['pentagon']
                 pb.custom_shape_scale = 0.3
             elif 'collar' in plower:
-                pb.custom_shape = bpy.data.objects.get('rect1')
+                pb.custom_shape = Util.allobjs().get('rect1')
                 pb.custom_shape_scale = 0.15
             elif plower == 'hip':
-                pb.custom_shape = bpy.data.objects.get('square1')
+                pb.custom_shape = Util.allobjs().get('square1')
                 pb.custom_shape_scale = 1.2
             elif 'breast' in plower:
-                pb.custom_shape = bpy.data.objects['octagon1']
+                pb.custom_shape = Util.allobjs()['octagon1']
                 pb.custom_shape_scale = 0.2
             elif 'areola' in plower:
-                pb.custom_shape = bpy.data.objects['octagon1']
+                pb.custom_shape = Util.allobjs()['octagon1']
                 pb.use_custom_shape_bone_size = False
                 pb.custom_shape_scale = 2
             elif 'nipple' in plower:
-                pb.custom_shape = bpy.data.objects['pentagon']
+                pb.custom_shape = Util.allobjs()['pentagon']
                 pb.use_custom_shape_bone_size = False
                 pb.custom_shape_scale = 1.1
             elif pb.custom_shape is None:
                 if ('shin' in plower) or ('bend' in plower):
-                    pb.custom_shape = bpy.data.objects.get('octagon1')
+                    pb.custom_shape = Util.allobjs().get('octagon1')
                     if 'shin' in plower:
                         pb.custom_shape_scale = 0.15
                     else:
                         pb.custom_shape_scale = 0.3
                 else:
-                    pb.custom_shape = bpy.data.objects.get('maru2')
+                    pb.custom_shape = Util.allobjs().get('maru2')
                     if 'pectoral' in plower:
-                        pb.custom_shape = bpy.data.objects.get('maru1')
+                        pb.custom_shape = Util.allobjs().get('maru1')
                         pb.custom_shape_scale = 0.2
                     elif 'neck' in plower:
-                        pb.custom_shape = bpy.data.objects.get('maru3')
+                        pb.custom_shape = Util.allobjs().get('maru3')
                         pb.custom_shape_scale = 0.5
                     else:
                         if 'abdomen' in plower:
@@ -284,10 +290,13 @@ class CBones:
         self.find_bone_roop(Global.getAmtr().data.bones[rootbone].children,rootbone)
 
     def makeIkBone(self):
-        bpy.ops.mesh.primitive_cube_add()
-        bpy.context.object.name = "hako"
+        if 'hako' not in Util.allobjs():
+            bpy.ops.mesh.primitive_cube_add()
+            bpy.context.object.name = "hako"
         foots = ['rfoot_cube','lfoot_cube']
         for i in range(2):
+            if (foots[i]  in Util.allobjs()):
+                continue
             bpy.ops.mesh.primitive_cube_add()
             Global.setOpsMode('EDIT')
             bpy.ops.transform.resize(value=(0.8, 1.5, 0.2))
@@ -295,16 +304,15 @@ class CBones:
             Versions.foot_ikbone_rotate(i)
             Global.setOpsMode('OBJECT')
             bpy.context.object.name = foots[i]
-        bpy.ops.mesh.primitive_ico_sphere_add()
+        if 'Icosphere' not in Util.allobjs():
+            bpy.ops.mesh.primitive_ico_sphere_add()
         hobjs = ['hako', 'Icosphere','root.shape','lfoot_cube','rfoot_cube']
-        Versions.to_other_layer(hobjs,"bshapes")
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
         Global.getAmtr().data.show_bone_custom_shapes = True
         ctl_bones = ['rShin_P','lShin_P','root']
         for i in range(len(ctl_bones)):
-            find = False
             if (ctl_bones[i] in bpy.context.object.pose.bones)==False:
                 continue
             bai = 2
@@ -312,8 +320,8 @@ class CBones:
             if i<2:
                 bai = hikfikpole[2]
                 shape = 'Icosphere'
-            if (shape in bpy.data.objects):
-                ob = bpy.data.objects[shape]
+            if (shape in Util.allobjs()):
+                ob = Util.allobjs()[shape]
                 bpy.context.object.pose.bones[ctl_bones[i]].custom_shape = ob
                 bpy.context.object.pose.bones[ctl_bones[i]].custom_shape_scale = bai
             bpy.context.object.data.bones[ctl_bones[i]].show_wire = True
@@ -325,33 +333,37 @@ class CBones:
             bai = hikfikpole[1]
             if i > 1:
                 bai = hikfikpole[0]
-            bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape = bpy.data.objects.get(ikshapes[i])
+            bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape = Util.allobjs().get(ikshapes[i])
             bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape_scale = bai
             bpy.context.object.pose.bones[ik_bones[i] + "_IK"].rotation_mode = 'XYZ'
             bpy.context.object.data.bones[ik_bones[i] + "_IK"].show_wire = True
             if i<2:
                 bpy.context.object.pose.bones[ik_bones[i] + "_IK"].use_custom_shape_bone_size = True
+        self.shapes.extend(foots)
+        self.shapes.extend(ikshapes)
+        self.shapes.extend(hobjs)
 
     def makeRootBone(self):
         dobj = Global.getAmtr()
-        Versions.select(dobj,True)
+        Versions.select(dobj, True)
         Versions.active_object(dobj)
         Global.setOpsMode('EDIT')
-        me = bpy.data.meshes.new('root_mesh')
-        ob = bpy.data.objects.new('root.shape', me)
-        ob.show_name = True
-        Versions.set_link(ob,True)
-        edges = []
-        e2 = []
-        list =  [1, 5, 9, 13, 33, 41, 46, 40, 32, 12, 8, 4, 0, 24, 20, 16, 28, 36, 44, 38, 30, 18, 22, 26, 2, 6, 10,
-                 14, 34, 42, 47, 43, 35, 15, 11, 7, 3, 27, 23, 19, 31, 39, 45, 37, 29,17, 21, 25, 1]
-        for i in range(len(list)-1):
-            e2.append([list[i],list[i+1]])
-        edges.extend(e2)
-        from . import DataBase
-        db = DataBase.DB()
-        me.from_pydata(db.root_verts, edges, [])
-        me.update()
+        if 'root.shape' not in Util.allobjs():
+            me = bpy.data.meshes.new('root_mesh')
+            ob = Util.allobjs().new('root.shape', me)
+            ob.show_name = True
+            Versions.set_link(ob,True,'DAZ_HIDE')
+            edges = []
+            e2 = []
+            list =  [1, 5, 9, 13, 33, 41, 46, 40, 32, 12, 8, 4, 0, 24, 20, 16, 28, 36, 44, 38, 30, 18, 22, 26, 2, 6, 10,
+             14, 34, 42, 47, 43, 35, 15, 11, 7, 3, 27, 23, 19, 31, 39, 45, 37, 29,17, 21, 25, 1]
+            for i in range(len(list)-1):
+                e2.append([list[i],list[i+1]])
+            edges.extend(e2)
+            from . import DataBase
+            db = DataBase.DB()
+            me.from_pydata(db.root_verts, edges, [])
+            me.update()
         dobj.data.edit_bones['hip'].parent = dobj.data.edit_bones.get('root')
         Global.setOpsMode("OBJECT")
 
@@ -378,13 +390,13 @@ class CBones:
             pb = Global.getAmtr().pose.bones.get(nb)
             pb.rotation_mode = 'XYZ'
             if nidx==0:
-                pb.custom_shape = bpy.data.objects.get('rhombus1')
+                pb.custom_shape = Util.allobjs().get('rhombus1')
                 pb.custom_shape_scale = 0.6
             else:
                 if Global.getIsMan():
-                    pb.custom_shape = bpy.data.objects.get('maru3')
+                    pb.custom_shape = Util.allobjs().get('maru3')
                 else:
-                    pb.custom_shape = bpy.data.objects.get('maru3')
+                    pb.custom_shape = Util.allobjs().get('maru3')
                 pb.custom_shape_scale = 3
             for i in range(3):
                 if i==1:

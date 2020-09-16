@@ -1,4 +1,5 @@
 import os
+import bpy
 import pprint
 from . import Global
 import re
@@ -33,9 +34,10 @@ class MatDct:
     imgs = [
     ["diff","diff","d"],
     ["diff", "MapD", "d"],
-    ["diff", "mapd", "d"],
-    ["diff", "TX", "d"],
+    ["Albedo", "mapd", "d"],
+    ["Base", "TX", "d"],
     ["base_color", "basecolor", "d"],
+    ["Base Color", "BaseColor", "d"],
     ["bump","bump","b"],
     ["bump","MapB","b"],
     ["bump", "mapb", "b"],
@@ -63,8 +65,10 @@ class MatDct:
     ["rough","R","r"],
     ["trans","TR","t"],
     ["trans","Tr","t"],
+    ["Alpha","alpha","t"]
     ]
     evaluate = -1
+
 
     def getResult(self):
         return self.dct
@@ -76,9 +80,38 @@ class MatDct:
                 key = self.bpart[i][1]+self.imgs[j][2]
                 if key in self.dct.keys():
                     point +=1
-        return point
+        return
+
     def makeDctFromShader(self):
         pass
+
+    def makeDctFromBody(self):
+        main_adr = ""
+        for slot in Global.getBody().material_slots:
+            mat = bpy.data.materials.get(slot.name)
+            if mat is not None:
+                for n in mat.node_tree.nodes:
+                    if n.name=='Principled BSDF':
+                        bcolor = n.inputs.get('Base Color')
+                        if bcolor is not None:
+                            for lk in bcolor.links:
+                                if lk.from_node.name.startswith("Image Texture"):
+                                    adr = lk.from_node.image.filepath
+                                    sname = slot.name
+                                    a = sname.rfind(".00")
+                                    if a>2:
+                                        sname = sname[0:a]
+                                    for b in self.bpart:
+                                        if (b[0].lower() in sname.lower()):
+                                            bnum = b[1]
+                                            if bnum == '6':
+                                                bnum = '7'
+                                            key = bnum + "d"
+                                            self.add_dct(key,adr)
+                                            if int(bnum)<5 and main_adr=="":
+                                                main_adr = os.path.dirname(adr)
+        if main_adr != "":
+            self.search_directory(main_adr)
 
     def makeDctFromDirectory(self,adr):
         self.dct = {}
@@ -86,8 +119,13 @@ class MatDct:
 
     def makeDctFromMtl(self):
         self.dct = {}
+        self.makeDctFromBody()
         main_adr = ""
-        mtl = Global.getRootPath()+'DTB.mtl'
+        hometown = Global.getHomeTown()
+        if os.path.exists(hometown)==False:
+            mtl = Global.getRootPath()+'DTB.mtl'
+        else:
+            mtl = hometown +"/FIG.mtl"
         if os.path.exists(mtl)==False:
             return
         list = []
@@ -108,7 +146,7 @@ class MatDct:
                 for b in self.bpart:
                     if (b[0].lower() in s_line[7:].lower()) \
                     or ((b[0].lower()+"_") in s_line[7:].lower()) \
-                    or (("_" + b[0].lower()) in s_line[7:].lower()) :
+                    or (("_" + b[0].lower()) in s_line[7:].lower()):
                         if name_key=='':
                             name_key = s_line[7:].lower()
                         bnum = b[1]
@@ -123,6 +161,7 @@ class MatDct:
                 if key=="":
                     key = s_line[7:].lower()+"_d"
                     tr_key = s_line[7:].lower()+"_t"
+
                 bc_key = s_line[7:].lower() + "_c"
                 j = i + 1
                 adr = ""
@@ -138,7 +177,7 @@ class MatDct:
                             if list[j].startswith("map_kd"):
                                 adr = list[j][a + 1:]
                                 if os.path.exists(adr) == False:
-                                    wk = os.path.dirname(adr);
+                                    wk = os.path.dirname(adr)
                                     if (os.path.exists(wk) and os.path.isdir(wk) and directory_memo == ""):
                                         directory_memo = wk
                                     adr = ""
@@ -258,9 +297,41 @@ class MatDct:
                             twd[0] = '7'
                         wd = twd[0] + twd[1]
                         self.add_dct(wd,aadr+Global.getFileSp()+L)
-        pprint.pprint(self.dct)
+        #pprint.pprint(self.dct)
 
-    def cloth_dct(self,cname,aadr):
+    def cloth_dct_0(self,adr):
+        c_dir = os.path.dirname(adr)
+        c_name = os.path.splitext(os.path.basename(adr))[0]
+        if not os.path.exists(c_dir):
+            return None
+        if c_name != "":
+            for i in range(3):
+                if i==0:
+                    rtn = self.cloth_dct(c_name, c_dir,adr)
+                    if rtn !=[]:
+                        return rtn
+                elif i==1:
+                    for img in self.imgs:
+                        if img[2]=='d':
+                            for j in range(2):
+                                if c_name.endswith(img[j]):
+                                    myc_name = c_name[0:len(c_name)-len(img[j])]
+                                    rtn = self.cloth_dct(myc_name, c_dir,adr)
+
+                                    if rtn !=[]:
+                                        return rtn
+                else:
+                    if len(c_name) >= 12:
+                        c_name = c_name[:(len(c_name) // 2) - 2]
+                    elif len(c_name) >= 8:
+                        c_name = c_name[:3]
+                    else:
+                        c_name = c_name[:1]
+                    return self.cloth_dct(c_name, c_dir,adr)
+        return None
+
+    def cloth_dct(self,cname,aadr,skip_adr):
+        skip_adr = os.path.realpath(os.path.abspath(skip_adr))
         cloth_dct = []
         if os.path.exists(aadr) and os.path.isdir(aadr):
             list = os.listdir(path=aadr)
@@ -278,11 +349,14 @@ class MatDct:
                                 twd[1] = img[2]
                                 break
                 if twd[0] != "" and twd[1] != "":
-                    wd = twd[0] + twd[1]
+                    wd = twd[0] +"-" +  twd[1]
                     for cd in cloth_dct:
                         if cd[0]==wd:
                             wd = ""
                             break
                     if wd!="":
-                        cloth_dct.append([wd,aadr + Global.getFileSp() + L])
+                        ans = aadr + Global.getFileSp() + L
+                        ans = os.path.realpath(os.path.abspath(ans))
+                        if skip_adr!=ans:
+                            cloth_dct.append([wd,ans])
         return cloth_dct
