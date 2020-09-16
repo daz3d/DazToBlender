@@ -721,75 +721,73 @@
 	function promptMorphRules()
 	{
 		var wDlg = new DzBasicDialog();
-		
-		var wOptGB = new DzVGroupBox( wDlg );
-		wOptGB.flat = true;
-		wOptGB.columns = 1;
-		
-		var wOpt1Btn = new DzCheckBox( wOptGB );
-		wOpt1Btn.text = "<-CEHCK ! ! ! If Export only MINIMAL morphs!";
-		wOpt1Btn.checked = true;
-		wDlg.addWidget( wOpt1Btn );
-		
-		addBanner( wDlg, App.getResourcesPath() + "/images/bridges/Daz to Blender.png" );
-		
 		wDlg.caption = "Input Morph Names. (Separated by line)";
 		
-		var lbl_1 = new DzLabel( wDlg );
-		lbl_1.text = "-Empty is OK. Partial words is OK (Three or more letters required).-"
-		wDlg.addWidget( lbl_1 );
+		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
 		
-		var tbox = new DzTextEdit( wDlg );
-		tbox.text = "";
-		wDlg.addWidget( tbox );
+		var oDlgWgt = wDlg.getWidget();
+		oDlgWgt.objectName = sKey;
 		
-		var lbl_2 = new DzLabel( wDlg );
-		lbl_2.text = "-Valid Morph names. Double-click to copy a line to the top.-";
-		wDlg.addWidget( lbl_2 );
+		addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
 		
-		var dlbox = new DzListBox( wDlg );
-		connect( dlbox, "doubleClicked(int)", cmbAction );
+		var wMinimalMorphsCbx = new DzCheckBox( wDlg );
+		wMinimalMorphsCbx.text = qsTr( "Include Minimal Morphs" );
+		wMinimalMorphsCbx.checked = true;
+		wDlg.addWidget( wMinimalMorphsCbx );
 		
-		function cmbAction()
-		{
-			var t = dlbox.currentText;
-			t = t.substr( 16 );
-			tbox.append( t );
-		};
+		var wMorphNamesLbl = new DzLabel( wDlg );
+		wMorphNamesLbl.text = qsTr( "Morph Names:\n(empty = OK, partial words = OK, 3+ letters required)" );
+		wDlg.addWidget( wMorphNamesLbl );
 		
+		var wMorphNamesTEdit = new DzTextEdit( wDlg );
+		wMorphNamesTEdit.text = "";
+		wDlg.addWidget( wMorphNamesTEdit );
+		
+		var wValidMorphNamesLbl = new DzLabel( wDlg );
+		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n(double-click to copy above)" );
+		wDlg.addWidget( wValidMorphNamesLbl );
+		
+		var wValidMorphNamesLBox = new DzListBox( wDlg );
 		for( var i = 0; i < s_aMorphs.length; i += 1 ){
-			dlbox.insertItem( s_aMorphs[i] );
+			wValidMorphNamesLBox.insertItem( s_aMorphs[i] );
 		}
-		wDlg.addWidget( dlbox );
+		wDlg.addWidget( wValidMorphNamesLBox );
 		
-		var sKey = wDlg.caption.replace( new RegExp(" ", "g"), "" ) + "Dlg";
+		function addValidMorphName()
+		{
+			var sCurText = wValidMorphNamesLBox.currentText;
+			sCurText = sCurText.substr( 16 );
+			wMorphNamesTEdit.append( sCurText );
+		};
+		wValidMorphNamesLBox.doubleClicked.connect( wValidMorphNamesLBox, addValidMorphName );
 		
-		var oWidget = wDlg.getWidget();
-		oWidget.objectName = sKey;
-		
-		var sizeHint = oWidget.minimumSizeHint;
+		var sizeHint = oDlgWgt.minimumSizeHint;
 		var nHeight = sizeHint.height;
-		wDlg.setFixedSize( sizeHint.width, sizeHint.height * 2 );
+		var nWidth = sizeHint.width < 300 ? 300 : sizeHint.width;
+		wDlg.setFixedSize( nWidth, sizeHint.height * 2 );
 		
-		if( wDlg.exec() ){
-			if( wOpt1Btn.checked ){
-				s_sMorphRules = getMinimalMorphRules();
-			}
-			
-			var ans = tbox.text;
-			var array = ans.split( /\r\n|\r|\n/ );
-			for( var i = 0; i < array.length; i += 1 ){
-				if( array[i].indexOf( "head" ) < 0 && array[i] != "Anything"
-				&& array[i].indexOf( "pJCM" ) < 0 && array[i].length > 2 ){
-					s_sMorphRules += array[i] + "\n1\n";
-				}
-			}
-			s_sMorphRules += "Anything\n0";
-			
-			return true;
-		} else {
+		if( !wDlg.exec() ){
 			return false;
 		}
+		
+		if( wMinimalMorphsCbx.checked ){
+			s_sMorphRules = getMinimalMorphRules();
+		}
+		
+		var sMorphName;
+		var aMorphNames = wMorphNamesTEdit.text.split( /\r\n|\r|\n/ );
+		for( var i = 0; i < aMorphNames.length; i += 1 ){
+			sMorphName = aMorphNames[i];
+			if( sMorphName.indexOf( "head" ) < 0
+			&& sMorphName != "Anything"
+			&& sMorphName.indexOf( "pJCM" ) < 0
+			&& sMorphName.length > 2 ){
+				s_sMorphRules += sMorphName + "\n1\n";
+			}
+		}
+		s_sMorphRules += "Anything\n0";
+		
+		return true;
 	};
 	
 	//Morph names that are too long will cause an error in Blender 2.79.
