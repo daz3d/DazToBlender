@@ -708,14 +708,13 @@
 		return sResult;
 	};
 	
-	function addBanner( wDlg )
+	function addBanner( wDlg, sImagePath )
 	{
-		var imagefile = new DzDir( "" ).homePath() + "/Documents/DTB/resources/daz-logo-main.png";
-		var img1 = new Image( imagefile );
-		var pmap = new Pixmap();
-		pmap.fromImage( img1 );
+		var imgImage = new Image( sImagePath );
+		var pixImage = (new Pixmap()).fromImage( imgImage );
+		
 		var wLabel = new DzLabel( wDlg );
-		wLabel.pixmap = pmap;
+		wLabel.pixmap = pixImage;
 		wDlg.addWidget( wLabel );
 	};
 	
@@ -732,7 +731,8 @@
 		wOpt1Btn.checked = true;
 		wDlg.addWidget( wOpt1Btn );
 		
-		addBanner( wDlg );
+		addBanner( wDlg, App.getResourcesPath() + "/images/bridges/Daz to Blender.png" );
+		
 		wDlg.caption = "Input Morph Names. (Separated by line)";
 		
 		var lbl_1 = new DzLabel( wDlg );
