@@ -1,4 +1,5 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
+
 (function(){
 	//var dir_self = new DzDir (new DzFileInfo (getScriptFileName ()).path ());
 	var isHD = true;
@@ -895,7 +896,10 @@
 	//gather root ary
 	function makeRootAry(){
 		var index = -1;
-		var nlist = Scene.getNodeList();	
+		var nlist = Scene.getNodeList();
+		for (var i=0;i<nlist.length;i+=1){
+			part_bone_out(nlist[i]);
+		}	
 		for( var i=0;i<nlist.length;i+=1){
 			if (nlist[i].isVisible()==false){
 				if(nlist[i].isRootNode()){ 
@@ -1055,7 +1059,7 @@
 		dfile.close();
 	}
 	
-	//The mesh attached to the bone moves directly under the figure
+	//The mesh attached to the bone
 	function move_bone_children_mesh_for_env(mynode){
 		var nlist = mynode.getNodeChildren(true);
 		for( var i=0;i<nlist.length;i+=1){
@@ -1112,7 +1116,7 @@
 	
 	
 	
-	
+	//make file for mesh under the single bone
 	function write_bone_children_mesh_for_fig(mainNode,exp_adr){
 		var bary = new Array();
 		var nlist = mainNode.getNodeChildren(true);
@@ -1216,6 +1220,7 @@
 	}
 	
     //START
+	
 	makeRootAry();
 	if(fig_ary.length>2){
 		var rtn = MessageBox.warning("Transferring 3 or more figures with clothing or hair on may freeze and stop","WARNING","OK","CANCEL");
@@ -1287,12 +1292,7 @@
 				setVisible(env_ary[j],i==j);
 			}
 			var isbone = env_ary[i].getSkeleton()!= null;
-			if (isbone){
-				move_bone_children_mesh_for_env(env_ary[i]);
-			}
-			part_bone_out(env_ary[i]);
 			setLock(env_ary[i],true,false);
-			
 			setSubdivAll(env_ary[i],0);
 			var fbxadr = root+"ENV/ENV" + i+"/";
 			makeEndDir(i,"ENV");
