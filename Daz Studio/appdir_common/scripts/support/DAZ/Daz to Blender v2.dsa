@@ -1,0 +1,1322 @@
+// DAZ Studio version 4.12.0.86 filetype DAZ Script
+(function(){
+	//var dir_self = new DzDir (new DzFileInfo (getScriptFileName ()).path ());
+	var isHD = true;
+	var mainNode = null;
+	var fig_ary = new Array();
+	var env_ary = new Array();
+	var all_ary = Scene.getNodeList();
+	var what_export = -1;
+	var min_morph = [
+"pJCMShldrUp_35_R",
+"pJCMShldrUp_35_L",
+"pJCMCollarUp_50_L",
+"pJCMCollarUp_50_R",
+"pJCMShldrDown_75_L",  
+"pJCMShldrDown_75_R",
+"pJCMShldrFwd_95_L",
+"pJCMShldrFwd_95_R", 
+"pJCMShldrFwdDown_75_R",
+"pJCMShldrFwdDown_75_L ",		
+"eCTRLBrowInnerUp-Down",
+"eCTRLBrowInnerUp-DownL",
+"eCTRLBrowInnerUp-DownR",
+"eCTRLBrowOuterUp-Down",
+"eCTRLBrowOuterUp-DownL",
+"eCTRLBrowOuterUp-DownR",
+"eCTRLBrowSqueeze",
+"eCTRLBrowSqueezeL",
+"eCTRLBrowSqueezeR",
+"eCTRLBrowUp-Down",
+"eCTRLBrowUp-DownL",
+"eCTRLBrowUp-DownR",
+"eCTRLCheekCrease",
+"eCTRLCheekEyeFlex",
+"eCTRLCheekEyeFlexL",
+"eCTRLCheekEyeFlexR",
+"eCTRLCheekFlex-Slack",
+"eCTRLCheekFlex-SlackL",
+"eCTRLCheekFlex-SlackR",
+"eCTRLCheeksBalloonPucker",
+"eCTRLCheeksBalloon-SuckIn",
+"eCTRLCheeksBalloon-SuckInL",
+"eCTRLCheeksBalloon-SuckInR",
+"CTRLCheeksDimpleCreaseHD",
+"eCTRLJawOut-In",
+"eCTRLJawSide-Side",
+"eCTRLAfraid_HD",
+"eCTRLAngry_HD",
+"eCTRLMurphySignatureSmileHD",
+"eCTRLSahelSignatureSmileHD",
+"eCTRLFlirting_HD",
+"eCTRLFrown_HD",
+"eCTRLShock_HD",
+"eCTRLSmileFullFace_HD",
+"eCTRLSmileOpenFullFace_HD",
+"eCTRLSurprised_HD",
+"eCTRLEyelidsLowerUpDown",
+"eCTRLEyelidsLowerUpDownL",
+"eCTRLEyelidsLowerUpDownR",
+"eCTRLEyelidsUpperUp-Down",
+"eCTRLEyelidsUpperUp-DownL",
+"eCTRLEyelidsUpperUp-DownR",
+"eCTRLEyesClosed",
+"eCTRLEyesClosedL",
+"eCTRLEyesClosedR",
+"eCTRLEyesCrossed",
+"eCTRLEyesRelax",
+"eCTRLEyesRelaxL",
+"eCTRLEyesRelaxR",
+"eCTRLEyesSideSide",
+"eCTRLEyesSquint-Widen",
+"eCTRLEyesSquint-WidenL",
+"eCTRLEyesSquint-WidenR",
+"eCTRLEyesUpDown",
+"eCTRLMouthClosed",
+"eCTRLMouthCornerForward-Back",
+"eCTRLMouthCornerForward-BackL",
+"eCTRLMouthCornerForward-BackR",
+"eCTRLMouthCornerUp-Down",
+"eCTRLMouthCornerUp-DownL",
+"eCTRLMouthCornerUp-DownR",
+"eCTRLMouthFrown",
+"eCTRLMouthOpen",
+"eCTRLMouthSide-Side",
+"eCTRLMouthSmile",
+"eCTRLMouthSmileOpen",
+"eCTRLMouthSmileSimple",
+"eCTRLMouthSmileSimpleL",
+"eCTRLMouthSmileSimpleR",
+"eCTRLMouthWide-Narrow",
+"eCTRLMouthWide-NarrowL",
+"eCTRLMouthWide-NarrowR",
+"eCTRLLipBottomOut-In",
+"eCTRLLipBottomOut-InL",
+"eCTRLLipBottomOut-InR",
+"eCTRLLipBottomUp-Down",
+"eCTRLLipBottomUp-DownL",
+"eCTRLLipBottomUp-DownR",
+"eCTRLLipTopOut-In",
+"eCTRLLipTopOut-InL",
+"eCTRLLipTopOut-InR",
+"eCTRLLipTopUp-Down",
+"eCTRLLipTopUp-DownL",
+"eCTRLLipTopUp-DownR",
+"eCTRLLipsClosed-BareTeeth",
+"eCTRLLipsPart",
+"eCTRLLipsPartCenter",
+"eCTRLLipsPuckerWide",
+"eCTRLLipsPucker-Pressed",
+"eCTRLTongueBendTip",
+"eCTRLTongueCurl",
+"eCTRLTongueIn-Out",
+"eCTRLTongueNarrow-Wide",
+"eCTRLTongueRaise-Lower",
+"eCTRLTongueSide-Side",
+"eCTRLTongueUp-Down",
+"eCTRLNoseScrunch",
+"eCTRLNoseWrinkle",
+"eCTRLNostrilsFlex",
+"eCTRLvAA",
+"eCTRLvEE",
+"eCTRLvEH",
+"eCTRLvER",
+"eCTRLvF",
+"eCTRLvIH",
+"eCTRLvIY",
+"eCTRLvK",
+"eCTRLvL",
+"eCTRLvM",
+"eCTRLvOW",
+"eCTRLvS",
+"eCTRLvSH",
+"eCTRLvT",
+"eCTRLvTH",
+"eCTRLvUW",
+"eCTRLvW",
+"pJCMAbdomen2Fwd_40",
+"pJCMAbdomen2Side_24_L",
+"pJCMAbdomen2Side_24_R",
+"pJCMAbdomenFwd_35",
+"pJCMAbdomenLowerFwd_Navel",
+"pJCMAbdomenUpperFwd_Navel",
+"pJCMBigToeDown_45_L",
+"pJCMBigToeDown_45_R",
+"pJCMChestFwd_35",
+"pJCMChestSide_20_L",
+"pJCMChestSide_20_R",
+"pJCMCollarTwist_n30_L",
+"pJCMCollarTwist_n30_R",
+"pJCMCollarTwist_p30_L",
+"pJCMCollarTwist_p30_R",
+"pJCMCollarUp_55_L",
+"pJCMCollarUp_55_R",
+"pJCMCollarUp_50_L",
+"pJCMCollarUp_50_R",
+"pJCMFootDwn_75_L",
+"pJCMFootDwn_75_R",
+"pJCMFootUp_40_L",
+"pJCMFootUp_40_R",
+"pJCMForeArmFwd_135_L",
+"pJCMForeArmFwd_135_R",
+"pJCMForeArmFwd_75_L",
+"pJCMForeArmFwd_75_R",
+"pJCMHandDwn_70_L",
+"pJCMHandDwn_70_R",
+"pJCMHandUp_80_L",
+"pJCMHandUp_80_R",
+"pJCMHeadBack_27",
+"pJCMHeadFwd_25",
+"pJCMIndex1Dwn_90_L",
+"pJCMIndex1Dwn_90_R",
+"pJCMIndex2Dwn_105_L",
+"pJCMIndex2Dwn_105_R",
+"pJCMIndex3Dwn_90_L",
+"pJCMIndex3Dwn_90_R",
+"pJCMMid1Dwn_95_L",
+"pJCMMid1Dwn_95_R",
+"pJCMMid2Dwn_105_L",
+"pJCMMid2Dwn_105_R",
+"pJCMMid3Dwn_90_L",
+"pJCMMid3Dwn_90_R",
+"pJCMNeckBack_27",
+"pJCMNeckFwd_35",
+"pJCMNeckLowerSide_40_L",
+"pJCMNeckLowerSide_40_R",
+"pJCMNeckTwist_22_L",
+"pJCMNeckTwist_22_R",
+"pJCMNeckTwist_Reverse",
+"pJCMNeckTwist_Reverse",
+"pJCMNeckTwist_Reverse",
+"pJCMPelvisFwd_25",
+"pJCMPinky1Dwn_95_L",
+"pJCMPinky1Dwn_95_R",
+"pJCMPinky2Dwn_105_L",
+"pJCMPinky2Dwn_105_R",
+"pJCMPinky3Dwn_90_L",
+"pJCMPinky3Dwn_90_R",
+"pJCMRing1Dwn_95_L",
+"pJCMRing1Dwn_95_R",
+"pJCMRing2Dwn_105_L",
+"pJCMRing2Dwn_105_R",
+"pJCMRing3Dwn_90_L",
+"pJCMRing3Dwn_90_R",
+"pJCMShinBend_155_L",
+"pJCMShinBend_155_R",
+"pJCMShinBend_90_L",
+"pJCMShinBend_90_R",
+"pJCMShldrDown_40_L",
+"pJCMShldrDown_40_R",
+"pJCMShldrFront_n110_Bend_n40_L",
+"pJCMShldrFront_n110_Bend_p90_L",
+"pJCMShldrFront_p110_Bend_n90_R",
+"pJCMShldrFront_p110_Bend_p40_R",
+"pJCMShldrFwd_110_L",
+"pJCMShldrFwd_110_R",
+"pJCMShldrUp_90_L",
+"pJCMShldrUp_90_R",
+"pJCMThighBack_35_L",
+"pJCMThighBack_35_R",
+"pJCMThighFwd_115_L",
+"pJCMThighFwd_115_R",
+"pJCMThighFwd_57_L",
+"pJCMThighFwd_57_R",
+"pJCMThighSide_85_L",
+"pJCMThighSide_85_R",
+"pJCMThumb1Bend_50_L",
+"pJCMThumb1Bend_50_R",
+"pJCMThumb1Up_20_L",
+"pJCMThumb1Up_20_R",
+"pJCMThumb2Bend_65_L",
+"pJCMThumb2Bend_65_R",
+"pJCMThumb3Bend_90_L",
+"pJCMThumb3Bend_90_R",
+"pJCMToesUp_60_L",
+"pJCMToesUp_60_R"];
+	var morph_word = "head\n1\npJCM\n1\n";
+	var root = "";
+	var morph_list = []
+	var search_list = []
+	var len_name_num = 0
+	var max_name_num = 19;
+	var max_all = 63;
+	var sp2 = "  ";
+	var sp3 = "   ";
+	var tbox_text = "";
+	var alf = "1234567890abcdefghijklmnopqrstuvwxyz";
+	var dv = new DzVec3(0,0,0);
+	var dr = new DzQuat(0,0,0,1,true);
+	var ds = new DzMatrix3(dr);
+	var keep_pose_ary = []
+	
+//////////////////////////////////////////MORPH/////////////////////////////////////////////////
+	function get_morph_list(mynode){
+		var aProperties = [];
+		aProperties = aProperties.concat( getElementProperties( mynode, true, true ) );
+		var alf_index = 0;
+		for( var i = 0; i < aProperties.length; i += 1 ){
+			var prop = aProperties[ i ];
+			var owner = prop.getOwner();
+			if (owner.className()!="DzMorph"){
+				continue;
+			}
+			var path = prop.getPath();
+			var head = "";
+			if(path.indexOf("/Hidden/Correctives/Base")==0){
+				continue;
+			}
+			var tops = ["Morphs","Hidden","Pose"];
+			for( var j=0;j<tops.length;j+=1){
+				if(path.indexOf("/"+ tops[j])==0){
+					head = "<"+tops[j]+">";
+					break;
+				}
+			}
+			if(head==""){continue;}
+			while(head.length<12){
+				head = head + " ";
+			}		
+			var lbl = prop.getLabel();
+			var owner = prop.getOwner();
+			if ((lbl.length + 2 + max_name_num)>max_all){
+				lbl = lbl.slice(0,max_all-max_name_num-2-2);
+				lbl = lbl + "_" + alf.substr(alf_index,1);
+				owner.name = lbl;		
+				alf_index += 1;					
+				alf_index = alf_index % 36;
+			}
+			morph_list.push(head+":"+sp3 +prop.getLabel()); 
+			search_list.push(prop.getLabel());
+		}
+		for( var i=0;i<morph_list.length-1;i++){
+			for( var j=i+1;j<morph_list.length;j++){
+				if (morph_list[i] > morph_list[j]){
+					var wk = morph_list[i];
+					morph_list[i] = morph_list[j];
+					morph_list[j] = wk;	
+				}			
+			}
+		}
+	}
+	
+	function getElementProperties( oElement, bTraverse, bRecurse )
+	{
+		var oPropertyGroupTree = oElement.getPropertyGroups();
+		if( App.version64 >= 0x0004000900040065 && bTraverse && bRecurse ){
+			return oPropertyGroupTree.getAllProperties();
+		}
+		var oPropertyGroup = oPropertyGroupTree.getFirstChild();
+		return getGroupProperties( oPropertyGroup, bTraverse, bRecurse );
+	};
+	///////////////////////////MORPH_WORD/////////////////////////////
+	function getMorphWord2(){
+		var rtn = "head\n0\n";
+		for(var i=0;i<min_morph.length;i+=1){
+			rtn += min_morph[i]+"\n1\n"		
+		}
+		return rtn;
+	}
+	
+	function getMorphWord(mynode){
+		morph_word = "head\n1\npJCM\n1\n";
+		var wDlg = new DzBasicDialog();
+		var tab = new DzTabWidget(wDlg);
+		var wOptGB = new DzVGroupBox( wDlg );
+		wOptGB.columns = 1;
+		var wOpt1Btn = new DzCheckBox( wOptGB );
+		wOpt1Btn.text = "<-CEHCK ! ! ! If Export only MINIMAL morphs!";
+		wOpt1Btn.checked =true;
+		wDlg.addWidget(wOpt1Btn)
+		var lbl_sp1 = new DzLabel(wDlg);
+		lbl_sp1.text = mynode.getLabel();
+		wDlg.addWidget(lbl_sp1);
+		var lbl_sp2 = new DzLabel(wDlg);
+		lbl_sp2.text="";
+		wDlg.addWidget(lbl_sp2);
+		wDlg.caption = "Input Morph Names.(Separated by line)";
+		var sKey = wDlg.caption.replace( new RegExp(" ", "g"), "" ) + "Dlg";
+		var lbl_1 = new DzLabel(wDlg);
+		lbl_1.text="-Empty is OK. Partial words is OK(Three or more letters required).-"
+		wDlg.addWidget(lbl_1)
+		var tbox = new DzTextEdit( wDlg );
+		tbox.text = qsTr("");
+		wDlg.addWidget(tbox );
+		var lbl_2 = new DzLabel(wDlg);
+		lbl_2.text="-Valid Morph names. Double-click to copy a line to the top.-"
+		wDlg.addWidget(lbl_2)
+		var dlbox = new DzListBox(wDlg );
+		connect (dlbox, "doubleClicked(int) " ,cmbAction); 
+		function cmbAction()
+		{
+			var t = dlbox.currentText;
+			t = t.substr(16);
+			tbox.append(t);
+		}
+		for(var i=0;i<morph_list.length;i+=1){
+			dlbox.insertItem(morph_list[i]);		
+		}		
+		wDlg.addWidget( dlbox );
+		var oWidget = wDlg.getWidget();
+		oWidget.objectName = sKey;
+		var sizeHint = oWidget.minimumSizeHint;
+		var nHeight = sizeHint.height;
+		wDlg.setFixedSize( sizeHint.width, sizeHint.height *2);
+		if(wDlg.exec()){
+			if(wOpt1Btn.checked){
+				morph_word = getMorphWord2();
+			}
+			var ans = tbox.text;
+			tbox_text = ans;
+			var array = ans.split(/\r\n|\r|\n/);
+			for(var i = 0; i < array.length; i++) { 
+	           		if(array[i].indexOf("head")<0 && array[i]!="Anything"
+	           		&& array[i].indexOf("pJCM")<0 && array[i].length>2){
+			  	     morph_word += array[i]+"\n1\n";
+		  	    	}
+			}
+			morph_word += "Anything\n0";
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
+	////////////////////////ExportFBX//////////////////////////////////////
+	function export_fbx(mynode,fname,index,flg_ascii){
+		var oExportMgr = App.getExportMgr();
+		var sClassName = "DzFbxExporter";
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		if( oExporter ){
+			var oSettings = new DzFileIOSettings();
+			var bShowOptions = false;
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				return;
+			}
+			oSettings.setBoolValue( "doSelected", false );
+			oSettings.setBoolValue( "doVisible", true );
+			if (fname.startsWith("ENV")){
+				oSettings.setBoolValue( "doFigures", true );
+				oSettings.setBoolValue( "doProps", true );
+				oSettings.setBoolValue( "doLights",true );
+				oSettings.setBoolValue( "doCameras", true );
+			}else{
+				oSettings.setBoolValue( "doFigures", true );
+				oSettings.setBoolValue( "doProps", false );
+				oSettings.setBoolValue( "doLights",false );
+				oSettings.setBoolValue( "doCameras", false );
+			}
+			oSettings.setBoolValue( "doAnims", false );
+			oSettings.setBoolValue( "doMorphs", true );
+			oSettings.setStringValue( "rules",morph_word);
+			if (flg_ascii){
+				oSettings.setStringValue( "format", "FBX 2014 -- Ascii" );
+			}else{
+				oSettings.setStringValue( "format", "FBX 2014 -- Binary" );
+			}
+			oSettings.setBoolValue( "doEmbed", false );
+			oSettings.setBoolValue( "doCopyTextures", false );
+			oSettings.setBoolValue( "doDiffuseOpacity", false );
+			oSettings.setBoolValue( "doMergeClothing", true);
+			oSettings.setBoolValue( "doStaticClothing", false );
+			oSettings.setBoolValue( "degradedSkinning", false );
+			oSettings.setBoolValue( "degradedScaling",false );
+			oSettings.setBoolValue( "doSubD", false);
+			oSettings.setBoolValue( "doLocks", false);
+			oSettings.setBoolValue( "doLimits", false);
+			oSettings.setBoolValue( "doBaseFigurePoseOnly", false);
+			oSettings.setBoolValue( "doHelperScriptScripts", false);
+			oSettings.setBoolValue( "doMentalRayMaterials", false);
+			if( App.version64 >= 0x0004000900030016 ){
+				oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			}
+			var sInitialPath = ( mynode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( mynode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			var sPath = root + fname + "/" + fname + i+ "/";
+			if (flg_ascii){
+				sPath +=  "A_" + fname + ".fbx"
+			}else{
+				sPath +=  "B_" + fname + ".fbx"					
+			}		
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				oExporter.writeFile( sPath, oSettings );
+			}
+			oExporter.deleteLater();
+		} else {
+			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
+				"could not be found.").arg( sClassName ),
+				qsTr("Critical Error"), qsTr("&OK") );
+		}
+	}	
+	////////////////////////ExportOBJ//////////////////////////////////////
+	function export_obj(mynode,fname,idx){
+		var oExportMgr = App.getExportMgr();
+		var sClassName = "DzObjExporter";
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		if( oExporter ){
+			var oSettings = new DzFileIOSettings();
+			var bShowOptions = false;
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				return;
+			}
+			oSettings.setFloatValue( "Scale", 100.0 );
+			oSettings.setStringValue( "LatAxis", "X" );
+			oSettings.setStringValue( "VertAxis", "Y" );
+			oSettings.setStringValue( "DepthAxis", "Z" );
+			oSettings.setBoolValue( "InvertLat", false );
+			oSettings.setBoolValue( "InvertVert", false );
+			oSettings.setBoolValue( "InvertDepth", false );
+			oSettings.setBoolValue( "IgnoreInvisible", true );
+			oSettings.setBoolValue( "WeldSeams", false );
+			oSettings.setBoolValue( "RemoveUnusedVerts", true );
+			oSettings.setBoolValue( "WriteVT", true );
+			oSettings.setBoolValue( "WriteVN", false );
+			oSettings.setBoolValue( "WriteO", false );
+			oSettings.setBoolValue( "WriteG", false );
+			oSettings.setBoolValue( "GroupGeom", false );
+			oSettings.setBoolValue( "GroupNodes", false );
+			oSettings.setBoolValue( "GroupSurfaces", false );
+			oSettings.setBoolValue( "GroupSingle", false );
+			oSettings.setBoolValue( "WriteUsemtl", true );
+			oSettings.setBoolValue( "WriteMtllib", true);
+			oSettings.setBoolValue( "OriginalMaps", true);
+			oSettings.setBoolValue( "CollectMaps", false );
+			oSettings.setBoolValue( "ConvertMaps", false );
+			if( App.version64 >= 0x0004000500000072 ){
+				oSettings.setBoolValue( "SelectedOnly", false );
+				oSettings.setBoolValue( "SelectedRootsOnly", false );
+				oSettings.setBoolValue( "PrimaryRootOnly", false );
+				oSettings.setBoolValue( "IncludeParented", false );
+				oSettings.setBoolValue( "TriangulateNgons", false );
+			}
+			if( App.version64 >= 0x0004000900030016 ){
+				oSettings.setBoolValue( "CollapseUVTiles", false );
+				oSettings.setBoolValue( "ShowIndividualSettings",false );
+			}
+			if( App.version64 >= 0x0004000a00000049 ){
+				oSettings.setIntValue( "FloatPrecision", 6 );
+			}
+			oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			var sInitialPath = ( mynode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( mynode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			var sPath = root+ fname + "/" +fname + idx + "/" + fname+ ".obj";
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				oExporter.writeFile( sPath, oSettings );
+			}
+			oExporter.deleteLater();
+		} else {
+			MessageBox.critical( qsTr("An exporter with the class name \"%1\" " +
+			"could not be found.").arg( sClassName ),
+			qsTr("Critical Error"), qsTr("&OK") );
+		}
+	}
+	///////////////////////////EXPORT_OTHER///////////////////////////
+	function export_bone_for_fig(mynode,file_adr){
+		var dfile = new DzFile(file_adr);
+		var line_ary = [];
+		dfile.open(DzFile.WriteOnly);
+		var nlist = mynode.getNodeChildren(true);
+		for (var i=0;i<nlist.length;i+=1){
+			if(nlist[i].inherits( "DzBone" )==false ){
+				continue;
+			}
+			var hd = nlist[i].getOrigin(true);
+			var tl = nlist[i].getEndPoint(true);
+			var head = [hd.x,hd.y,hd.z];
+			var tail = [tl.x,tl.y,tl.z];
+			bprop = get_bone_property(nlist[i]);
+			var line =nlist[i].name+",";
+			line += head[0]+"," + head[1] + "," + head[2]+",";
+			line += tail[0] + "," + tail[1] + "," + tail[2] + ",";
+			for(var j=0;j<bprop.length;j+=1){
+				line +=bprop[j] + ",";			
+			}		
+			dfile.writeLine(line);
+		}
+		dfile.close();
+	}
+	
+	function export_bone_for_env(mynode,file_adr){
+		var dfile = new DzFile(file_adr);
+		var line_ary = [];
+		dfile.open(DzFile.WriteOnly);
+		var nlist = mynode.getNodeChildren(true);
+		for (var i=0;i<nlist.length;i+=1){
+			if(nlist[i].inherits( "DzBone" )==false ){
+				continue;
+			}
+			var hd = nlist[i].getOrigin(true);
+			var tl = nlist[i].getEndPoint(true);
+			var head = [hd.x,hd.y,hd.z];
+			var tail = [tl.x,tl.y,tl.z];
+			bprop = get_bone_property(nlist[i]);
+			var line =nlist[i].name+",";
+			line += head[0]+"," + head[1] + "," + head[2]+",";
+			line += tail[0] + "," + tail[1] + "," + tail[2] + ",";
+			for(var j=0;j<bprop.length;j+=1){
+				line +=bprop[j] + ",";			
+			}		
+			dfile.writeLine(line);
+		}
+		dfile.close();
+	}
+	
+	function get_bone_property(mynode){
+		var xyz_lrs = [0,0,0,0,0,0,0,0,0];
+		var aProperties = [];
+	    aProperties = aProperties.concat( getElementProperties( mynode, true, true ) );
+		var alf_index = 0;
+		for( var i = 0; i < aProperties.length; i += 1 ){
+			var prop = aProperties[ i ];
+			var owner = prop.getOwner();
+			if(owner.className()!="DzBone"){
+				continue;
+			}
+			var xyz = ["X","Y","Z"];
+			for (var a=0;a<xyz.length;a+=1){
+				var keys = [xyz[a] + "Translate",xyz[a] + "Rotate"];//,xyz[a] + "Scale"];Skip "Scale"
+				for( var b=0;b<keys.length;b+=1){
+					if (prop.name==keys[b]){
+						if (prop.isHidden()==false){
+							var lbl = prop.getLabel();		
+							var pname = prop.name;
+							pname = pname.toLowerCase();
+							pname = pname.replace(/\s+/g, "");
+							lbl = lbl.toLowerCase();
+							lbl = lbl.replace(/\s+/g, "");
+							if (pname.startsWith(lbl)==false){		
+								xyz_lrs[b*3+a] = 1;
+							}					
+						}
+					}
+				}
+			}			
+		}
+		return xyz_lrs;
+	};
+	
+	function exp_memo(file_adr){
+		var dfile = new DzFile(file_adr);
+		dfile.open(DzFile.WriteOnly);
+		dfile.writeLine("not skeleton");
+		dfile.close();
+	}
+	
+	function clear_fig_pose(mynode){
+		var ary = mynode.getNodeChildren(true);
+		 for (var i=0;i<ary.length;i+=1){
+		 	 if (getKigo(ary[i])=="B"){
+		 	 	 
+		 	 	ary[i].setLocalPos(dv);
+				ary[i].setLocalRot(dr);
+				ary[i].setLocalScale(ds);
+		 	 }
+		}
+		mynode.setLocalPos(dv);
+		mynode.setLocalRot(dr);
+		mynode.setLocalScale(ds);
+	}
+		 	 
+	function export_overall_pose(mynode,file_adr,flg_figure){
+		var dfile = new DzFile(file_adr);
+		var line_ary = [];
+		keep_pose_ary = [];
+		dfile.open(DzFile.WriteOnly);
+		 var tops = mynode.getNodeChildren(false);
+		 if (tops.length==0 && flg_figure==false){
+		 	tops.push(mynode);
+		 }
+		 for (var i=0;i<tops.length;i+=1){
+		 	var ary = []
+			if (flg_figure){
+				if (tops[i].name != 'hip'){
+					continue;
+				}
+				ary = tops[i].getNodeChildren(true);
+				
+				ary.push(mynode);
+			}else{
+				ary = tops[i].getNodeChildren(true);
+				if(i==0){
+					ary.push(mynode);	
+				}
+			}
+			ary.push(tops[i]);
+			 for(var j=0;j<ary.length;j+=1){
+				var kigo = getKigo(ary[j]);
+				var vec = ary[j].getLocalPos();
+				var ver = ary[j].getLocalRot();
+				var	scl = ary[j].getLocalScale();
+				var keep_pose = [ary[j].name,kigo,vec,ver,scl];
+				keep_pose_ary.push(keep_pose);
+				var wsr = ary[j].getWSRot();
+				var line_old = [ary[j].name,kigo,vec.x,vec.y,vec.z,ver.w,ver.x,ver.y,ver.z];	
+				var line = ary[j].getLabel()+"," + ary[j].name+"," + kigo;
+				line += "," + vec.x + "," + vec.y + "," + vec.z + ",";
+				line = line + ary[j].getXRotControl().getLocalValue()+",";
+				line = line + ary[j].getYRotControl().getLocalValue()+",";
+				line = line + ary[j].getZRotControl().getLocalValue()+",";		
+				line += scl.m11+"," + scl.m22 + "," + scl.m33;		
+				dfile.writeLine(line);	 
+		 	}
+		}
+		 dfile.close();
+	}
+	
+	function reverse_pose(mynode){
+		var tops = mynode.getNodeChildren(false);
+		 for (var i=0;i<tops.length;i+=1){
+			if (tops[i].name !='hip'){
+				continue;
+			}
+			ary = tops[i].getNodeChildren(true);
+			ary.push(tops[i]);
+			ary.unshift(mynode);
+			for (var j=0;j<ary.length;j+=1){
+				if(is_faced_mesh_single(ary[j])!=-1 &&j>0  ){
+					continue;
+				}
+				for (var k = 0;k<keep_pose_ary.length;k+=1){
+					keep_pose = keep_pose_ary[k];
+					if (keep_pose[0]==ary[j].name){
+						ary[j].setLocalPos(keep_pose[2]);
+						ary[j].setLocalRot(keep_pose[3]);
+						ary[j].setLocalScale(keep_pose[4]);
+						break;					
+					}
+				}
+			}
+		}	
+	}
+	function part_bone_out(mynode){
+		if(mynode.getSkeleton() !=null){
+			return;
+		}
+		var ary = mynode.getNodeChildren(true);
+		for(var i=0;i<ary.length;i+=1){
+			var mv_node = ary[i].getNodeParent();	
+			if (getKigo(ary[i])=="B" && getKigo(mv_node)=="M"){
+				var grand_parent = mv_node.getNodeParent();	
+				if (grand_parent==null){
+					continue;
+				}
+				var err = grand_parent.removeNodeChild(mv_node,true);
+			}
+		}
+	}
+	function setLock(mynode,flg_lock,flg_fig){
+		var ary = mynode.getNodeChildren(true);
+		if (flg_fig==false){
+			ary.push(mynode);
+		}
+		for(var i=0;i<ary.length;i+=1){
+			var kigo = getKigo(ary[i]);
+			if(kigo=='B'){
+				continue;
+			}
+			if(kigo=='L' || kigo=='C'){
+				ary[i].name = ary[i].getLabel();
+			}
+			aProperties = [];
+			aProperties = aProperties.concat( getElementProperties( ary[i], true, true ) );
+	
+			for( var j = 0; j < aProperties.length; j += 1 ){
+				var prop = aProperties[ j ];
+				var owner = prop.getOwner();
+				if(owner.className()=="DzBone"){
+					continue;
+				}
+				var xyz = ["X","Y","Z"];
+				for (var a=0;a<xyz.length;a+=1){
+					var keys = [xyz[a] + "Translate",xyz[a] + "Rotate",xyz[a] + "Scale"];
+					for( var b=0;b<keys.length;b+=1){
+						if (prop.name==keys[b]){
+							prop.lock(flg_lock);
+						}
+					}
+				}			
+			}
+		}	
+	};
+	
+	function getKigo(cnode){
+		if(cnode.inherits( "DzBone" ) ){
+			 return "B";
+		}
+		if(cnode.inherits( "DzLight" ) ){
+			 return "L";
+		}
+		if(cnode.inherits( "DzCamera" ) ){
+			 return "C";
+		}
+		var obj =cnode.getObject();
+		if (!obj){
+			 return "E";
+		}
+		var oShape = obj.getCurrentShape();
+		if(!oShape){
+			return "E";
+		}	 
+		var oMesh = oShape.getGeometry();
+		if (!oMesh){
+			return "E";
+		}
+		return "M";
+	}
+	
+	//Morph names that are too long will cause an error in Blender 2.79.
+	function name_under_max(mynode){
+		var count = 0;
+		var skl = mynode.getNodeChildren(true);
+		for(var i=0;i<skl.length;i+=1){
+			if(skl[i].name.length>=max_name_num){
+				wk = skl[i].name.substring(0,max_name_num-2);
+				count = count % 36;
+				wk = wk + "_" + alf.substr(count,1);
+				skl[i].name  = wk;
+				len_name_num = max_name_num;
+				count = count + 1;
+			}else{
+				if (skl[i].name.length > len_name_num){
+					len_name_num = skl[i].name.length;
+				}
+			}
+		}
+	}
+
+	//Delete previous file
+	function adjust_files(what_export){
+		root  =  new DzDir("").homePath()+"/";
+		var dd = new DzDir(root);		
+		var ss = ["Documents","DTB","ENV","FIG"];
+		for ( var i=0;i<ss.length;i+=1){
+			var adr = root + ss[i]+"/";
+			var dd = new DzDir(adr);
+			if(dd.exists()==false){
+				dd.mkdir(adr);
+			}
+			if (i<2){
+				root = adr;
+			}else{
+				//env.prop
+				if (i==3 && what_export==0 || i==2 && what_export == 1){
+					continue;
+				}
+				dd = new DzDir(adr);
+				cd = new DzDir(root);
+				var ary = dd.getFilesFromDir (new Array(),true );
+				for(var j=0;j<ary.length;j+=1){	
+					var rtn = dd.remove(ary[j]);
+				}	
+				for(var j=0;j<100;j+=1){
+					killadr = adr+"/" + ss[i] + j;
+					kill = new DzDir(killadr);
+					if (kill.exists()){
+						dd.rmdir(killadr);
+					}else{
+						break;
+					}					
+				}
+			}
+		}
+	}	
+	
+	function makeEndDir(idx,arg){		
+		var envadr =root;
+		var ss = [arg,arg + idx];
+		for ( var j=0;j<ss.length;j+=1){
+			envadr = envadr + ss[j]+"/";
+			dd = new DzDir(envadr);
+			if(dd.exists()==false){
+				dd.mkdir(envadr);
+			}
+		}
+	}
+	//Decide subdivison level Dialog.
+	function getLevel(){
+		var rtn = -1;
+		var wDlg = new DzDialog;
+		wDlg.caption = "Select Subdiv Level";
+		var wLyt = new DzVBoxLayout( wDlg );
+		wLyt.autoAdd = true;
+		var wOptBG = new DzVButtonGroup( wDlg );
+		wOptBG.columns = 1;
+		var rbtn = []
+		for (var i=0;i<3;i+=1){
+			rbtn[i] = new DzRadioButton( wOptBG );
+			rbtn[i].text = "SubDiv " + String(i);
+			if(i==0){
+				rbtn[i].checked = true;		
+			}
+		}
+		var btnCol = new DzVButtonGroup( wDlg );
+		btnCol.columns = 2;
+		var dbok = new DzPushButton(btnCol);
+		dbok.text = "Accept";
+		var dbno = new DzPushButton(btnCol);
+		dbno.text = "Cancel";		
+		wDlg.setAcceptButton(dbok);
+		wDlg.setRejectButton(dbno);
+		if (wDlg.exec()){
+			for(var i=0;i<=2;i+=1){
+				if (rbtn[i].checked){
+					rtn = i;
+					break;
+				}		
+			}
+		}
+		return rtn;
+	}
+	
+	//No eyelashes on .OBJ
+	function ctl_visible_eyelash(mynode,flg_fbx){
+		var hide = ["Eyelashes","Eye_1","Eye_2","_Shell"];
+		var nlist = mynode.getNodeChildren(true);
+		for( var i=0;i<nlist.length;i+=1){
+			if (nlist[i].getNodeParent()==mynode){
+			
+				for (var j=0;j<hide.length;j+=1){ 
+					if(nlist[i].name.indexOf(hide[j])>0){
+						nlist[i].setVisible(flg_fbx);
+					}
+				}
+			}
+		}	
+	}
+	//gather root ary
+	function makeRootAry(){
+		var index = -1;
+		var nlist = Scene.getNodeList();	
+		for( var i=0;i<nlist.length;i+=1){
+			if (nlist[i].isVisible()==false){
+				if(nlist[i].isRootNode()){ 
+					nlist[i].setVisible(true);
+					var ary = nlist[i].getNodeChildren(true);
+					for (var j=0;j<ary.length;j+=1){
+						ary[j].setVisible(true);
+					}
+				}
+				continue;
+			}
+			if (nlist[i].isRootNode() && nlist[i].isVisible()){
+							
+				if (
+				(nlist[i].name.startsWith("Genesis8Female")
+				|| nlist[i].name.startsWith("Genesis8Male")
+				|| nlist[i].name.startsWith("Genesis3Male")
+				|| nlist[i].name.startsWith("Genesis3Female"))
+					&& nlist[i].name.indexOf("Eyelash")<0
+				){
+					fig_ary.push(nlist[i]);
+				}else{
+					env_ary.push(nlist[i]);
+				}	
+			}		
+		}			
+	}
+	//Env/Prop ,  Figure or Both
+	function selectWhatRootNode(wexp){
+		var rtn = -1;
+		var wDlg = new DzDialog;
+		wDlg.showExtension(false);
+		wDlg.caption = "Select";// Export Nodes";
+		var wLyt = new DzVBoxLayout( wDlg );
+		wLyt.autoAdd = true;
+		var wOptBG = new DzVButtonGroup( wDlg );
+		wOptBG.columns = 1;
+		var rbtn = []
+		var kinds = ['Environment/Prop','Genesis3/8','Both']
+		for (var i=0;i<3;i+=1){
+			rbtn[i] = new DzRadioButton( wOptBG );
+			rbtn[i].text = kinds[i];
+			if(i==1){
+				rbtn[i].checked = true;		
+			}
+		}
+		var btnCol = new DzVButtonGroup( wDlg );
+		btnCol.columns = 2;
+		var dbok = new DzPushButton(btnCol);
+		dbok.text = "Accept";
+		var dbno = new DzPushButton(btnCol);
+		dbno.text = "Cancel";		
+		wDlg.setAcceptButton(dbok);
+		wDlg.setRejectButton(dbno);
+		var oWidget = wDlg.getWidget();
+		var sizeHint = oWidget.minimumSizeHint;
+		var nHeight = sizeHint.height;
+		wDlg.setFixedSize( sizeHint.width*1.5, sizeHint.height);
+		if (wDlg.exec()){
+			for(var i=0;i<=2;i+=1){
+				if (rbtn[i].checked){
+					rtn = i;
+					break;
+				}		
+			}
+		}
+		return rtn;	
+	}
+	
+	//Make sure node is Genital
+	function isGenital(mynode){
+		var keys = ["genital","malegen_"];
+		if (is_faced_mesh_single(mynode)<=0){
+			return false;
+		}
+		var lgname = mynode.name.toLowerCase();
+		for (var i =0;i<keys.length;i+=1){
+			if (lgname.length==2 && lgname==keys[i]
+			  || lgname.length>2 && lgname.indexOf(keys[i])>=0){
+				if (mynode.findNodeChild('hip',false) !=null){
+					return true;
+				}
+			}		
+		}
+		return false;
+	}
+	
+	//Mesh consisting of only edges and points cannot be FBX transferred.
+	//Case "deForce" Even if it is invisible, it will be transferred, so there is no choice but to delete it.
+	
+	function hide_not_faced_mesh(mainNode){
+		var nlist = mainNode.getNodeChildren(true);
+		var dels = new Array();
+		for(var i=0;i<nlist.length;i+=1){
+			if (nlist[i].isRootNode()){
+				continue;
+			}	
+			var ifms = is_faced_mesh_single(nlist[i]);
+			if (ifms==-2 ){
+				dels.push(i);
+			}
+		}	
+		for(var i=0;i<dels.length;i+=1){
+			mainNode.removeNodeChild(nlist[dels[i]],true);			
+			nlist[dels[i]].setVisible(false);
+			if (nlist[dels[i]].getLabel().endsWith("dForce")){
+				Scene.removeNode(nlist[dels[i]]);
+			}
+		}
+	}		
+	
+	//Mesh : 1
+	//Bone : -1
+	//Empty : -3
+	//NoFacedMesh : -2
+	//Figure :3
+	//Other : 0
+	function is_faced_mesh_single(sub_mesh){
+		if (sub_mesh==null){
+			return 0;
+		}
+		if(sub_mesh.inherits( "DzBone" ) ){
+			 return -1;
+		}
+		var obj = sub_mesh.getObject();
+		if (!obj){
+			 return -3;
+		}
+		var oShape = obj.getCurrentShape();
+		if(!oShape){
+			return 0;
+		}	 
+		var oMesh = oShape.getGeometry();
+		if (!oMesh){
+			return 0;
+		}
+		var nFacets = oMesh.getNumFacets();
+		if((nFacets==null || nFacets<=0) 
+			&& oMesh.name.toLowerCase().indexOf("eyebrow")<0 ){
+			return -2;
+		}
+		if (nFacets>14000){
+			return 3;
+		}
+		if (sub_mesh.isRootNode()){
+			 return 0;
+		}
+		return 1;
+	}
+	
+	function exp_bonemesh(bary){
+		var dfile = new DzFile(root+fname+".dat");
+		dfile.open(DzFile.WriteOnly);
+		for(var i=0;i<bary.length;i+=1){
+			dfile.writeLine(bary[i]);
+		}
+		dfile.close();
+	}
+	
+	//The mesh attached to the bone moves directly under the figure
+	function move_bone_children_mesh_for_env(mynode){
+		var nlist = mynode.getNodeChildren(true);
+		for( var i=0;i<nlist.length;i+=1){
+			var ifms = is_faced_mesh_single(nlist[i]);	
+			if (ifms==-3){
+				var loc1 = nlist[i].getLocalPos();							
+				var rot1 = nlist[i].getLocalRot();
+				var ary = nlist[i].getNodeChildren(true);	
+				for (var j=0;j<ary.length;j+=1){	
+					var loc2 = ary[j].getLocalPos();
+					var rot2 = ary[j].getLocalRot();
+					loc2.x += loc1.x;
+					loc2.y += loc1.y;
+					loc2.z += loc1.z;
+					rot2.x += rot1.x;
+					rot2.y += rot1.y;
+					rot2.z += rot1.z;
+					ary[j].setLocalPos(loc2);
+					ary[j].setLocalRot(rot2);
+					mynode.addNodeChild(ary[j]);			
+				}		
+			}
+		}	
+	}
+	
+	function getPlace(mynode,loc,scl){
+		var loc = mynode.getLocalPos();
+		var scl = mynode.getLocalScale();			
+		var line = loc.x+"," + loc.y+"," + loc.z+",";
+		line += mynode.getXRotControl().getLocalValue()+",";
+		line += mynode.getYRotControl().getLocalValue()+",";
+		line += mynode.getZRotControl().getLocalValue()+",";													
+		line += scl.m11+"," + scl.m22+"," + scl.m33+"," + mynode.getLabel();
+		return line;
+	}
+	function getallchildren(parentNode,mynode){
+		var bary = new Array();
+		var last_ary = mynode.getNodeChildren(true);
+		last_ary.push(mynode);
+		for (k=0;k<last_ary.length;k+=1){
+			var last_ifms = is_faced_mesh_single(last_ary[k]);
+			if (last_ifms>0){	
+				var aname = last_ary[k].name;	
+				for(var a=1;a<=10;a+=1){
+					if (last_ary[k].getLabel().endsWith(" (" + a + ")")){
+						aname += "_dup_" + a;								
+					}				
+				}
+				bary.push(parentNode.name+"," + aname);		
+			}
+		}
+		return bary;
+	}
+	
+	
+	
+	
+	function write_bone_children_mesh_for_fig(mainNode,exp_adr){
+		var bary = new Array();
+		var nlist = mainNode.getNodeChildren(true);
+		for( var i=0;i<nlist.length;i+=1){
+			var ary = nlist[i].getNodeChildren(false);
+			for (var j=0;j<ary.length;j+=1){	
+				var ifms = is_faced_mesh_single(ary[j]);	
+				//It's mesh(child).											
+				if(ifms>0){
+					var prt_ifms = is_faced_mesh_single(nlist[i])
+					//Parent is bone
+					var isbone = prt_ifms==-1;
+					if (isbone){
+						bary = bary.concat(getallchildren(nlist[i],ary[j]));	
+					//Parent is Empty		
+					}
+				//It's Empty(Child)
+				}else if (ifms==-3){
+					var kary = ary[j].getNodeChildren(false);
+					//Child's Children
+					for(var k=0;k<kary.length;k+=1){
+						//Grandchild is mesh.
+						//cild's parent,parent child(brother?) is bone
+						if (is_faced_mesh_single(kary[k])>0){
+							if (is_faced_mesh_single(nlist[i].getNodeParent())==-1){
+								bary = bary.concat(getallchildren(nlist[i],kary[k]));	
+							}	
+						}
+					}
+				}										
+			}
+		}
+		
+		if(bary.length>0){
+			var dfile = new DzFile(exp_adr);
+			dfile.open(DzFile.WriteOnly);
+			for(var i=0;i<bary.length;i+=1){
+				dfile.writeLine(bary[i]);
+			}
+			dfile.close();	
+		}
+	}
+	
+	//Apply subdivision levels to figures and genitals.
+	function setSubdivAll(mynode,level){
+		var nlist = Scene.getNodeList();
+		for(var i=0;i<nlist.length;i+=1){
+			var isBody = nlist[i]==mynode;
+			var isGen = isBody==false && nlist[i].getNodeParent()==mynode && isGenital(nlist[i]);
+			var lev = 0;
+			if (isBody || isGen){
+				lev = level;
+			}
+			setSubdivOne(nlist[i],lev);
+		}
+	}
+	
+	function setSubdivOne(mynode2,level){
+		var ps = ["lodlevel","SubDIALevel"]	
+		var oObject = mynode2.getObject();
+		if (oObject) {
+			if ((oShape = oObject.getCurrentShape())) {
+				for(var i=0;i<ps.length;i+=1){
+					if ((oProp = oShape.findProperty(ps[i]))) {
+						if (oProp.isLocked()){
+							oProp.lock(false);   
+						}
+						if (i==0 && level==0){
+							oProp.setValue("Basic");
+						}else{
+							oProp.setValue(level);
+						}
+							
+						if (level>0){		
+							oProp.lock(true);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	function setHideRoot(flg_fig,is_show){
+		if (flg_fig && fig_ary != null){
+			for(var i=0;i<fig_ary.length;i+=1){
+				setVisible(fig_ary[i],is_show);
+			}
+		}else if (env_ary !=null){
+			for(var i=0;i<env_ary.length;i+=1){
+				setVisible(env_ary[i],is_show);
+			}
+		}
+	}
+	
+	function setVisible(mainNode,flg_show){
+		var ary = mainNode.getNodeChildren(true);
+		for(var i=0;i<ary.length;i+=1){
+			ary[i].setVisible(flg_show);
+		}
+		mainNode.setVisible(flg_show);
+	}
+	
+    //START
+	makeRootAry();
+	if(fig_ary.length>2){
+		var rtn = MessageBox.warning("Transferring 3 or more figures with clothing or hair on may freeze and stop","WARNING","OK","CANCEL");
+		if (rtn==1){
+			return;
+		}
+	}
+	what_export = -1;
+	if (fig_ary.length==0 && env_ary.length==0){
+		return;
+	}else if (fig_ary.length>0 && env_ary.length>0){
+		//BOTH
+		what_export = 2;
+	}else if (env_ary.length==0){
+		//G8.G3
+		what_export = 1;
+	}else if (fig_ary.length==0){
+		//env.prop
+		what_export = 0;
+	}
+	if(what_export==2){
+		what_export = selectWhatRootNode()
+	}
+	if (what_export<0){
+		return;
+	}
+	adjust_files(what_export);
+	
+	if( what_export>0 ){
+		
+		setHideRoot(false,false);
+		for(var i=0;i<fig_ary.length;i+=1){
+			for(var j=0;j<fig_ary.length;j+=1){
+				setVisible(fig_ary[j],i==j);
+			}
+			var level =  0;
+			if (isHD){
+				level = getLevel();
+			}
+			if (level<0){
+				continue;
+			}
+			setLock(fig_ary[i],true,true);
+			makeEndDir(i,"FIG");
+			export_overall_pose(fig_ary[i],root+"FIG/FIG"+i+"/FIG"+".csv",true);
+			clear_fig_pose(fig_ary[i]);
+			write_bone_children_mesh_for_fig(fig_ary[i],root+"FIG/FIG"+i+"/FIG.dat");
+			setSubdivAll(fig_ary[i],level);
+			get_morph_list(fig_ary[i]);
+			var isgo = getMorphWord(fig_ary[i]);
+			if (isgo==false){
+				continue;
+			}
+			ctl_visible_eyelash(fig_ary[i],false);
+			export_obj(fig_ary[i],"FIG",i);
+			ctl_visible_eyelash(fig_ary[i],true);
+			hide_not_faced_mesh(fig_ary[i]);
+			export_fbx(fig_ary[i],"FIG",i ,false);
+			setLock(fig_ary[i],false,true);			
+			reverse_pose(fig_ary[i]);
+		}
+	}
+	var oContentMgr = App.getContentMgr();
+	var sRuntimeBasePath = oContentMgr.getPoserDirectoryPath( 0 );
+	if( what_export!=1){
+		setHideRoot(true,false);
+		for(var i=0;i<env_ary.length;i+=1){
+			for(var j=0;j<env_ary.length;j+=1){
+				setVisible(env_ary[j],i==j);
+			}
+			var isbone = env_ary[i].getSkeleton()!= null;
+			if (isbone){
+				move_bone_children_mesh_for_env(env_ary[i]);
+			}
+			part_bone_out(env_ary[i]);
+			setLock(env_ary[i],true,false);
+			
+			setSubdivAll(env_ary[i],0);
+			var fbxadr = root+"ENV/ENV" + i+"/";
+			makeEndDir(i,"ENV");
+			if(env_ary[i].name.startsWith("Genesis")){
+				clear_fig_pose(env_ary[i]);
+			}
+			export_fbx(env_ary[i],"ENV" ,i,true);
+			export_fbx(env_ary[i],"ENV", i,false);
+				
+			var exp_adr = fbxadr+"ENV";
+			var pose_adr = exp_adr + ".csv";
+			var bone_adr = exp_adr + ".bon";			
+			
+			if (isbone){
+				export_bone_for_env(env_ary[i],bone_adr);
+			}else{
+				export_overall_pose(env_ary[i],pose_adr,false);
+				exp_memo(fbxadr+"nobone.txt");
+					
+			}
+			setLock(env_ary[i],false,false);		
+		}
+	}
+	setHideRoot(true,true);
+	setHideRoot(false,true);
+	
+})();
