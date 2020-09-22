@@ -256,6 +256,7 @@
 		
 		var oProp;
 		var oOwner;
+		var oTop;
 		var sPath;
 		var sHead;
 		var sLabel;
@@ -275,8 +276,9 @@
 			}
 			
 			for( var j = 0; j < aTops.length; j += 1 ){
-				if( sPath.indexOf( "/" + aTops[j] ) == 0 ){
-					sHead = "<" + aTops[j] + ">";
+				oTop = aTops[j];
+				if( sPath.indexOf( "/" + oTop ) == 0 ){
+					sHead = "<" + oTop + ">";
 					break;
 				}
 			}
