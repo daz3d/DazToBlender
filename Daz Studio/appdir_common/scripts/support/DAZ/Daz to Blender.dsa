@@ -897,16 +897,15 @@
 	};
 	
 	//No eyelashes on .OBJ
-	function setEyelashVisibility( bOnOff )
+	function setEyelashVisibility( oBaseNode, bOnOff )
 	{
 		var oNode;
 		
 		var aHide = [ "Eyelashes", "Eye_1", "Eye_2", "_Shell" ];
-		var aNodes = Scene.getNodeList();
-		for( var i = 0; i < aNodes.length; i += 1 ){
-			oNode = aNodes[i];
-			if( oNode.getNodeParent() == oNode && !oNode.isRootNode() ){
-				print( oNode.name + "eyelash?" );
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			if( oNode.getNodeParent() == oBaseNode ){
 				for( var j = 0; j < aHide.length; j += 1 ){ 
 					if( oNode.name.indexOf( aHide[j] ) > 0 ){
 						oNode.setVisible( bOnOff );
@@ -1305,9 +1304,9 @@
 	if( !s_sMorphRules.isEmpty() ){
 		prepareForExport();
 		flattenObjectHierarchy();
-		setEyelashVisibility( false );
+		setEyelashVisibility( s_oMainNode, false );
 		exportOBJ( s_oMainNode, s_sFilename );
-		setEyelashVisibility( true );
+		setEyelashVisibility( s_oMainNode, true );
 		removeIncompatibleNodes();
 		exportFBX();
 	}
