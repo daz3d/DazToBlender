@@ -720,33 +720,43 @@
 		wDlg.addWidget( wLabel );
 	};
 	
-	function promptMorphRules()
+	function promptMorphRules( oNode )
 	{
 		var wDlg = new DzBasicDialog();
-		wDlg.caption = "Input Morph Names. (Separated by line)";
+		wDlg.caption = s_sToolName + ": Morph Names";
 		
 		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
+		
+		if( oNode ){
+			wDlg.caption += " - " + oNode.getLabel();
+		}
 		
 		var oDlgWgt = wDlg.getWidget();
 		oDlgWgt.objectName = sKey;
 		
-		addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
+		//addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
 		
 		var wMinimalMorphsCbx = new DzCheckBox( wDlg );
 		wMinimalMorphsCbx.text = qsTr( "Include Minimal Morphs" );
 		wMinimalMorphsCbx.checked = true;
 		wDlg.addWidget( wMinimalMorphsCbx );
 		
+		var wLbl = new DzLabel( wDlg );
+		wDlg.addWidget( wLbl );
+		
 		var wMorphNamesLbl = new DzLabel( wDlg );
-		wMorphNamesLbl.text = qsTr( "Morph Names:\n(empty = OK, partial words = OK, 3+ letters required)" );
+		wMorphNamesLbl.text = qsTr( "Morph Names: (line separated)\n[empty = OK, partial words = OK, 3+ letters required]" );
 		wDlg.addWidget( wMorphNamesLbl );
 		
 		var wMorphNamesTEdit = new DzTextEdit( wDlg );
 		wMorphNamesTEdit.text = "";
 		wDlg.addWidget( wMorphNamesTEdit );
 		
+		wLbl = new DzLabel( wDlg );
+		wDlg.addWidget( wLbl );
+		
 		var wValidMorphNamesLbl = new DzLabel( wDlg );
-		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n(double-click to copy above)" );
+		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n[double-click to copy above]" );
 		wDlg.addWidget( wValidMorphNamesLbl );
 		
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
@@ -1296,7 +1306,7 @@
 	setSubDivLevelAll( s_oMainNode, nLevel );
 	buildMorphList( s_oMainNode );
 	
-	if( !promptMorphRules() ){
+	if( !promptMorphRules( s_oMainNode ) ){
 		return;
 	}
 	
