@@ -248,9 +248,9 @@
 	var s_quatDef = new DzQuat( 0, 0, 0, 1, true );
 	
 	//Note: destructive - modifies the scene contents
-	function buildMorphList()
+	function buildMorphList( oNode )
 	{
-		var aProperties = getElementProperties( s_oMainNode, true, true );
+		var aProperties = getElementProperties( oNode, true, true );
 		var nAlfIdx = 0;
 		var aTops = [ "Morphs", "Hidden", "Pose" ];
 		
@@ -1297,7 +1297,7 @@
 	}
 	
 	setSubDivLevelAll( nLevel );
-	buildMorphList();
+	buildMorphList( s_oMainNode );
 	
 	if( !promptMorphRules() ){
 		return;
