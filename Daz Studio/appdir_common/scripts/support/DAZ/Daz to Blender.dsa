@@ -1223,7 +1223,7 @@
 	};
 	
 	//Apply subdivision levels to figures and genitals.
-	function setSubDivLevelAll( nLevel )
+	function setSubDivLevelAll( oBaseNode, nLevel )
 	{
 		var bIsBody;
 		var bIsGen;
@@ -1233,8 +1233,8 @@
 		var aNodes = Scene.getNodeList();
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			bIsBody = oNode == s_oMainNode;
-			bIsGen = !bIsBody && isGenital( oNode );
+			bIsBody = oNode == oBaseNode;
+			bIsGen = !bIsBody && oNode.getNodeParent() == oBaseNode && isGenital( oNode );
 			nLev = 0;
 			if( bIsBody || bIsGen ){
 				nLev = nLevel;
@@ -1295,7 +1295,7 @@
 		return;
 	}
 	
-	setSubDivLevelAll( nLevel );
+	setSubDivLevelAll( s_oMainNode, nLevel );
 	buildMorphList( s_oMainNode );
 	
 	if( !promptMorphRules() ){
