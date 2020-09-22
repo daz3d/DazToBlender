@@ -696,15 +696,9 @@
 	
 	function getMinimalMorphRules()
 	{
-		var sResult = "";
-		
-		var sMorph;
+		var sResult = "head\n0\n";
 		for( var i = 0; i < s_aMinMorphs.length; i += 1 ){
-			sMorph = s_aMinMorphs[i];
-			sResult += sMorph + "\n1\n"
-			if( sMorph.startsWith( "eCTRL" ) ){
-				sResult += "head__" + sMorph + "\n1\n";
-			}
+			sResult += s_aMinMorphs[i] + "\n1\n";
 		}
 		
 		return sResult;
