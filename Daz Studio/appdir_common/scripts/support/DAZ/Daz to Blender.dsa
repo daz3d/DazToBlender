@@ -794,28 +794,27 @@
 	
 	//Morph names that are too long will cause an error in Blender 2.79.
 	//Note: destructive - modifies the scene contents
-	function truncateSkeletonNames()
+	function truncateSkeletonNames( oBaseNode )
 	{
-		var nCount = 0;
-		
+		var oNode;
+		var sName;
 		var sTmp;
-		var oSkeleton;
-		var sSkelName;
 		
-		var aSkeletons = Scene.getSkeletonList();
-		for( var i = 0; i < aSkeletons.length; i += 1 ){
-			oSkeleton = aSkeletons[i];
-			sSkelName = oSkeleton.name;
-			if( sSkelName.length >= s_nMaxName ){
-				sTmp = sSkelName.substring( 0, s_nMaxName - 2 );
+		var nCount = 0;
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			sName = oNode.name;
+			if( sName.length >= s_nMaxName ){
+				sTmp = sName.substring( 0, s_nMaxName-2 );
 				nCount = nCount % 36;
 				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
-				oSkeleton.name = sTmp;
+				oNode.name = sTmp;
 				s_nLenName = s_nMaxName;
 				nCount = nCount + 1;
 			} else {
-				if( sSkelName.length > s_nLenName ){
-					s_nLenName = sSkelName.length;
+				if( sName.length > s_nLenName ){
+					s_nLenName = sName.length;
 				}
 			}
 		}
@@ -1288,7 +1287,7 @@
 		return;
 	}
 	
-	truncateSkeletonNames();
+	truncateSkeletonNames( s_oMainNode );
 	var nLevel = promptMeshResolution();
 	if( nLevel < 0 ){
 		return;
