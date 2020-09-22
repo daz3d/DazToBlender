@@ -1048,9 +1048,8 @@
 		return 1;
 	};
 	
-	function writeDataFile( aData )
+	function writeDataFile( aData, sFilename )
 	{
-		var sFilename = s_sRoot + s_sFilename + ".dat";
 		var oFile = new DzFile( sFilename );
 		if( !oFile.open( DzFile.WriteOnly ) ){
 			print( String( "Unable to open \"%1\" for writing." ).arg( sFilename ) );
@@ -1194,7 +1193,7 @@
 		aData = aData.filter( Boolean );
 		
 		if( aData.length > 0 ){
-			writeDataFile( aData );
+			writeDataFile( aData, s_sRoot + s_sFilename + ".dat" );
 		}
 	};
 	
