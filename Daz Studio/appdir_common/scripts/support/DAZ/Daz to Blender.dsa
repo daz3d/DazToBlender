@@ -1790,7 +1790,6 @@
 				applyDefaultTransforms( oNode );
 			}
 			
-			exportFBX( oNode, s_sEnv, i, true );
 			exportFBX( oNode, s_sEnv, i, false );
 			
 			sFileBasename = sEnvPath + s_sEnv;
