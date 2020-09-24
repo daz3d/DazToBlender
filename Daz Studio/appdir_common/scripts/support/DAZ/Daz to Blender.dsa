@@ -831,43 +831,45 @@
 		return true;
 	};
 	
-	// TODO : error checking
 	function writeBoneData( oBaseNode, sFilename )
 	{
-		var oFile = new DzFile( sFilename );
-		oFile.open( DzFile.WriteOnly );
-		
 		var oNode;
-		var sLine;
 		var vecOrigin;
 		var vecEnd;
-		var aTransform;
 		
 		var aChildren = oBaseNode.getNodeChildren( true );
-		for( var i = 0; i < aChildren.length; i += 1 ){
+		var nChildren = aChildren.length;
+		
+		var aData = new Array( nChildren );
+		
+		for( var i = 0; i < nChildren; i += 1 ){
 			oNode = aChildren[i];
 			if( !oNode.inherits( "DzBone" ) ){
 				continue;
 			}
 			
-			sLine = oNode.name + ",";
-			
 			vecOrigin = oNode.getOrigin( true );
-			sLine += vecOrigin.x + "," + vecOrigin.y + "," + vecOrigin.z + ",";
-			
 			vecEnd = oNode.getEndPoint( true );
-			sLine += vecEnd.x + "," + vecEnd.y + "," + vecEnd.z + ",";
 			
-			aTransform = getBoneTransformValues( oNode );
-			for( var j = 0; j < aTransform.length; j += 1 ){
-				sLine += aTransform[j] + ",";
-			}
-			// TODO : sLine += aTransform.join( "," );
-			
-			oFile.writeLine( sLine );
+			aData[i] = [
+				oNode.name,
+				vecOrigin.x,
+				vecOrigin.y,
+				vecOrigin.z,
+				vecEnd.x,
+				vecEnd.y,
+				vecEnd.z
+				]
+				.concat( getBoneTransformValues( oNode ) )
+				.join( "," );
 		}
 		
-		oFile.close();
+		aData = aData.filter( Boolean );
+		if( aData.length < 1 ){
+			return;
+		}
+		
+		writeDataFile( aData, sFilename );
 	};
 	
 	// TODO : refactor - efficiency
@@ -914,14 +916,9 @@
 		return aPosRotScale;
 	};
 	
-	// TODO : error checking
 	function writeMemo( sFilename, sMemo )
 	{
-		var oFile = new DzFile( sFilename );
-		oFile.open( DzFile.WriteOnly );
-		
-		oFile.writeLine( sMemo );
-		oFile.close();
+		writeDataFile( [ sMemo ], sFilename );
 	};
 	
 	function applyDefaultTransforms( oBaseNode )
@@ -942,13 +939,9 @@
 		oBaseNode.setLocalScale( s_mtxDef );
 	};
 	
-	// TODO : error checking
 	function writePoseData( oBaseNode, sFilename, bIsFigure )
 	{
 		s_aPoseData = [];
-		
-		var oFile = new DzFile( sFilename );
-		oFile.open( DzFile.WriteOnly );
 		
 		var aTopNodes = oBaseNode.getNodeChildren( false );
 		if( aTopNodes.length == 0 && !bIsFigure ){
@@ -956,56 +949,62 @@
 		}
 		
 		var oTopNode;
-		var aNodes;
+		
+		var aNodes = [];
+		
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( bIsFigure && oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			if( i == 0 ){
+				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
+			} else {
+				aNodes = aNodes.concat( oTopNode, oTopNode.getNodeChildren( true ) );
+			}
+		}
+		
+		var nNodes = aNodes.length;
+		if( nNodes < 1 ){
+			return;
+		}
+		
 		var oNode;
 		var sKigo;
 		var vecPos;
 		var quatRot;
 		var mtxScale;
-		var aPose;
 		var sLine;
 		
-		for( var i = 0; i < aTopNodes.length; i += 1 ){
-			oTopNode = aTopNodes[i];
-			if( bIsFigure ){
-				if( oTopNode.name != "hip" ){
-					continue;
-				}
-				
-				aNodes = oTopNode.getNodeChildren( true );
-				
-				aNodes.push( oBaseNode );
-			} else {
-				aNodes = oTopNode.getNodeChildren( true );
-				if( i == 0 ){
-					aNodes.push( oBaseNode );
-				}
-			}
+		var aData = new Array( nNodes );
+		
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			sKigo = getKigo( oNode );
+			vecPos = oNode.getLocalPos();
+			quatRot = oNode.getLocalRot();
+			mtxScale = oNode.getLocalScale();
 			
-			aNodes.push( oTopNode );
+			s_aPoseData.push( [ oNode.name, sKigo, vecPos, quatRot, mtxScale ] );
 			
-			for( var j = 0; j < aNodes.length; j += 1 ){
-				oNode = aNodes[j];
-				sKigo = getKigo( oNode );
-				vecPos = oNode.getLocalPos();
-				quatRot = oNode.getLocalRot();
-				mtxScale = oNode.getLocalScale();
-				
-				aPose = [ oNode.name, sKigo, vecPos, quatRot, mtxScale ];
-				s_aPoseData.push( aPose );
-				
-				sLine = oNode.getLabel() + "," + oNode.name + "," + sKigo;
-				sLine += "," + vecPos.x + "," + vecPos.y + "," + vecPos.z + ",";
-				sLine += oNode.getXRotControl().getLocalValue() + ",";
-				sLine += oNode.getYRotControl().getLocalValue() + ",";
-				sLine += oNode.getZRotControl().getLocalValue() + ",";
-				sLine += mtxScale.m11 + "," + mtxScale.m22 + "," + mtxScale.m33;
-				
-				oFile.writeLine( sLine );
-			}
+			aData[i] = [
+				oNode.getLabel(),
+				oNode.name,
+				sKigo,
+				vecPos.x,
+				vecPos.y,
+				vecPos.z,
+				oNode.getXRotControl().getLocalValue(),
+				oNode.getYRotControl().getLocalValue(),
+				oNode.getZRotControl().getLocalValue(),
+				mtxScale.m11,
+				mtxScale.m22,
+				mtxScale.m33
+				].join( "," );
 		}
 		
-		oFile.close();
+		writeDataFile( aData, sFilename );
 	};
 	
 	function restorePose( oBaseNode )
@@ -1108,7 +1107,7 @@
 			return "E";
 		}
 		
-		var oShape = obj.getCurrentShape();
+		var oShape = oObject.getCurrentShape();
 		if( !oShape ){
 			return "E";
 		}
@@ -1448,7 +1447,6 @@
 		return s_oMeshTypes.Mesh; //1
 	};
 	
-	// TODO : remove - not used
 	function writeDataFile( aData, sFilename )
 	{
 		var oFile = new DzFile( sFilename );
@@ -1511,7 +1509,6 @@
 		}
 	};
 	
-	// TODO : flatten arrow-code
 	function getParentingData( oParentNode, oBaseNode )
 	{
 		var aData = [];
@@ -1523,22 +1520,25 @@
 		aNodes.push( oBaseNode );
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			if( getMeshType( oNode ) > s_oMeshTypes.Other ){
-				sName = oNode.name;
-				for( var j = 1; j <= 10; j += 1 ){
-					if( oNode.getLabel().endsWith( " (" + j + ")" ) ){
-						sName += "_dup_" + j;
-					}
+			if( getMeshType( oNode ) <= s_oMeshTypes.Other ){
+				continue;
+			}
+			
+			sName = oNode.name;
+			for( var j = 1; j <= 10; j += 1 ){
+				if( !oNode.getLabel().endsWith( " (" + j + ")" ) ){
+					continue;
 				}
 				
-				aData.push( oParentNode.name + "," + sName );
+				sName += "_dup_" + j;
 			}
+			
+			aData.push( oParentNode.name + "," + sName );
 		}
 		
 		return aData;
 	};
 	
-	// TODO : error checking
 	function writeParentingData( oBaseNode, sFilename )
 	{
 		var aData = [];
@@ -1586,14 +1586,7 @@
 		}
 		
 		if( aData.length > 0 ){
-			var oFile = new DzFile( sFilename );
-			oFile.open( DzFile.WriteOnly );
-			
-			for( var i = 0; i < aData.length; i += 1 ){
-				oFile.writeLine( aData[i] );
-			}
-			
-			oFile.close();
+			writeDataFile( aData, sFilename );
 		}
 	};
 	
