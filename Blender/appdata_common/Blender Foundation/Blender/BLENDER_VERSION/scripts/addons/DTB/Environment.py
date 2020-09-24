@@ -528,10 +528,12 @@ class ReadFbx:
                     obj.rotation_euler[i] = 0
             elif obj.type=='LIGHT' or obj.type=='CAMERA':
                 for i in range(3):
+                    print(obj.name,obj.type,"#####",pose[i+3])
+                    obj.lock_location[i] = False
                     obj.location[i] = float(pose[i+3]) + float(root_pose[i+3])
                     self.before_edit_prop()
                     obj.rotation_euler[i] = math.radians(float(pose[i+6]))
-                    obj.scale[i] = 100
+                    obj.scale[i] = 1
             for i in range(3):
                 obj.lock_location[i] = True
                 obj.lock_rotation[i] = True
@@ -566,7 +568,7 @@ class ReadFbx:
                 ss = p.split(',')
                 #manage [_dup_] files
                 for i in range(2,20):
-                    if ss[0].endswith(" (" + str(i) + ")"):
+                    if ss[0]!=ss[1] and ss[0].endswith(" (" + str(i) + ")"):
                         if not ss[1].endswith("_dup_" + str(i)):
                             ss[1] = ss[1] + "_dup_" + str(i)
                         break
