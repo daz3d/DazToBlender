@@ -1218,50 +1218,37 @@
 	};
 	
 	//Decide subdivison level Dialog.
-	function promptMeshResolution()
+	function promptMeshResolution( oNode )
 	{
-		var nLevel = -1;
+		var wDlg = new DzBasicDialog();
+		wDlg.caption = s_sToolName + ": SubD Level";
 		
-		var wDlg = new DzDialog;
-		wDlg.caption = "Select Subdiv Level";
+		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
 		
-		var wLyt = new DzVBoxLayout( wDlg );
-		wLyt.autoAdd = true;
+		if( oNode ){
+			wDlg.caption += " - " + oNode.getLabel();
+		}
+		
+		var oDlgWgt = wDlg.getWidget();
+		oDlgWgt.objectName = sKey;
 		
 		var wOptBG = new DzVButtonGroup( wDlg );
 		wOptBG.columns = 1;
 		
-		var aRBtns = new Array( 3 );
+		var wRadioBtn;
 		for( var i = 0; i < 3; i += 1 ){
-			aRBtns[i] = new DzRadioButton( wOptBG );
-			aRBtns[i].text = "SubDiv " + String( i );
-			if( i == 0 ){
-				aRBtns[i].checked = true;
-			}
+			wRadioBtn = new DzRadioButton( wOptBG );
+			wRadioBtn.text = "SubDivision Level " + i;
+		}
+		wOptBG.selected = 0;
+		
+		wDlg.addWidget( wOptBG );
+		
+		if( !wDlg.exec() ){
+			return -1;
 		}
 		
-		var wBtnGrp = new DzVButtonGroup( wDlg );
-		wBtnGrp.columns = 2;
-		
-		var wOkBtn = new DzPushButton( wBtnGrp );
-		wOkBtn.text = "Accept";
-		
-		var wNoBtn = new DzPushButton( wBtnGrp );
-		wNoBtn.text = "Cancel";
-		
-		wDlg.setAcceptButton( wOkBtn );
-		wDlg.setRejectButton( wNoBtn );
-		
-		if( wDlg.exec() ){
-			for( var i = 0; i <= 2; i += 1 ){
-				if( aRBtns[i].checked ){
-					nLevel = i;
-					break;
-				}
-			}
-		}
-		
-		return nLevel;
+		return wOptBG.selected;
 	};
 	
 	//No eyelashes on .OBJ
@@ -1744,7 +1731,7 @@
 				setVisible( s_aFigures[j], i == j );
 			}
 			
-			nLevel = promptMeshResolution();
+			nLevel = promptMeshResolution( oFigure );
 			if( nLevel < 0 ){
 				continue;
 			}
