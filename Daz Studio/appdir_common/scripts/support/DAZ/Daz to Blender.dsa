@@ -6,8 +6,29 @@
 	var s_sToolName = s_oFileInfo.baseName();
 	s_oFileInfo.deleteLater();
 	
-	var s_sFilename = "DTB";
-	var s_oMainNode = null;
+	var s_aFigures = [];
+	var s_aEnvProp = [];
+	
+	var s_sFig = "FIG";
+	var s_sEnv = "ENV";
+	
+	var s_oMeshTypes = {
+		"Figure" :3,
+		"Mesh" : 1,
+		"Other" : 0,
+		"Bone" : -1,
+		"NoFacets" : -2,
+		"Empty" : -3
+	};
+	
+	var s_oExportTypes = {
+		"Both" : 2,
+		"Figure" : 1,
+		"EnvProp" : 0,
+		"None" : -1
+	};
+	var s_nExportType = s_oExportTypes.None;
+	
 	var s_aMinMorphs = [
 		"pJCMShldrUp_35_R",
 		"pJCMShldrUp_35_L",
@@ -236,7 +257,9 @@
 		"pJCMToesUp_60_R"
 	];
 	var s_sMorphRules = "head\n1\npJCM\n1\n";
-	var s_sRoot = "";
+	
+	var s_sRootPath = "";
+	
 	var s_aMorphs = [];
 	var s_aSearch = [];
 	var s_nLenName = 0;
@@ -244,18 +267,25 @@
 	var s_nMaxAll = 63;
 	var s_s3Spaces = "   ";
 	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
+	
 	var s_vecDef = new DzVec3( 0, 0, 0 );
 	var s_quatDef = new DzQuat( 0, 0, 0, 1, true );
+	var s_mtxDef = new DzMatrix3( s_quatDef );
 	
-	//Note: destructive - modifies the scene contents
-	function buildMorphList()
+	var s_aPoseData = [];
+	
+	/*********************************************************************/
+	// void : ...
+	// Note: destructive - modifies the scene contents
+	function buildMorphList( oNode )
 	{
-		var aProperties = getElementProperties( s_oMainNode, true, true );
+		var aProperties = getElementProperties( oNode, true, true );
 		var nAlfIdx = 0;
 		var aTops = [ "Morphs", "Hidden", "Pose" ];
 		
 		var oProp;
 		var oOwner;
+		var oTop;
 		var sPath;
 		var sHead;
 		var sLabel;
@@ -275,8 +305,9 @@
 			}
 			
 			for( var j = 0; j < aTops.length; j += 1 ){
-				if( sPath.indexOf( "/" + aTops[j] ) == 0 ){
-					sHead = "<" + aTops[j] + ">";
+				oTop = aTops[j];
+				if( sPath.indexOf( "/" + oTop ) == 0 ){
+					sHead = "<" + oTop + ">";
 					break;
 				}
 			}
@@ -410,7 +441,8 @@
 	
 	// - Minor changes for this specific use case
 	
-	function exportFBX()
+	// void : ...
+	function exportFBX( oNode, sName, nIdx, bAscii )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -442,12 +474,15 @@
 			oSettings.setBoolValue( "doVisible", true );
 			// Figures
 			oSettings.setBoolValue( "doFigures", true );
+			
+			var bIsEnv = sName.startsWith( s_sEnv );
 			// Props
-			oSettings.setBoolValue( "doProps", false );
+			oSettings.setBoolValue( "doProps", bIsEnv );
 			// Lights
-			oSettings.setBoolValue( "doLights",false );
+			oSettings.setBoolValue( "doLights", bIsEnv );
 			// Cameras
-			oSettings.setBoolValue( "doCameras", false );
+			oSettings.setBoolValue( "doCameras", bIsEnv );
+			
 			// Animations
 			oSettings.setBoolValue( "doAnims", false );
 			// Morphs
@@ -465,7 +500,11 @@
 			// Format for format is "Year# -- Type",
 			// where Year# is one of 2006|2009|2010|2011|2012|2013|2014 and
 			// Type is one of Ascii|Binary
-			oSettings.setStringValue( "format", "FBX 2014 -- Binary" );
+			if( bAscii ){
+				oSettings.setStringValue( "format", "FBX 2014 -- Ascii" );
+			} else {
+				oSettings.setStringValue( "format", "FBX 2014 -- Binary" );
+			}
 			
 			// Embed Textures
 			oSettings.setBoolValue( "doEmbed", false );
@@ -480,12 +519,12 @@
 			// Allow Degraded Skinning
 			oSettings.setBoolValue( "degradedSkinning", false );
 			// Allow Degraded Scaling
-			oSettings.setBoolValue( "degradedScaling", true );
+			oSettings.setBoolValue( "degradedScaling", false );
 			// SubD Information
 			oSettings.setBoolValue( "doSubD", false );
 			// Collapse UV Tiles
-			oSettings.setBoolValue( "doCollapseUVTiles", false );
-			//
+			//oSettings.setBoolValue( "doCollapseUVTiles", false );
+			
 			oSettings.setBoolValue( "doLocks", false );
 			oSettings.setBoolValue( "doLimits", false );
 			oSettings.setBoolValue( "doBaseFigurePoseOnly", false );
@@ -504,14 +543,19 @@
 			// exporter's last path, the node's name, and the
 			// exporter's extension...
 			// Otherwise, just use the exporter's last path
-			var sInitialPath = ( s_oMainNode ?
+			var sInitialPath = ( oNode ?
 				String( "%1/%2.%3" )
 					.arg( oExportMgr.getExportPath() )
-					.arg( s_oMainNode.name )
+					.arg( oNode.name )
 					.arg( oExporter.getExtension() ) :
 				oExportMgr.getExportPath() );
 			
-			var sPath = s_sRoot+ "/" + s_sFilename + ".fbx";
+			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/";
+			if( bAscii ){
+				sPath += "A_" + sName + ".fbx"
+			} else {
+				sPath += "B_" + sName + ".fbx"
+			}
 			
 			// If the user didn't cancel and the file doesn't already
 			// exist, or the user wants to overwrite it
@@ -549,7 +593,8 @@
 	
 	// - Minor changes for this specific use case
 	
-	function exportOBJ( oNode, sObjName )
+	// void : ...
+	function exportOBJ( oNode, sName, nIdx )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -669,8 +714,7 @@
 					.arg( oExporter.getExtension() ) :
 				oExportMgr.getExportPath() );
 			
-			var sPath = s_sRoot + "/";
-			sPath += sObjName + ".obj";
+			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/" + sName+ ".obj";
 			
 			// If the user didn't cancel and the file doesn't already
 			// exist, or the user wants to overwrite it
@@ -692,22 +736,20 @@
 	
 // --- END export_obj_silent ----
 	
+	/*********************************************************************/
+	// Array<String> : ...
 	function getMinimalMorphRules()
 	{
-		var sResult = "";
-		
-		var sMorph;
+		var sResult = "head\n0\n";
 		for( var i = 0; i < s_aMinMorphs.length; i += 1 ){
-			sMorph = s_aMinMorphs[i];
-			sResult += sMorph + "\n1\n"
-			if( sMorph.startsWith( "eCTRL" ) ){
-				sResult += "head__" + sMorph + "\n1\n";
-			}
+			sResult += s_aMinMorphs[i] + "\n1\n";
 		}
 		
 		return sResult;
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function addBanner( wDlg, sImagePath )
 	{
 		var imgImage = new Image( sImagePath );
@@ -718,33 +760,45 @@
 		wDlg.addWidget( wLabel );
 	};
 	
-	function promptMorphRules()
+	/*********************************************************************/
+	// Boolean : ...
+	function promptMorphRules( oNode )
 	{
 		var wDlg = new DzBasicDialog();
-		wDlg.caption = "Input Morph Names. (Separated by line)";
+		wDlg.caption = s_sToolName + ": Morph Names";
 		
 		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
+		
+		if( oNode ){
+			wDlg.caption += " - " + oNode.getLabel();
+		}
 		
 		var oDlgWgt = wDlg.getWidget();
 		oDlgWgt.objectName = sKey;
 		
-		addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
+		//addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
 		
 		var wMinimalMorphsCbx = new DzCheckBox( wDlg );
 		wMinimalMorphsCbx.text = qsTr( "Include Minimal Morphs" );
 		wMinimalMorphsCbx.checked = true;
 		wDlg.addWidget( wMinimalMorphsCbx );
 		
+		var wLbl = new DzLabel( wDlg );
+		wDlg.addWidget( wLbl );
+		
 		var wMorphNamesLbl = new DzLabel( wDlg );
-		wMorphNamesLbl.text = qsTr( "Morph Names:\n(empty = OK, partial words = OK, 3+ letters required)" );
+		wMorphNamesLbl.text = qsTr( "Morph Names: (line separated)\n[empty = OK, partial words = OK, 3+ letters required]" );
 		wDlg.addWidget( wMorphNamesLbl );
 		
 		var wMorphNamesTEdit = new DzTextEdit( wDlg );
 		wMorphNamesTEdit.text = "";
 		wDlg.addWidget( wMorphNamesTEdit );
 		
+		wLbl = new DzLabel( wDlg );
+		wDlg.addWidget( wLbl );
+		
 		var wValidMorphNamesLbl = new DzLabel( wDlg );
-		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n(double-click to copy above)" );
+		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n[double-click to copy above]" );
 		wDlg.addWidget( wValidMorphNamesLbl );
 		
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
@@ -790,121 +844,459 @@
 		return true;
 	};
 	
-	//Morph names that are too long will cause an error in Blender 2.79.
-	//Note: destructive - modifies the scene contents
-	function truncateSkeletonNames()
+	/*********************************************************************/
+	// void : ...
+	function writeBoneData( oBaseNode, sFilename )
 	{
-		var nCount = 0;
+		var oNode;
+		var vecOrigin;
+		var vecEnd;
 		
-		var sTmp;
-		var oSkeleton;
-		var sSkelName;
+		var aChildren = oBaseNode.getNodeChildren( true );
+		var nChildren = aChildren.length;
 		
-		var aSkeletons = Scene.getSkeletonList();
-		for( var i = 0; i < aSkeletons.length; i += 1 ){
-			oSkeleton = aSkeletons[i];
-			sSkelName = oSkeleton.name;
-			if( sSkelName.length >= s_nMaxName ){
-				sTmp = sSkelName.substring( 0, s_nMaxName - 2 );
-				nCount = nCount % 36;
-				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
-				oSkeleton.name = sTmp;
-				s_nLenName = s_nMaxName;
-				nCount = nCount + 1;
+		var aData = new Array( nChildren );
+		
+		for( var i = 0; i < nChildren; i += 1 ){
+			oNode = aChildren[i];
+			if( !oNode.inherits( "DzBone" ) ){
+				continue;
+			}
+			
+			vecOrigin = oNode.getOrigin( true );
+			vecEnd = oNode.getEndPoint( true );
+			
+			aData[i] = [
+				oNode.name,
+				vecOrigin.x,
+				vecOrigin.y,
+				vecOrigin.z,
+				vecEnd.x,
+				vecEnd.y,
+				vecEnd.z
+				]
+				.concat( getBoneTransformValues( oNode ) )
+				.join( "," );
+		}
+		
+		aData = aData.filter( Boolean );
+		if( aData.length < 1 ){
+			return;
+		}
+		
+		writeDataFile( aData, sFilename );
+	};
+	
+	/*********************************************************************/
+	// Array<Number> : ...
+	// TODO : refactor - efficiency
+	function getBoneTransformValues( oNode )
+	{
+		var aPosRotScale = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+		
+		var aAxis = [ "X", "Y", "Z" ];
+		var regxWhitespace = /\s+/g;
+		
+		var oProperty;
+		var oOwner;
+		var aNames;
+		var sAxis;
+		var sLabel;
+		var sName;
+		
+		var aProperties = getElementProperties( oNode, true, true );
+		for( var i = 0; i < aProperties.length; i += 1 ){
+			oProperty = aProperties[i];
+			oOwner = oProperty.getOwner();
+			if( !oOwner.inherits( "DzBone" ) ){
+				continue;
+			}
+			
+			for( var j = 0; j < aAxis.length; j += 1 ){
+				sAxis = aAxis[j];
+				aNames = [ sAxis + "Translate", sAxis + "Rotate" ];//Skip sAxis + "Scale"
+				for( var k = 0; k < aNames.length; k += 1 ){
+					sName = aNames[k];
+					if( oProperty.name == sName ){
+						if( !oProperty.isHidden() ){
+							sLabel = oProperty.getLabel().toLowerCase().replace( regxWhitespace, "" );
+							sName = sName.toLowerCase().replace( regxWhitespace, "" );
+							if( !sName.startsWith( sLabel ) ){
+								aPosRotScale[k*3+j] = 1;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return aPosRotScale;
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function writeMemo( sFilename, sMemo )
+	{
+		writeDataFile( [ sMemo ], sFilename );
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function applyDefaultTransforms( oBaseNode )
+	{
+		var oNode;
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			if( getKigo( oNode ) == "B" ){
+				oNode.setLocalPos( s_vecDef );
+				oNode.setLocalRot( s_quatDef );
+				oNode.setLocalScale( s_mtxDef );
+			}
+		}
+		
+		oBaseNode.setLocalPos( s_vecDef );
+		oBaseNode.setLocalRot( s_quatDef );
+		oBaseNode.setLocalScale( s_mtxDef );
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function writePoseData( oBaseNode, sFilename, bIsFigure )
+	{
+		s_aPoseData = [];
+		
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		if( aTopNodes.length == 0 && !bIsFigure ){
+			aTopNodes.push( oBaseNode );
+		}
+		
+		var oTopNode;
+		
+		var aNodes = [];
+		
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( bIsFigure && oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			if( i == 0 ){
+				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
 			} else {
-				if( sSkelName.length > s_nLenName ){
-					s_nLenName = sSkelName.length;
+				aNodes = aNodes.concat( oTopNode, oTopNode.getNodeChildren( true ) );
+			}
+		}
+		
+		var nNodes = aNodes.length;
+		if( nNodes < 1 ){
+			return;
+		}
+		
+		var oNode;
+		var sKigo;
+		var vecPos;
+		var quatRot;
+		var mtxScale;
+		var sLine;
+		
+		var aData = new Array( nNodes );
+		
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			sKigo = getKigo( oNode );
+			vecPos = oNode.getLocalPos();
+			quatRot = oNode.getLocalRot();
+			mtxScale = oNode.getLocalScale();
+			
+			s_aPoseData.push( [ oNode.name, sKigo, vecPos, quatRot, mtxScale ] );
+			
+			aData[i] = [
+				oNode.getLabel(),
+				oNode.name,
+				sKigo,
+				vecPos.x,
+				vecPos.y,
+				vecPos.z,
+				oNode.getXRotControl().getLocalValue(),
+				oNode.getYRotControl().getLocalValue(),
+				oNode.getZRotControl().getLocalValue(),
+				mtxScale.m11,
+				mtxScale.m22,
+				mtxScale.m33
+				].join( "," );
+		}
+		
+		writeDataFile( aData, sFilename );
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function restorePose( oBaseNode )
+	{
+		var oTopNode;
+		var aNodes;
+		var oNode;
+		var aPose;
+		
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			aNodes = oTopNode.getNodeChildren( true );
+			aNodes.push( oTopNode );
+			aNodes.unshift( oBaseNode );
+			for( var j = 0; j < aNodes.length; j += 1 ){
+				oNode = aNodes[j];
+				if( getMeshType( oNode ) != s_oMeshTypes.Bone && j > 0 ){
+					continue;
+				}
+				
+				for( var k = 0; k < s_aPoseData.length; k += 1 ){
+					aPose = s_aPoseData[k];
+					if( aPose[0] == oNode.name ){
+						oNode.setLocalPos( aPose[2] );
+						oNode.setLocalRot( aPose[3] );
+						oNode.setLocalScale( aPose[4] );
+						break;
+					}
 				}
 			}
 		}
 	};
 	
-	//Delete previous export
-	function prepareForExport()
+	/*********************************************************************/
+	// void : ...
+	// TODO : refactor - efficiency
+	function setLock( oBaseNode, bLock, bIsFigure )
 	{
-		var oDir = new DzDir( "" );
-		
-		var sDir = oDir.homePath() + "/";
-		var aSubs = [ "Documents", "DTB" ];
-		for( var i = 0; i < aSubs.length; i += 1 ){
-			sDir += aSubs[i] + "/";
-			oDir.setPath( sDir );
-			if( !oDir.exists() ){
-				oDir.mkdir( sDir );
-			}
+		var aNodes = oBaseNode.getNodeChildren( true );
+		if( !bIsFigure ){
+			aNodes.push( oBaseNode );
 		}
 		
-		s_sRoot = sDir;
-		print( s_sRoot );
+		var aAxis = [ "X", "Y", "Z" ];
 		
-		var sFile;
-		var aExts = [ ".fbx", ".obj", ".mtl", ".dat" ];
-		for( var i = 0; i < aExts.length; i += 1 ){
-			sFile = sDir + s_sFilename + aExts[i];
-			if( oDir.exists( sFile ) ){
-				oDir.remove( sFile );
+		var oNode;
+		var aProperties;
+		var oProperty;
+		var oOwner;
+		var aNames;
+		var sAxis;
+		
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( getKigo( oNode ) == 'B' ){
+				continue;
+			}
+			
+			aProperties = getElementProperties( oNode, true, true );
+			for( var j = 0; j < aProperties.length; j += 1 ){
+				oProperty = aProperties[ j ];
+				oOwner = oProperty.getOwner();
+				if( !oOwner.inherits( "DzBone" ) ){
+					continue;
+				}
+				
+				for( var k = 0; k < aAxis.length; k += 1 ){
+					sAxis = aAxis[k];
+					aNames = [ sAxis + "Translate", sAxis + "Rotate", sAxis + "Scale" ];
+					for( var m = 0; m < aNames.length; m += 1 ){
+						if( oProperty.name == aNames[m] ){
+							oProperty.lock( bLock );
+						}
+					}
+				}
 			}
 		}
 	};
 	
-	//Decide subdivison level Dialog.
-	function promptMeshResolution()
+	/*********************************************************************/
+	// String : ...
+	// TODO : rename
+	function getKigo( oNode )
 	{
-		var nLevel = -1;
+		if( oNode.inherits( "DzBone" ) ){
+			return "B";
+		}
 		
-		var wDlg = new DzDialog;
-		wDlg.caption = "Select Subdiv Level";
+		if( oNode.inherits( "DzLight" ) ){
+			return "L";
+		}
 		
-		var wLyt = new DzVBoxLayout( wDlg );
-		wLyt.autoAdd = true;
+		if( oNode.inherits( "DzCamera" ) ){
+			return "C";
+		}
+		
+		var oObject = oNode.getObject();
+		if( !oObject ){
+			return "E";
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return "E";
+		}
+		
+		var oMesh = oShape.getGeometry();
+		if( !oMesh ){
+			return "E";
+		}
+		
+		return "M";
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// Morph names that are too long will cause an error in Blender 2.79.
+	// Note: destructive - modifies the scene contents
+	function truncateSkeletonNames( oBaseNode )
+	{
+		var oNode;
+		var sName;
+		var sTmp;
+		
+		var nCount = 0;
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			sName = oNode.name;
+			if( sName.length >= s_nMaxName ){
+				sTmp = sName.substring( 0, s_nMaxName-2 );
+				nCount = nCount % 36;
+				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
+				oNode.name = sTmp;
+				s_nLenName = s_nMaxName;
+				nCount = nCount + 1;
+			} else {
+				if( sName.length > s_nLenName ){
+					s_nLenName = sName.length;
+				}
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// Delete previous export
+	// TODO : refactor - efficiency
+	function prepareForExport( nType )
+	{
+		var oDir = new DzDir( "" );
+		var sPath = oDir.homePath() + "/";
+		
+		s_sRootPath = sPath;
+		
+		var aFiles;
+		var sDelPath;
+		var oDelDir = new DzDir( "" );
+		
+		var aSubs = [ "Documents", "DTB", s_sEnv, s_sFig ];
+		for( var i = 0; i < aSubs.length; i += 1 ){
+			sPath = s_sRootPath + aSubs[i] + "/";
+			oDir.setPath( sPath );
+			if( !oDir.exists() ){
+				oDir.mkdir( sPath );
+			}
+			
+			if( i < 2 ){
+				s_sRootPath = sPath;
+			} else {
+				if( (i == 3 && nType == s_oExportTypes.EnvProp)
+				|| (i == 2 && nType == s_oExportTypes.Figure) ){
+					continue;
+				}
+				
+				oDir.setPath( sPath );
+				
+				aFiles = oDir.getFilesFromDir( [], true );
+				for( var j = 0; j < aFiles.length; j += 1 ){
+					oDir.remove( aFiles[j] );
+				}
+				
+				for( var j = 0; j < 100; j += 1 ){
+					sDelPath = sPath + "/" + aSubs[i] + j;
+					oDelDir.setPath( sDelPath );
+					if( oDelDir.exists() ){
+						oDir.rmdir( sDelPath );
+					} else {
+						break;
+					}
+				}
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// TODO : refactor - efficiency
+	function makeEndDir( nIdx, sName )
+	{
+		var oDir = new DzDir( "" );
+		
+		var sPath = s_sRootPath;
+		
+		var aSubs = [ sName, sName + nIdx ];
+		for( var i = 0; i < aSubs.length; i += 1 ){
+			sPath += aSubs[i] + "/";
+			oDir.setPath( sPath );
+			if( !oDir.exists() ){
+				oDir.mkdir( sPath );
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// Number : ...
+	// Decide subdivison level Dialog.
+	function promptMeshResolution( oNode )
+	{
+		var wDlg = new DzBasicDialog();
+		wDlg.caption = s_sToolName + ": SubD Level";
+		
+		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
+		
+		if( oNode ){
+			wDlg.caption += " - " + oNode.getLabel();
+		}
+		
+		var oDlgWgt = wDlg.getWidget();
+		oDlgWgt.objectName = sKey;
 		
 		var wOptBG = new DzVButtonGroup( wDlg );
 		wOptBG.columns = 1;
 		
-		var aRBtns = new Array( 3 );
+		var wRadioBtn;
 		for( var i = 0; i < 3; i += 1 ){
-			aRBtns[i] = new DzRadioButton( wOptBG );
-			aRBtns[i].text = "SubDiv " + String( i );
-			if( i == 0 ){
-				aRBtns[i].checked = true;
-			}
+			wRadioBtn = new DzRadioButton( wOptBG );
+			wRadioBtn.text = "SubDivision Level " + i;
+		}
+		wOptBG.selected = 0;
+		
+		wDlg.addWidget( wOptBG );
+		
+		if( !wDlg.exec() ){
+			return -1;
 		}
 		
-		var wBtnGrp = new DzVButtonGroup( wDlg );
-		wBtnGrp.columns = 2;
-		
-		var wOkBtn = new DzPushButton( wBtnGrp );
-		wOkBtn.text = "Accept";
-		
-		var wNoBtn = new DzPushButton( wBtnGrp );
-		wNoBtn.text = "Cancel";
-		
-		wDlg.setAcceptButton( wOkBtn );
-		wDlg.setRejectButton( wNoBtn );
-		
-		if( wDlg.exec() ){
-			for( var i = 0; i <= 2; i += 1 ){
-				if( aRBtns[i].checked ){
-					nLevel = i;
-					break;
-				}
-			}
-		}
-		
-		return nLevel;
+		return wOptBG.selected;
 	};
 	
-	//No eyelashes on .OBJ
-	function setEyelashVisibility( bOnOff )
+	/*********************************************************************/
+	// void : ...
+	// No eyelashes on .OBJ
+	function setEyelashVisibility( oBaseNode, bOnOff )
 	{
 		var oNode;
 		
 		var aHide = [ "Eyelashes", "Eye_1", "Eye_2", "_Shell" ];
-		var aNodes = Scene.getNodeList();
-		for( var i = 0; i < aNodes.length; i += 1 ){
-			oNode = aNodes[i];
-			if( oNode.getNodeParent() == oNode && !oNode.isRootNode() ){
-				print( oNode.name + "eyelash?" );
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			if( oNode.getNodeParent() == oBaseNode ){
 				for( var j = 0; j < aHide.length; j += 1 ){ 
 					if( oNode.name.indexOf( aHide[j] ) > 0 ){
 						oNode.setVisible( bOnOff );
@@ -914,47 +1306,87 @@
 		}
 	};
 	
-	function hideNotGenesis38()
+	/*********************************************************************/
+	// void : ...
+	// TODO : refactor - use oNode.assetUri instead of oNode.name
+	function buildRootLists()
 	{
 		var oNode;
+		var aChildren;
 		
-		var nIdx = -1;
 		var aNodes = Scene.getNodeList();
-		for( var i = 0; i < 2; i += 1 ){
-			for( var j = 0; j < aNodes.length; j += 1 ){
-				oNode = aNodes[j];
-				if( oNode.isRootNode() ){
-					if( i == 0 &&
-						(oNode.name == "Genesis8Female"
-						|| oNode.name == "Genesis8Male"
-						|| oNode.name == "Genesis3Male"
-						|| oNode.name == "Genesis3Female")
-					){
-						nIdx = j;
-						break;
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( !oNode.isVisible() ){
+				if( oNode.isRootNode() ){ 
+					oNode.setVisible( true );
+					aChildren = oNode.getNodeChildren( true );
+					for( var j = 0; j < aChildren.length; j += 1 ){
+						aChildren[j].setVisible( true );
 					}
-					
-					if( i > 0 ){
-						if( nIdx > -1 && j != nIdx ){
-							oNode.setVisible( false );
-						}
-					}
+				}
+				
+				continue;
+			}
+			
+			if( oNode.isRootNode() && oNode.isVisible() ){
+				if( 
+				(oNode.name.startsWith( "Genesis8Female" )
+				|| oNode.name.startsWith( "Genesis8Male" )
+				|| oNode.name.startsWith( "Genesis3Male" )
+				|| oNode.name.startsWith( "Genesis3Female" ))
+					&& oNode.name.indexOf( "Eyelash" ) < 0
+				){
+					s_aFigures.push( oNode );
+				} else {
+					s_aEnvProp.push( oNode );
 				}
 			}
 		}
-		
-		if( nIdx > -1 && nIdx < aNodes.length ){
-			return aNodes[nIdx];
-		} else {
-			return null;
-		}
 	};
 	
-	//Make sure node is Genital
+	/*********************************************************************/
+	// Number : ...
+	function promptExportType()
+	{
+		var wDlg = new DzBasicDialog();
+		wDlg.caption = "Select Export Type";
+		
+		var wLyt = new DzVBoxLayout( wDlg );
+		wLyt.autoAdd = true;
+		
+		var wOptBG = new DzVButtonGroup( wDlg );
+		wOptBG.columns = 1;
+		
+		var wRadioBtn;
+		var aOptions = [ "Environment/Props", "Genesis8/3", "Both" ];
+		for( var i = 0; i < aOptions.length; i += 1 ){
+			wRadioBtn = new DzRadioButton( wOptBG );
+			wRadioBtn.text = aOptions[i];
+		}
+		wOptBG.selected = s_oExportTypes.Figure;
+		
+		wDlg.addWidget( wOptBG );
+		
+		var oWidget = wDlg.getWidget();
+		var sizeHint = oWidget.minimumSizeHint;
+		var nHeight = sizeHint.height;
+		var nWidth = sizeHint.width < 200 ? 200 : sizeHint.width;
+		wDlg.setFixedSize( nWidth, nHeight );
+		
+		if( !wDlg.exec() ){
+			return s_oExportTypes.None;
+		}
+		
+		return wOptBG.selected;
+	};
+	
+	/*********************************************************************/
+	// Boolean : ...
 	function isGenital( oNode )
 	{
 		var aKeys = [ "genital", "malegen_" ];
-		if( is_faced_mesh_single( oNode ) <= 0 ){
+		if( getMeshType( oNode ) <= s_oMeshTypes.Other ){
 			return false;
 		}
 		
@@ -962,7 +1394,7 @@
 		for( var i = 0; i < aKeys.length; i += 1 ){
 			if( sName.length == 2 && sName == aKeys[i]
 			|| sName.length > 2 && sName.indexOf( aKeys[i] ) >= 0 ){
-				if( oNode.findNodeChild( 'hip', false ) ){
+				if( oNode.findNodeChild( "hip", false ) ){
 					return true;
 				}
 			}
@@ -971,14 +1403,16 @@
 		return false;
 	};
 	
-	//Mesh consisting of only edges and points cannot be FBX transferred.
-	//Even if it is invisible, it will be transferred, so there is no choice but to delete it.
-	//Note: destructive - modifies the scene contents
-	function removeIncompatibleNodes()
+	/*********************************************************************/
+	// void : ...
+	// Mesh consisting of only edges and points cannot be FBX transferred.
+	// Even if it is invisible, it will be transferred, so there is no choice but to delete it.
+	// Note: destructive - modifies the scene contents
+	function removeIncompatibleNodes( oBaseNode )
 	{
 		var oNode;
 		
-		var aNodes = Scene.getNodeList();
+		var aNodes = oBaseNode.getNodeChildren( true );
 		var aDelNodes = new Array( aNodes.length );
 		
 		for( var i = 0; i < aNodes.length; i += 1 ){
@@ -987,7 +1421,7 @@
 				continue;
 			}
 			
-			if( is_faced_mesh_single( oNode ) == 2 ){
+			if( getMeshType( oNode ) == s_oMeshTypes.NoFacets ){
 				aDelNodes[i] = oNode;
 			}
 		}
@@ -996,7 +1430,7 @@
 		
 		for( var i = 0; i < aDelNodes.length; i += 1 ){
 			oNode = aDelNodes[i];
-			s_oMainNode.removeNodeChild( oNode, true );
+			oBaseNode.removeNodeChild( oNode, true );
 			oNode.setVisible( false );
 			if( oNode.getLabel().endsWith( "dForce" ) ){
 				Scene.removeNode( oNode );
@@ -1004,51 +1438,54 @@
 		}
 	};
 	
-	//Mesh with 1 or more faces
-	function is_faced_mesh_single( oNode )
+	/*********************************************************************/
+	// Number : ...
+	function getMeshType( oNode )
 	{
 		if( !oNode ){
-			return 0;
+			return s_oMeshTypes.Other; //0
 		}
 		
 		if( oNode.inherits( "DzBone" ) ){
-			return 0;
+			return s_oMeshTypes.Bone; //-1
 		}
 		
 		var oObject = oNode.getObject();
 		if( !oObject ){
-			 return -2;
+			return s_oMeshTypes.Empty; //-3
 		}
 		
 		var oShape = oObject.getCurrentShape();
 		if( !oShape ){
-			return 0;
+			return s_oMeshTypes.Other; //0
 		}
 		
 		var oMesh = oShape.getGeometry();
 		if( !oMesh ){
-			return 0;
+			return s_oMeshTypes.Other; //0
 		}
 		
 		var nFacets = oMesh.getNumFacets();
 		if( nFacets < 1 && oMesh.name.toLowerCase().indexOf( "eyebrow" ) < 0 ){
-			return -2;
+			return s_oMeshTypes.NoFacets; //-2
 		}
 		
 		if( nFacets > 14000 ){
-			return 3;
+			return s_oMeshTypes.Figure; //3
 		}
 		
 		if( oNode.isRootNode() ){
-			 return 0;
+			return s_oMeshTypes.Other; //0
 		}
 		
-		return 1;
+		return s_oMeshTypes.Mesh; //1
 	};
 	
-	function writeDataFile( aData )
+	/*********************************************************************/
+	// void : ...
+	// TODO : return success, error code, and/or message
+	function writeDataFile( aData, sFilename )
 	{
-		var sFilename = s_sRoot + s_sFilename + ".dat";
 		var oFile = new DzFile( sFilename );
 		if( !oFile.open( DzFile.WriteOnly ) ){
 			print( String( "Unable to open \"%1\" for writing." ).arg( sFilename ) );
@@ -1063,141 +1500,143 @@
 		oFile.close();
 	};
 	
-	//The mesh attached to the bone moves directly under the figure
-	//Note: destructive - modifies the scene contents
-	function flattenObjectHierarchy()
+	/*********************************************************************/
+	// void : ...
+	// The mesh attached to the bone moves directly under the figure
+	// Note: destructive - modifies the scene contents
+	function flattenObjectHierarchy( oBaseNode )
 	{
-		var oNode;
-		
 		var oChildLvl1;
-		var oChildLvl2;
-		var aChildrenLvl1;
-		var aChildrenLvl2;
-		
-		var ifms;
 		var vecChildLvl1Pos;
 		var quatChildLvl1Rot;
-		var mtxChildLvl1Scale;
 		
-		var prt_ifms;
+		var aChildrenLvl2;
+		var oChildLvl2;
 		var vecChildLvl2Pos;
 		var quatChildLvl2Rot;
-		var mtxChildLvl2Scale;
 		
-		var sTransform;
-		
-		var sChildLvl1Name;
-		var sChildLvl1Label;
-		
-		var sChildLvl2Name;
-		var sChildLvl2Label;
-		
-		var aNodes = Scene.getNodeList();
-		var nNodes = aNodes.length;
-		
-		var aData = new Array( nNodes );
-		
-		for( var i = 0; i < nNodes; i += 1 ){
-			oNode = aNodes[i];
-			if( oNode.isRootNode() ){
+		var aChildrenLvl1 = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildrenLvl1.length; i += 1 ){
+			oChildLvl1 = aChildrenLvl1[i];
+			if( getMeshType( oChildLvl1 ) != s_oMeshTypes.Empty ){
 				continue;
 			}
 			
-			aChildrenLvl1 = oNode.getNodeChildren( false );
-			for( var j = 0, nChildren = aChildrenLvl1.length; j < nChildren; j += 1 ){
-				oChildLvl1 = aChildrenLvl1[j];
+			vecChildLvl1Pos = oChildLvl1.getLocalPos();
+			quatChildLvl1Rot = oChildLvl1.getLocalRot();
+			
+			aChildrenLvl2 = oChildLvl1.getNodeChildren( true );
+			for( var j = 0; j < aChildrenLvl2.length; j += 1 ){
+				oChildLvl2 = aChildrenLvl2[j];
 				
-				ifms = is_faced_mesh_single( oChildLvl1 );
-				vecChildLvl1Pos = oChildLvl1.getLocalPos();
-				quatChildLvl1Rot = oChildLvl1.getLocalRot();
-				mtxChildLvl1Scale = oChildLvl1.getLocalScale();
+				vecChildLvl2Pos = oChildLvl2.getLocalPos();
+				quatChildLvl2Rot = oChildLvl2.getLocalRot();
 				
+				vecChildLvl2Pos.x += vecChildLvl1Pos.x;
+				vecChildLvl2Pos.y += vecChildLvl1Pos.y;
+				vecChildLvl2Pos.z += vecChildLvl1Pos.z;
+				
+				quatChildLvl2Rot.x += quatChildLvl1Rot.x;
+				quatChildLvl2Rot.y += quatChildLvl1Rot.y;
+				quatChildLvl2Rot.z += quatChildLvl1Rot.z;
+				
+				oChildLvl2.setLocalPos( vecChildLvl2Pos );
+				oChildLvl2.setLocalRot( quatChildLvl2Rot );
+				
+				oBaseNode.addNodeChild( oChildLvl2 );
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// Array<String> : ...
+	function getParentingData( oParentNode, oBaseNode )
+	{
+		var aData = [];
+		
+		var oNode;
+		var sName;
+		
+		var aNodes = oBaseNode.getNodeChildren( true );
+		aNodes.push( oBaseNode );
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( getMeshType( oNode ) <= s_oMeshTypes.Other ){
+				continue;
+			}
+			
+			sName = oNode.name;
+			for( var j = 1; j <= 10; j += 1 ){
+				if( !oNode.getLabel().endsWith( " (" + j + ")" ) ){
+					continue;
+				}
+				
+				sName += "_dup_" + j;
+			}
+			
+			aData.push( oParentNode.name + "," + sName );
+		}
+		
+		return aData;
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function writeParentingData( oBaseNode, sFilename )
+	{
+		var aData = [];
+		
+		var oChildLvl1;
+		
+		var aChildrenLvl2;
+		var oChildLvl2;
+		
+		var aChildrenLvl3;
+		var oChildLvl3;
+		
+		var nMeshType;
+		
+		var aChildrenLvl1 = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildrenLvl1.length; i += 1 ){
+			oChildLvl1 = aChildrenLvl1[i];
+			
+			aChildrenLvl2 = oChildLvl1.getNodeChildren( false );
+			for( var j = 0; j < aChildrenLvl2.length; j += 1 ){
+				oChildLvl2 = aChildrenLvl2[j];
+				
+				nMeshType = getMeshType( oChildLvl2 );
 				//It's mesh(child)
-				if( ifms > 0 ){
-					prt_ifms = is_faced_mesh_single( oNode );
-					
+				if( nMeshType > s_oMeshTypes.Other ){
 					//Parent is bone
-					if( prt_ifms == -1 ){
-						sTransform = getTransformAsCSV( oChildLvl1, vecChildLvl1Pos, mtxChildLvl1Scale );
-						sChildLvl1Name = oChildLvl1.name;
-						sChildLvl1Label = oChildLvl1.getLabel();
-						for( var a = 1; a <= 10; a += 1 ){
-							if( sChildLvl1Label.endsWith( " (" + a + ")" ) ){
-								sChildLvl1Name += "_dup_" + a;
-							}
-						}
-						
-						aData.[i] = oNode.name + "," + sChildLvl1Name + "," + sTransform + "," + sChildLvl1Label;
-						
-						s_oMainNode.addNodeChild( oChildLvl1, true );
-						
-						oChildLvl1.setLocalPos( vecChildLvl1Pos );
-						oChildLvl1.setLocalRot( quatChildLvl1Rot );
-						//oChildLvl1.setLocalPos( s_vecDef );
-						//oChildLvl1.setLocalRot( s_quatDef );
-						oChildLvl1.setLocalScale( mtxChildLvl1Scale );
-					} else if( prt_ifms < 1 ){
-						s_oMainNode.addNodeChild( oChildLvl1, true );
-						oChildLvl1.setLocalPos( vecChildLvl1Pos );
-						oChildLvl1.setLocalRot( quatChildLvl1Rot );
-						//oChildLvl1.setLocalPos( s_vecDef );
-						//oChildLvl1.setLocalRot( s_quatDef );
+					if( getMeshType( oChildLvl1 ) == s_oMeshTypes.Bone ){
+						aData = aData.concat( getParentingData( oChildLvl1, oChildLvl2 ) );
 					}
-				//Empty
-				} else if( ifms == -3 ){
-					aChildrenLvl2 = oChildLvl1.getNodeChildren( false );
-					for( var k = 0, nGrandChildren = aChildrenLvl2.length; k < nGrandChildren; k += 1 ){
-						oChildLvl2 = aChildrenLvl2[k];
-						
-						//child is mesh.
-						if( is_faced_mesh_single( oChildLvl2 ) > 0 ){
-							vecChildLvl2Pos = oChildLvl2.getLocalPos();
-							quatChildLvl2Rot = oChildLvl2.getLocalRot();
-							mtxChildLvl2Scale = oChildLvl2.getLocalScale();
-							
-							s_oMainNode.addNodeChild( oChildLvl2, true );
-							
-							vecChildLvl2Pos.x += vecChildLvl1Pos.x;
-							vecChildLvl2Pos.y += vecChildLvl1Pos.y;
-							vecChildLvl2Pos.z += vecChildLvl1Pos.z;
-							
-							quatChildLvl2Rot.x += quatChildLvl1Rot.x;
-							quatChildLvl2Rot.y += quatChildLvl1Rot.y;
-							quatChildLvl2Rot.z += quatChildLvl1Rot.z;
-							
-							sTransform = getTransformAsCSV( oChildLvl2, vecChildLvl2Pos, mtxChildLvl2Scale );
-							sChildLvl2Name = oChildLvl2.name;
-							sChildLvl2Label = oChildLvl2.getLabel();
-							for( var a = 1; a <= 10; a += 1 ){
-								if( oChildLvl1.getLabel().endsWith(" (" + a + ")") ){ //TODO : oChildLvl1.getLabel() or sChildLvl2Label?
-									sChildLvl2Name += "_dup_" + a;
-								}
+				//It's Empty(Child)
+				} else if( nMeshType == s_oMeshTypes.Empty ){
+					aChildrenLvl3 = oChildLvl2.getNodeChildren( false );
+					for( var k = 0; k < aChildrenLvl3.length; k += 1 ){
+						oChildLvl3 = aChildrenLvl3[k];
+						//Grandchild is mesh.
+						//child's parent, parent child (sibling?) is bone
+						if( getMeshType( oChildLvl3 ) > s_oMeshTypes.Other ){
+							if( getMeshType( oChildLvl1.getNodeParent() ) == s_oMeshTypes.Bone ){
+								aData = aData.concat( getParentingData( oChildLvl1, oChildLvl3 ) );
 							}
-							
-							//Empty's parent is bone.
-							if( oNode.getNodeParent() && is_faced_mesh_single( oNode.getNodeParent() ) == -1 ){
-								aData.[i] = oNode.getNodeParent().name + "," + sChildLvl2Name + "," + sTransform + "," + sChildLvl2Label;
-							}
-							
-							oChildLvl2.setLocalPos( vecChildLvl2Pos );
-							oChildLvl2.setLocalRot( quatChildLvl2Rot );
-							//oChildLvl2.setLocalPos( s_vecDef );
-							//oChildLvl2.setLocalRot( s_quatDef );
 						}
 					}
 				}
 			}
 		}
 		
-		aData = aData.filter( Boolean );
-		
 		if( aData.length > 0 ){
-			writeDataFile( aData );
+			writeDataFile( aData, sFilename );
 		}
 	};
 	
-	// TODO : not used?
-	//Note: destructive - modifies the scene contents
+	/*********************************************************************/
+	// void : ...
+	// TODO : remove - not used
+	// Note: destructive - modifies the scene contents
 	function lockNodeTransforms( oNode )
 	{
 		oNode.getToolXRotControl().lock( true );
@@ -1208,6 +1647,9 @@
 		oNode.getOrientZControl().lock( true );
 	};
 	
+	/*********************************************************************/
+	// String : ...
+	// TODO : remove - not used
 	function getTransformAsCSV( oNode, vecPos, mtxScale )
 	{
 		var sResult = vecPos.x + "," + vecPos.y + "," + vecPos.z + ",";
@@ -1221,8 +1663,10 @@
 		return sResult;
 	};
 	
-	//Apply subdivision levels to figures and genitals.
-	function setSubDivLevelAll( nLevel )
+	/*********************************************************************/
+	// void : ...
+	// Apply subdivision levels to figures and genitals.
+	function setSubDivLevelAll( oBaseNode, nLevel )
 	{
 		var bIsBody;
 		var bIsGen;
@@ -1232,8 +1676,8 @@
 		var aNodes = Scene.getNodeList();
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			bIsBody = oNode == s_oMainNode;
-			bIsGen = !bIsBody && isGenital( oNode );
+			bIsBody = oNode == oBaseNode;
+			bIsGen = !bIsBody && oNode.getNodeParent() == oBaseNode && isGenital( oNode );
 			nLev = 0;
 			if( bIsBody || bIsGen ){
 				nLev = nLevel;
@@ -1243,6 +1687,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function setSubDivLevel( oNode, nLevel )
 	{
 		var aProps = [ "lodlevel", "SubDIALevel" ];
@@ -1277,38 +1723,165 @@
 		}
 	};
 	
-	s_oMainNode = hideNotGenesis38();
-	if( s_oMainNode ){
-		print( s_oMainNode.name );
-	} else {
-		MessageBox.information(
-			qsTr( "There is no Genesis 3/8 figure." ),
-			s_sToolName, qsTr( "&OK" ) );
+	/*********************************************************************/
+	// void : ...
+	function setHideRoot( bIsFigure, bYesNo )
+	{
+		if( bIsFigure ){
+			for( var i = 0; i < s_aFigures.length; i += 1 ){
+				setVisible( s_aFigures[i], bYesNo );
+			}
+		} else {
+			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
+				setVisible( s_aEnvProp[i], bYesNo );
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	function setVisible( oBaseNode, bYesNo )
+	{
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			aChildren[i].setVisible( bYesNo );
+		}
 		
-		return;
-	}
+		oBaseNode.setVisible( bYesNo );
+	};
 	
-	truncateSkeletonNames();
-	var nLevel = promptMeshResolution();
-	if( nLevel < 0 ){
-		return;
-	}
+	/*********************************************************************/
+	// void : ...
+	function main()
+	{
+		var bDebugFBX = false;
+		
+		buildRootLists();
+		
+		if( s_aFigures.length > 2 ){
+			if( MessageBox.warning(
+				qsTr( "Transferring 3 or more figures with clothing or hair may freeze and stop." ),
+				s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+				return;
+			}
+		}
+		
+		if( s_aFigures.length == 0 && s_aEnvProp.length == 0 ){
+			return;
+		} else if( s_aFigures.length > 0 && s_aEnvProp.length > 0 ){
+			s_nExportType = s_oExportTypes.Both;
+		} else if( s_aEnvProp.length == 0 ){
+			s_nExportType = s_oExportTypes.Figure;
+		} else if( s_aFigures.length == 0 ){
+			s_nExportType = s_oExportTypes.EnvProp;
+		}
+		
+		if( s_nExportType == s_oExportTypes.Both ){
+			s_nExportType = promptExportType();
+		}
+		
+		if( s_nExportType == s_oExportTypes.None ){
+			return;
+		}
+		
+		prepareForExport( s_nExportType );
+		
+		var sFileBasename;
+		
+		if( s_nExportType == s_oExportTypes.Both
+		|| s_nExportType == s_oExportTypes.Figure ){
+			setHideRoot( false, false );
+			
+			var oFigure;
+			var nLevel;
+			for( var i = 0; i < s_aFigures.length; i += 1 ){
+				oFigure = s_aFigures[i];
+				
+				for( var j = 0; j < s_aFigures.length; j += 1 ){
+					setVisible( s_aFigures[j], i == j );
+				}
+				
+				nLevel = promptMeshResolution( oFigure );
+				if( nLevel < 0 ){
+					continue;
+				}
+				
+				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+				
+				setLock( oFigure, true, true );
+				makeEndDir( i, s_sFig );
+				writePoseData( oFigure, sFileBasename + ".csv", true );
+				applyDefaultTransforms( oFigure );
+				writeParentingData( oFigure, sFileBasename + ".dat" );
+				setSubDivLevelAll( oFigure, nLevel );
+				buildMorphList( oFigure );
+				if( !promptMorphRules( oFigure ) ){
+					continue;
+				}
+				
+				setEyelashVisibility( oFigure, false );
+				exportOBJ( oFigure, s_sFig, i );
+				setEyelashVisibility( oFigure, true );
+				removeIncompatibleNodes( oFigure );
+				exportFBX( oFigure, s_sFig, i , bDebugFBX );
+				setLock( oFigure, false, true );
+				restorePose( oFigure );
+			}
+		}
+		
+		if( s_nExportType != s_oExportTypes.Figure ){
+			setHideRoot( true, false );
+			
+			var oNode;
+			var bIsBone;
+			var sEnvPath;
+			var sPoseFilename;
+			var sBoneFilename;
+			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
+				oNode = s_aEnvProp[i];
+				
+				for( var j = 0; j < s_aEnvProp.length; j += 1 ){
+					setVisible( s_aEnvProp[j], i == j );
+				}
+				
+				bIsBone = oNode.getSkeleton() != null;
+				if( bIsBone ){
+					flattenObjectHierarchy( oNode );
+				}
+				
+				setLock( oNode, true, false );
+				
+				setSubDivLevelAll( oNode, 0 );
+				
+				sEnvPath = String( "%1%2/%2%3/" ).arg( s_sRootPath ).arg( s_sEnv ).arg( i );
+				makeEndDir( i, s_sEnv );
+				
+				if( oNode.name.startsWith( "Genesis" ) ){
+					applyDefaultTransforms( oNode );
+				}
+				
+				exportFBX( oNode, s_sEnv, i, bDebugFBX );
+				
+				sFileBasename = sEnvPath + s_sEnv;
+				sPoseFilename = sFileBasename + ".csv";
+				sBoneFilename = sFileBasename + ".bon";
+				
+				if( bIsBone ){
+					writeBoneData( oNode, sBoneFilename );
+				} else {
+					writePoseData( oNode, sPoseFilename, false );
+					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
+				}
+				
+				setLock( oNode, false, false );
+			}
+		}
+		
+		setHideRoot( true, true );
+		setHideRoot( false, true );
+	};
 	
-	setSubDivLevelAll( nLevel );
-	buildMorphList();
-	
-	if( !promptMorphRules() ){
-		return;
-	}
-	
-	if( !s_sMorphRules.isEmpty() ){
-		prepareForExport();
-		flattenObjectHierarchy();
-		setEyelashVisibility( false );
-		exportOBJ( s_oMainNode, s_sFilename );
-		setEyelashVisibility( true );
-		removeIncompatibleNodes();
-		exportFBX();
-	}
+	/*********************************************************************/
+	main();
 	
 })();
