@@ -9,6 +9,9 @@
 	var s_aFigures = [];
 	var s_aEnvProp = [];
 	
+	var s_sFig = "FIG";
+	var s_sEnv = "ENV";
+	
 	var s_oMeshTypes = {
 		"Figure" :3,
 		"Mesh" : 1,
@@ -469,7 +472,7 @@
 			// Figures
 			oSettings.setBoolValue( "doFigures", true );
 			
-			var bIsEnv = sName.startsWith( "ENV" );
+			var bIsEnv = sName.startsWith( s_sEnv );
 			// Props
 			oSettings.setBoolValue( "doProps", bIsEnv );
 			// Lights
@@ -1161,7 +1164,7 @@
 		var sDelPath;
 		var oDelDir = new DzDir( "" );
 		
-		var aSubs = [ "Documents", "DTB", "ENV", "FIG" ];
+		var aSubs = [ "Documents", "DTB", s_sEnv, s_sFig ];
 		for( var i = 0; i < aSubs.length; i += 1 ){
 			sPath = s_sRootPath + aSubs[i] + "/";
 			oDir.setPath( sPath );
@@ -1726,6 +1729,8 @@
 	
 	prepareForExport( s_nExportType );
 	
+	var sFileBasename;
+	
 	if( s_nExportType == s_oExportTypes.Both
 	|| s_nExportType == s_oExportTypes.Figure ){
 		setHideRoot( false, false );
@@ -1744,11 +1749,13 @@
 				continue;
 			}
 			
+			sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+			
 			setLock( oFigure, true, true );
-			makeEndDir( i, "FIG" );
-			writePoseData( oFigure, s_sRootPath + "FIG/FIG" + i + "/FIG" + ".csv", true );
+			makeEndDir( i, s_sFig );
+			writePoseData( oFigure, sFileBasename + ".csv", true );
 			applyDefaultTransforms( oFigure );
-			writeParentingData( oFigure, s_sRootPath + "FIG/FIG" + i + "/FIG.dat" );
+			writeParentingData( oFigure, sFileBasename + ".dat" );
 			setSubDivLevelAll( oFigure, nLevel );
 			buildMorphList( oFigure );
 			if( !promptMorphRules( oFigure ) ){
@@ -1756,10 +1763,10 @@
 			}
 			
 			setEyelashVisibility( oFigure, false );
-			exportOBJ( oFigure, "FIG", i );
+			exportOBJ( oFigure, s_sFig, i );
 			setEyelashVisibility( oFigure, true );
 			removeIncompatibleNodes( oFigure );
-			exportFBX( oFigure, "FIG", i , false );
+			exportFBX( oFigure, s_sFig, i , false );
 			setLock( oFigure, false, true );
 			restorePose( oFigure );
 		}
@@ -1771,7 +1778,6 @@
 		var oNode;
 		var bIsBone;
 		var sEnvPath;
-		var sFileBasename;
 		var sPoseFilename;
 		var sBoneFilename;
 		for( var i = 0; i < s_aEnvProp.length; i += 1 ){
@@ -1790,17 +1796,17 @@
 			
 			setSubDivLevelAll( oNode, 0 );
 			
-			sEnvPath = s_sRootPath + "ENV/ENV" + i + "/";
-			makeEndDir( i, "ENV" );
+			sEnvPath = String( "%1%2/%2%3/" ).arg( s_sRootPath ).arg( s_sEnv ).arg( i );
+			makeEndDir( i, s_sEnv );
 			
 			if( oNode.name.startsWith( "Genesis" ) ){
 				applyDefaultTransforms( oNode );
 			}
 			
-			exportFBX( oNode, "ENV", i, true );
-			exportFBX( oNode, "ENV", i, false );
+			exportFBX( oNode, s_sEnv, i, true );
+			exportFBX( oNode, s_sEnv, i, false );
 			
-			sFileBasename = sEnvPath + "ENV";
+			sFileBasename = sEnvPath + s_sEnv;
 			sPoseFilename = sFileBasename + ".csv";
 			sBoneFilename = sFileBasename + ".bon";
 			
