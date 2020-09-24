@@ -1685,129 +1685,137 @@
 		oBaseNode.setVisible( bYesNo );
 	};
 	
-  //START
-	buildRootLists();
-	
-	if( s_aFigures.length > 2 ){
-		if( MessageBox.warning(
-			qsTr( "Transferring 3 or more figures with clothing or hair may freeze and stop." ),
-			s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+	/*********************************************************************/
+	function main()
+	{
+		var bDebugFBX = false;
+		
+		buildRootLists();
+		
+		if( s_aFigures.length > 2 ){
+			if( MessageBox.warning(
+				qsTr( "Transferring 3 or more figures with clothing or hair may freeze and stop." ),
+				s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+				return;
+			}
+		}
+		
+		if( s_aFigures.length == 0 && s_aEnvProp.length == 0 ){
+			return;
+		} else if( s_aFigures.length > 0 && s_aEnvProp.length > 0 ){
+			s_nExportType = s_oExportTypes.Both;
+		} else if( s_aEnvProp.length == 0 ){
+			s_nExportType = s_oExportTypes.Figure;
+		} else if( s_aFigures.length == 0 ){
+			s_nExportType = s_oExportTypes.EnvProp;
+		}
+		
+		if( s_nExportType == s_oExportTypes.Both ){
+			s_nExportType = promptExportType();
+		}
+		
+		if( s_nExportType == s_oExportTypes.None ){
 			return;
 		}
-	}
-	
-	if( s_aFigures.length == 0 && s_aEnvProp.length == 0 ){
-		return;
-	} else if( s_aFigures.length > 0 && s_aEnvProp.length > 0 ){
-		s_nExportType = s_oExportTypes.Both;
-	} else if( s_aEnvProp.length == 0 ){
-		s_nExportType = s_oExportTypes.Figure;
-	} else if( s_aFigures.length == 0 ){
-		s_nExportType = s_oExportTypes.EnvProp;
-	}
-	
-	if( s_nExportType == s_oExportTypes.Both ){
-		s_nExportType = promptExportType();
-	}
-	
-	if( s_nExportType == s_oExportTypes.None ){
-		return;
-	}
-	
-	prepareForExport( s_nExportType );
-	
-	var sFileBasename;
-	
-	if( s_nExportType == s_oExportTypes.Both
-	|| s_nExportType == s_oExportTypes.Figure ){
-		setHideRoot( false, false );
 		
-		var oFigure;
-		var nLevel;
-		for( var i = 0; i < s_aFigures.length; i += 1 ){
-			oFigure = s_aFigures[i];
-			
-			for( var j = 0; j < s_aFigures.length; j += 1 ){
-				setVisible( s_aFigures[j], i == j );
-			}
-			
-			nLevel = promptMeshResolution( oFigure );
-			if( nLevel < 0 ){
-				continue;
-			}
-			
-			sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
-			
-			setLock( oFigure, true, true );
-			makeEndDir( i, s_sFig );
-			writePoseData( oFigure, sFileBasename + ".csv", true );
-			applyDefaultTransforms( oFigure );
-			writeParentingData( oFigure, sFileBasename + ".dat" );
-			setSubDivLevelAll( oFigure, nLevel );
-			buildMorphList( oFigure );
-			if( !promptMorphRules( oFigure ) ){
-				continue;
-			}
-			
-			setEyelashVisibility( oFigure, false );
-			exportOBJ( oFigure, s_sFig, i );
-			setEyelashVisibility( oFigure, true );
-			removeIncompatibleNodes( oFigure );
-			exportFBX( oFigure, s_sFig, i , false );
-			setLock( oFigure, false, true );
-			restorePose( oFigure );
-		}
-	}
-	
-	if( s_nExportType != s_oExportTypes.Figure ){
-		setHideRoot( true, false );
+		prepareForExport( s_nExportType );
 		
-		var oNode;
-		var bIsBone;
-		var sEnvPath;
-		var sPoseFilename;
-		var sBoneFilename;
-		for( var i = 0; i < s_aEnvProp.length; i += 1 ){
-			oNode = s_aEnvProp[i];
+		var sFileBasename;
+		
+		if( s_nExportType == s_oExportTypes.Both
+		|| s_nExportType == s_oExportTypes.Figure ){
+			setHideRoot( false, false );
 			
-			for( var j = 0; j < s_aEnvProp.length; j += 1 ){
-				setVisible( s_aEnvProp[j], i == j );
+			var oFigure;
+			var nLevel;
+			for( var i = 0; i < s_aFigures.length; i += 1 ){
+				oFigure = s_aFigures[i];
+				
+				for( var j = 0; j < s_aFigures.length; j += 1 ){
+					setVisible( s_aFigures[j], i == j );
+				}
+				
+				nLevel = promptMeshResolution( oFigure );
+				if( nLevel < 0 ){
+					continue;
+				}
+				
+				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+				
+				setLock( oFigure, true, true );
+				makeEndDir( i, s_sFig );
+				writePoseData( oFigure, sFileBasename + ".csv", true );
+				applyDefaultTransforms( oFigure );
+				writeParentingData( oFigure, sFileBasename + ".dat" );
+				setSubDivLevelAll( oFigure, nLevel );
+				buildMorphList( oFigure );
+				if( !promptMorphRules( oFigure ) ){
+					continue;
+				}
+				
+				setEyelashVisibility( oFigure, false );
+				exportOBJ( oFigure, s_sFig, i );
+				setEyelashVisibility( oFigure, true );
+				removeIncompatibleNodes( oFigure );
+				exportFBX( oFigure, s_sFig, i , bDebugFBX );
+				setLock( oFigure, false, true );
+				restorePose( oFigure );
 			}
-			
-			bIsBone = oNode.getSkeleton() != null;
-			if( bIsBone ){
-				flattenObjectHierarchy( oNode );
-			}
-			
-			setLock( oNode, true, false );
-			
-			setSubDivLevelAll( oNode, 0 );
-			
-			sEnvPath = String( "%1%2/%2%3/" ).arg( s_sRootPath ).arg( s_sEnv ).arg( i );
-			makeEndDir( i, s_sEnv );
-			
-			if( oNode.name.startsWith( "Genesis" ) ){
-				applyDefaultTransforms( oNode );
-			}
-			
-			exportFBX( oNode, s_sEnv, i, false );
-			
-			sFileBasename = sEnvPath + s_sEnv;
-			sPoseFilename = sFileBasename + ".csv";
-			sBoneFilename = sFileBasename + ".bon";
-			
-			if( bIsBone ){
-				writeBoneData( oNode, sBoneFilename );
-			} else {
-				writePoseData( oNode, sPoseFilename, false );
-				writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
-			}
-			
-			setLock( oNode, false, false );
 		}
-	}
+		
+		if( s_nExportType != s_oExportTypes.Figure ){
+			setHideRoot( true, false );
+			
+			var oNode;
+			var bIsBone;
+			var sEnvPath;
+			var sPoseFilename;
+			var sBoneFilename;
+			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
+				oNode = s_aEnvProp[i];
+				
+				for( var j = 0; j < s_aEnvProp.length; j += 1 ){
+					setVisible( s_aEnvProp[j], i == j );
+				}
+				
+				bIsBone = oNode.getSkeleton() != null;
+				if( bIsBone ){
+					flattenObjectHierarchy( oNode );
+				}
+				
+				setLock( oNode, true, false );
+				
+				setSubDivLevelAll( oNode, 0 );
+				
+				sEnvPath = String( "%1%2/%2%3/" ).arg( s_sRootPath ).arg( s_sEnv ).arg( i );
+				makeEndDir( i, s_sEnv );
+				
+				if( oNode.name.startsWith( "Genesis" ) ){
+					applyDefaultTransforms( oNode );
+				}
+				
+				exportFBX( oNode, s_sEnv, i, bDebugFBX );
+				
+				sFileBasename = sEnvPath + s_sEnv;
+				sPoseFilename = sFileBasename + ".csv";
+				sBoneFilename = sFileBasename + ".bon";
+				
+				if( bIsBone ){
+					writeBoneData( oNode, sBoneFilename );
+				} else {
+					writePoseData( oNode, sPoseFilename, false );
+					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
+				}
+				
+				setLock( oNode, false, false );
+			}
+		}
+		
+		setHideRoot( true, true );
+		setHideRoot( false, true );
+	};
 	
-	setHideRoot( true, true );
-	setHideRoot( false, true );
+	/*********************************************************************/
+	main();
 	
 })();
