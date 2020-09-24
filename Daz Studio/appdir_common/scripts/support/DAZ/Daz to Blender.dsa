@@ -274,7 +274,9 @@
 	
 	var s_aPoseData = [];
 	
-	//Note: destructive - modifies the scene contents
+	/*********************************************************************/
+	// void : ...
+	// Note: destructive - modifies the scene contents
 	function buildMorphList( oNode )
 	{
 		var aProperties = getElementProperties( oNode, true, true );
@@ -439,6 +441,7 @@
 	
 	// - Minor changes for this specific use case
 	
+	// void : ...
 	function exportFBX( oNode, sName, nIdx, bAscii )
 	{
 		// Get the export manager
@@ -590,6 +593,7 @@
 	
 	// - Minor changes for this specific use case
 	
+	// void : ...
 	function exportOBJ( oNode, sName, nIdx )
 	{
 		// Get the export manager
@@ -732,6 +736,8 @@
 	
 // --- END export_obj_silent ----
 	
+	/*********************************************************************/
+	// Array<String> : ...
 	function getMinimalMorphRules()
 	{
 		var sResult = "head\n0\n";
@@ -742,6 +748,8 @@
 		return sResult;
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function addBanner( wDlg, sImagePath )
 	{
 		var imgImage = new Image( sImagePath );
@@ -752,6 +760,8 @@
 		wDlg.addWidget( wLabel );
 	};
 	
+	/*********************************************************************/
+	// Boolean : ...
 	function promptMorphRules( oNode )
 	{
 		var wDlg = new DzBasicDialog();
@@ -834,6 +844,8 @@
 		return true;
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function writeBoneData( oBaseNode, sFilename )
 	{
 		var oNode;
@@ -875,6 +887,8 @@
 		writeDataFile( aData, sFilename );
 	};
 	
+	/*********************************************************************/
+	// Array<Number> : ...
 	// TODO : refactor - efficiency
 	function getBoneTransformValues( oNode )
 	{
@@ -919,11 +933,15 @@
 		return aPosRotScale;
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function writeMemo( sFilename, sMemo )
 	{
 		writeDataFile( [ sMemo ], sFilename );
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function applyDefaultTransforms( oBaseNode )
 	{
 		var oNode;
@@ -942,6 +960,8 @@
 		oBaseNode.setLocalScale( s_mtxDef );
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function writePoseData( oBaseNode, sFilename, bIsFigure )
 	{
 		s_aPoseData = [];
@@ -1010,6 +1030,8 @@
 		writeDataFile( aData, sFilename );
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function restorePose( oBaseNode )
 	{
 		var oTopNode;
@@ -1046,6 +1068,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	// TODO : refactor - efficiency
 	function setLock( oBaseNode, bLock, bIsFigure )
 	{
@@ -1090,6 +1114,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// String : ...
 	// TODO : rename
 	function getKigo( oNode )
 	{
@@ -1123,8 +1149,10 @@
 		return "M";
 	};
 	
-	//Morph names that are too long will cause an error in Blender 2.79.
-	//Note: destructive - modifies the scene contents
+	/*********************************************************************/
+	// void : ...
+	// Morph names that are too long will cause an error in Blender 2.79.
+	// Note: destructive - modifies the scene contents
 	function truncateSkeletonNames( oBaseNode )
 	{
 		var oNode;
@@ -1151,7 +1179,9 @@
 		}
 	};
 	
-	//Delete previous export
+	/*********************************************************************/
+	// void : ...
+	// Delete previous export
 	// TODO : refactor - efficiency
 	function prepareForExport( nType )
 	{
@@ -1200,6 +1230,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	// TODO : refactor - efficiency
 	function makeEndDir( nIdx, sName )
 	{
@@ -1217,7 +1249,9 @@
 		}
 	};
 	
-	//Decide subdivison level Dialog.
+	/*********************************************************************/
+	// Number : ...
+	// Decide subdivison level Dialog.
 	function promptMeshResolution( oNode )
 	{
 		var wDlg = new DzBasicDialog();
@@ -1251,7 +1285,9 @@
 		return wOptBG.selected;
 	};
 	
-	//No eyelashes on .OBJ
+	/*********************************************************************/
+	// void : ...
+	// No eyelashes on .OBJ
 	function setEyelashVisibility( oBaseNode, bOnOff )
 	{
 		var oNode;
@@ -1270,6 +1306,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	// TODO : refactor - use oNode.assetUri instead of oNode.name
 	function buildRootLists()
 	{
@@ -1307,7 +1345,8 @@
 		}
 	};
 	
-	//Env/Prop , Figure or Both
+	/*********************************************************************/
+	// Number : ...
 	function promptExportType()
 	{
 		var wDlg = new DzBasicDialog();
@@ -1342,7 +1381,8 @@
 		return wOptBG.selected;
 	};
 	
-	//Make sure node is Genital
+	/*********************************************************************/
+	// Boolean : ...
 	function isGenital( oNode )
 	{
 		var aKeys = [ "genital", "malegen_" ];
@@ -1363,9 +1403,11 @@
 		return false;
 	};
 	
-	//Mesh consisting of only edges and points cannot be FBX transferred.
-	//Even if it is invisible, it will be transferred, so there is no choice but to delete it.
-	//Note: destructive - modifies the scene contents
+	/*********************************************************************/
+	// void : ...
+	// Mesh consisting of only edges and points cannot be FBX transferred.
+	// Even if it is invisible, it will be transferred, so there is no choice but to delete it.
+	// Note: destructive - modifies the scene contents
 	function removeIncompatibleNodes( oBaseNode )
 	{
 		var oNode;
@@ -1396,6 +1438,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// Number : ...
 	function getMeshType( oNode )
 	{
 		if( !oNode ){
@@ -1437,6 +1481,9 @@
 		return s_oMeshTypes.Mesh; //1
 	};
 	
+	/*********************************************************************/
+	// void : ...
+	// TODO : return success, error code, and/or message
 	function writeDataFile( aData, sFilename )
 	{
 		var oFile = new DzFile( sFilename );
@@ -1453,8 +1500,10 @@
 		oFile.close();
 	};
 	
-	//The mesh attached to the bone moves directly under the figure
-	//Note: destructive - modifies the scene contents
+	/*********************************************************************/
+	// void : ...
+	// The mesh attached to the bone moves directly under the figure
+	// Note: destructive - modifies the scene contents
 	function flattenObjectHierarchy( oBaseNode )
 	{
 		var oChildLvl1;
@@ -1499,6 +1548,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// Array<String> : ...
 	function getParentingData( oParentNode, oBaseNode )
 	{
 		var aData = [];
@@ -1529,6 +1580,8 @@
 		return aData;
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function writeParentingData( oBaseNode, sFilename )
 	{
 		var aData = [];
@@ -1580,8 +1633,10 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	// TODO : remove - not used
-	//Note: destructive - modifies the scene contents
+	// Note: destructive - modifies the scene contents
 	function lockNodeTransforms( oNode )
 	{
 		oNode.getToolXRotControl().lock( true );
@@ -1592,6 +1647,8 @@
 		oNode.getOrientZControl().lock( true );
 	};
 	
+	/*********************************************************************/
+	// String : ...
 	// TODO : remove - not used
 	function getTransformAsCSV( oNode, vecPos, mtxScale )
 	{
@@ -1606,7 +1663,9 @@
 		return sResult;
 	};
 	
-	//Apply subdivision levels to figures and genitals.
+	/*********************************************************************/
+	// void : ...
+	// Apply subdivision levels to figures and genitals.
 	function setSubDivLevelAll( oBaseNode, nLevel )
 	{
 		var bIsBody;
@@ -1628,6 +1687,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function setSubDivLevel( oNode, nLevel )
 	{
 		var aProps = [ "lodlevel", "SubDIALevel" ];
@@ -1662,6 +1723,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function setHideRoot( bIsFigure, bYesNo )
 	{
 		if( bIsFigure ){
@@ -1675,6 +1738,8 @@
 		}
 	};
 	
+	/*********************************************************************/
+	// void : ...
 	function setVisible( oBaseNode, bYesNo )
 	{
 		var aChildren = oBaseNode.getNodeChildren( true );
@@ -1686,6 +1751,7 @@
 	};
 	
 	/*********************************************************************/
+	// void : ...
 	function main()
 	{
 		var bDebugFBX = false;
