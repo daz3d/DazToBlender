@@ -237,6 +237,7 @@ class DB:
         ['pelvis', 0],
         ['lPectoral', 0],
         ['rPectoral', 0],
+        ['lowerFaceRig',0]
     ]
 
     g3_blimit=[
@@ -541,10 +542,10 @@ class DB:
         ['rShldrBend_CTRLMD_N_YRotate_110', 'rShldrBend', 1, 'val*0.521'],
         ['rShldrBend_CTRLMD_N_ZRotate_40', 'rShldrBend', 2, 'val*1.433'],
         ['rShldrBend_CTRLMD_N_ZRotate_n90', 'rShldrBend', 2, 'val*-0.637'],
-        ['EyesSideSide', 'sight', 2, 'val * -0.955'],
-        ['EyesSideR', 'sight', 2, 'val * -0.955'],
-        ['EyesSideL', 'sight', 2, 'val * 0.955'],
-        ['EyesUpDown', 'sight', 0, 'val * 0.955'],
+      #  ['EyesSideSide', 'sight', 2, 'val * -0.955'],
+      #  ['EyesSideR', 'sight', 2, 'val * -0.955'],
+      #  ['EyesSideL', 'sight', 2, 'val * 0.955'],
+      #  ['EyesUpDown', 'sight', 0, 'val * 0.955'],
     ]
 
     def kind9(self,arg,lr):
@@ -985,77 +986,6 @@ class DB:
         "rEyelidUpperOuter",
     ]
 
-    default_materials = [
-        ['Base Color.Saturation', [], 1.0],
-        ['Base Color.Value', [], 1.0],
-        ['Base Color.Hue', [], 0.5],
-        ['Base Color.Bright', [], 0.0],
-        ['Roughness',        [['eyesocket', 0.2], ['cornea.eyemoisture',0.0],['nail.mouth', 0.1],['eylsmoisture',0.0]], 0.4],
-        ['Roughness.Bright', [['cornea.eyemoisture.eylsmoisture',0.0]], -0.5],
-        ['Specular',        [['cornea.eyemoisture',1.0],['eylsmoisture',0.8],['nail.mouth.eyesocket', 0.4],['lips',0.2],['sclera.pupils',0.0]], 0.2],
-        ['Specular.Bright', [['cornea.eyemoisture',1.0],['eylsmoisture',0.8],['nail.mouth.eyesocket', 0.4],['lips',0.0],['sclera.pupils',0.0]], 0.0],
-        ['Subsurface', [['teeth.nail.cornea.eyemoisture.eylsmoisture.eyelashes',0.0],['sclera.mouth.pupils,irises',0.04]],0.1],
-        ['Subsurface.Bright', [['eyesmoisture.cornea.eyelashes.pupils.eylsmoisture.teeth.nail',-1.2],
-                               ['eyesocket.sclera.irises.mouth',-1.0]],-0.6],
-        ['Subsurface Radius',[['sclera.irises',[0.6,0.4,0.3]]],[1.0,0.25,0.15]],
-        ['Normal.Strength', [['sclera.irises',0.1]], 0.4],
-        ['Normal.Distance', [['sclera.irises',0.02]], 0.1],
-        ['Metallic', [], 0.0],
-        ['IOR',[['cornea.eyemoisture.irises.pupils.eylsmoisture.sclera',1.376]],1.2],
-        ['Transmission', [['cornea.eylsmoisture.eyemoisture', 1.0],['irises',0.0],['pupils',0.0],['sclera',0.0]], 0.0],
-    ]
-    
-    def to_279_subsurface(self):
-        ms = 0.1
-        for dm in self.default_materials:
-            if dm[0]=='Subsurface.Bright' and dm[2]==0.0:
-                dm[2] -=ms
-                for list in dm[1]:
-                    list[1] -=ms
-
-    def to_size_material(self):
-        size = Global.getSize()
-        sidx = 0
-        nbai = 1.0
-        if size==10:
-            sidx = 1
-            nbai = 0.3
-        elif size==1:
-            sidx = 2
-            nbai = 0.09
-        norm = [0.4,0.1,0.1,0.02]
-        for dm in self.default_materials:
-            if dm[0]=='Normal.Strength' or dm[0]=='Normal.Distance':
-                plus = 0
-                if dm[0].endswith('Distance'):
-                    plus = 2
-                dm[2] = norm[0+plus]*nbai
-                dm[1][0][1] = norm[1+plus]*nbai
-            elif dm[0]=='Subsurface Radius':
-                src1 = [1.0,0.25,0.15]
-                src2 = [0.6,0.4,0.3]
-                bai = 0.2
-                if size<10:
-                    bai = 0.2
-                elif size<100:
-                    bai = 1.0
-                else:
-                    bai = 4.0
-                for i in range(3):
-                    dm[2][i] = src1[i] * bai
-                    dm[1][0][1][i] = src2[i] * bai
-
-    def getMaterialFloat(self,material_kind, slot_name, isEye):
-        if slot_name.startswith("drb_"):
-            slot_name = slot_name[4:]
-        for dm in self.default_materials:
-            if dm[0]==material_kind:
-                for sn in dm[1]:
-                    if slot_name.lower() == sn[0] or ((slot_name.lower()+'.') in sn[0]) or ( ('.' + slot_name.lower()) in sn[0]):
-                        return sn[1]
-                return dm[2]
-        return 0.0
-
     # 1.DazGenitalA       (20200525)
     # 2.DazGenitalB
     # 3.G3(6,45)
@@ -1104,7 +1034,7 @@ f_geni = [
     ],
     [
         [0, 0],
-        [86, -18331],
+        #[86, -18331],
         [87, 0],
         [377, 36],
         [378, 0],
@@ -1310,12 +1240,48 @@ m_geni = [
     ],
 ]
 
-tbl_brollfix_g3=[
+
+# tbl_brollfix_g3=[
+#     ['-Hand',87],
+#     ['-ForearmBend', 90],
+#     ['-ShldrBend', 90],
+#     ['-SmallToe1', -130],
+# ]
+tbl_brollfix_g3_f=[
     ['-Hand',87],
     ['-ForearmBend', 90],
     ['-ShldrBend', 90],
-    ['-SmallToe1', -130],
+    ['-SmallToe1', -130+28  ],#0916
+
+
+    ['-Index1', 30 + 40],
+    ['-Mid1', 34 + 40],
+    ['-Ring1', 33 + 40],
+    ['-Pinky1', 28 + 40],
+    ['-Index2', 30 + 40],
+    ['-Mid2', 26 + 40],
+    ['-Ring2', 33 + 40],
+    ['-Pinky2', 35 + 40],
+    ['-Index3', 31 + 40],
+    ['-Mid3', 41 + 40],
+    ['-Ring3', 40 + 40],
+    ['-Pinky3', 33 + 40],
+    ['-Thumb3', 50 + 40],
+    ['-Thumb1', 45 + 40],
+
+    ['-SmallToe4', 85],
+    ['-SmallToe3', 68+10],
+    ['-SmallToe2', 121],
+    ['-BigToe', 84],
+
+    ['-SmallToe4_2', 70+120],
+    ['-SmallToe3_2', 117-100],
+    ['-SmallToe2_2', 80-60],
+    ['-SmallToe1_2', 80-60+19],
+    ['-BigToe_2', 180-30],
 ]
+
+
 tbl_brollfix = [
         ['-ForearmBend', 45],
         ['-ShldrBend', 43],
@@ -1329,10 +1295,12 @@ tbl_brollfix = [
         ['-ThighBend', 11],
         ['-Metatarsals', 56],
         ['-BigToe', -54],
-        ['-Foot', 55],
+        ['-Foot', 60],
         ['-BigToe_2', -140],
-        ['-Toe', 135],
-        ['-Hand', 40],
+        #['-Toe', 135],
+        ['-Toe', 105],#290
+        ['-Hand', 45],#290
+        #['-Hand', 40],
         ['-Index1', 30],
         ['-Mid1', 34],
         ['-Ring1', 33],
@@ -1357,7 +1325,8 @@ tbl_brollfix = [
         ['-BigToe_2', 180],
 ]
 mbone = [
-
+        ['-Foot',45],#new290
+        ['-Toe', 100],#new290
         ['-Metatarsals', 80],
         ['-BigToe', 115],
         ['-BigToe_2', 180],
@@ -1369,4 +1338,21 @@ mbone = [
         ['-SmallToe3', 88],
         ['-SmallToe4', 85],
         ['-SmallToe4_2', 187],
+]
+
+
+mbone_g3 = [
+        ['-Foot',18],#new290
+        ['-Toe', 100],#new290
+        ['-Metatarsals', 40],
+        ['-BigToe', 100],
+        ['-BigToe_2', 100],
+        ['-SmallToe1_2', 45],
+        ['-SmallToe1', 65],
+        ['-SmallToe2_2', 82],
+        ['-SmallToe2', 48],
+        ['-SmallToe3_2', 53],
+        ['-SmallToe3', 46],
+        ['-SmallToe4', 27],
+        ['-SmallToe4_2', 40],
 ]

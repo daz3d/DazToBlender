@@ -6,14 +6,17 @@ from . import Global
 from . import DtbShapeKeys
 from . import Versions
 from . import DataBase
+from . import Util
 class ToRigify:
     notEnglish = False
     amtr_objs = []
+    METARIG = None
+    RIG = None
     chest_upper_tail = []
     neck_lower_head = []
     
     def make_amtr_objs(self):
-        for d in bpy.data.objects:
+        for d in Util.myccobjs():
             if d.type == 'MESH':
                 for modifier in d.modifiers:
                     if modifier.type == "ARMATURE":
@@ -38,13 +41,9 @@ class ToRigify:
         self.chest_upper_tail = []
         self.neck_lower_head  = []
         self.amtr_objs = []
+        self.RIG = None
+        self.METARIG = None
         Versions.set_english()
-        komono = ['Cube', 'Circle', 'Icosphere', 'root.shape','rfoot_cube','lfoot_cube']
-        for k in komono:
-            if k in bpy.data.objects:
-                kobj = bpy.data.objects[k]
-                if kobj.type=='MESH' and len(kobj.modifiers)==0:
-                    bpy.data.objects.remove(kobj)
         for scene in bpy.data.scenes:
             if scene.name == 'Scene':
                 scene.tool_settings.use_keyframe_insert_auto = False
@@ -64,7 +63,7 @@ class ToRigify:
         if dobj is None:
             return
         if len(Global.get_bone_limit())==0:
-            Global.bone_limit_modify();
+            Global.bone_limit_modify()
         wm.progress_update(5)
         Versions.select(dobj, True)
         Versions.active_object(dobj)
@@ -93,35 +92,28 @@ class ToRigify:
         self.fitMetaFace(db)
         wm.progress_update(20)
         Global.setOpsMode('OBJECT')
-        
         rtn = self.generate_rig()
         if rtn!="":
             main.report({"ERROR"},rtn)
             return
-
         Global.setOpsMode('EDIT')
-
-        #Versions.undo_chest_upper(bpy.context.active_object,self.chest_upper_tail)
-
         wm.progress_update(30)
         self.all_rigity_bone(db)
-
         wm.progress_update(40)
         Global.setOpsMode('EDIT')
         #self.fit2Rig(blist, db, 1)
         self.fit2Rig(blist, db, 2)
-
         ############################################################
         wm.progress_update(50)
         self.adjust_tweak()
         wm.progress_update(55)
         Global.setOpsMode('OBJECT')
         for oname in self.amtr_objs:
-            self.toToeWeight1(bpy.data.objects[oname])
+            self.toToeWeight1(Util.myccobjs().get(oname))
             Global.deselect()
         wm.progress_update(60)
         for ao in self.amtr_objs:
-            cobj = bpy.data.objects[ao]
+            cobj = Util.myccobjs().get(ao)
             Versions.select(cobj, True)
             washide = False
             if Versions.is_hide_view(cobj):
@@ -135,13 +127,13 @@ class ToRigify:
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         self.omit_g8(db)
-        bpy.data.objects.remove(bpy.data.objects['metarig'])
+        Util.allobjs().remove(self.METARIG)
         wm.progress_update(70)
         Global.deselect()
-        amtr = bpy.data.objects['rig']
+        amtr = self.RIG
         for ao in self.amtr_objs:
-            if ao in bpy.data.objects:
-                d = bpy.data.objects.get(ao)
+            if ao in Util.myccobjs():
+                d = Util.myccobjs().get(ao)
                 Versions.select(d, True)
                 Versions.select(amtr,True)
                 Versions.active_object(amtr)
@@ -197,16 +189,15 @@ class ToRigify:
             bpy.ops.object.delete(use_global=False)
         else:
             Global.deselect()
-            aobj = bpy.data.objects[dobjname]
+            aobj = Util.myccobjs().get(dobjname)
             amtr_bones = []
             for b in aobj.data.bones:
                 amtr_bones.append(b.name)
             Versions.select(aobj,True)
-            robj = bpy.data.objects['rig']
+            robj = self.RIG
             Versions.select(robj, True)
             Versions.active_object(robj)
             bpy.ops.object.join()
-            robj = bpy.data.objects['rig']
             Global.setOpsMode('EDIT')
             for eb in robj.data.edit_bones:
                 if eb.name in amtr_bones and eb.parent is None:
@@ -255,9 +246,9 @@ class ToRigify:
 
     def swap_morph_driver(self,db,dsk):
         for ao in self.amtr_objs:
-            if (ao in bpy.data.objects)==False:
-                continue;
-            dobj = bpy.data.objects.get(ao)
+            if (ao in Util.myccobjs())==False:
+                continue
+            dobj = Util.myccobjs().get(ao)
             self.changeVgroup(dobj, db)
             sks = dobj.data.shape_keys
             if sks is None:
@@ -273,13 +264,13 @@ class ToRigify:
                     if dp in dobj.data.shape_keys.key_blocks:
                         dobj.data.shape_keys.key_blocks[dp].driver_remove('value')
             dsk.makeDrive(dobj, db)
-            for modifier in bpy.data.objects[ao].modifiers:
+            for modifier in Util.myccobjs().get(ao).modifiers:
                 if modifier.type == "ARMATURE":
                     modifier.use_deform_preserve_volume = True
 
     def finish_job(self):
         Global.setOpsMode('POSE')
-        for ob in bpy.data.objects:
+        for ob in Util.myccobjs():
             if Global.isRiggedObject(ob):
                 for m in ob.modifiers:
                     if m.name == 'Armature':
@@ -303,12 +294,14 @@ class ToRigify:
         if  bs[2] in Global.getRgfyBones():
             pbs = Global.getRgfy().pose.bones
             if (bs[2] in pbs):
-                pbs[bs[2]].custom_shape = bpy.data.objects.get(bs[3])
+                pbs[bs[2]].custom_shape = Util.allobjs().get(bs[3])
                 pbs[bs[2]].custom_shape_scale = 6.0
             Global.getRgfyBones()[bs[2]].layers[3] = True
             Global.getRgfyBones()[bs[2]].layers[4] = False
             for i in range(3):
                 Global.getRgfy().pose.bones[bs[2]].lock_rotation[i] = False
+        Global.setRgfy_name('rig' + Util.get_dzidx())
+
         Versions.reverse_language()
 
         nper = ['tweak_spine.003','tweak_spine.002']
@@ -329,7 +322,7 @@ class ToRigify:
         pbones = Global.getRgfy().pose.bones
         for pb in pbones:
             if ('Toe' in pb.name) and len(pb.name)>4:
-                wtg = bpy.data.objects.get('Circle')
+                wtg = Util.allobjs().get('Circle')
                 if wtg is not None:
                     pb.custom_shape = wtg
                     pb.custom_shape_scale = 0.2
@@ -368,7 +361,7 @@ class ToRigify:
     def fitMetaFace(self,db):
         bobj = Global.getBody()
         all_vs = bobj.data.vertices
-        amtr = bpy.data.objects['metarig']
+        amtr = Util.myccobjs().get('metarig')
         tbl = None
         if Global.getIsMan():
             tbl = db.tometaface_m
@@ -471,8 +464,8 @@ class ToRigify:
                 mch_ti = ['MCH-shin_ik.L', 'MCH-shin_ik.R']
                 for mt in mch_ti:
                     if bone.name == mt:
-                        if bone.head[1] > -0.2:
-                            bone.head[1] = -0.2
+                        if bone.head[1] > -0.002*Global.getSize():
+                            bone.head[1] = -0.002 * Global.getSize()
                 if '.L' in bone.name:
                     bone.roll = math.radians(-8)
                 else:
@@ -490,8 +483,8 @@ class ToRigify:
                 else:
                     bone.roll = math.radians(50)
             if bone.name.startswith('DEF-breast.'):
-                if 'DEF-spine.002' in bpy.data.objects['rig'].data.bones:
-                    bone.parent = bpy.data.objects['rig'].data.edit_bones['DEF-spine.002']
+                if 'DEF-spine.002' in self.RIG.data.bones:
+                    bone.parent = self.RIG.data.edit_bones['DEF-spine.002']
             oeyes = ['ORG-eye.L', 'ORG-eye.R', 'ORG-teeth.T', 'ORG-teeth.B', 'ear.L', 'ear.R']
             for oe in oeyes:
                 if bone.name == oe:
@@ -591,7 +584,7 @@ class ToRigify:
                     c.use_z = True
         if pb.name.startswith('DEF-breast.') and len(pb.name)==12:
             cr = pb.constraints.new('COPY_TRANSFORMS')
-            cr.target = bpy.data.objects['rig']
+            cr.target = self.RIG#Util.myccobjs().get('rig')
             if pb.name.endswith('L'):
                 cr.subtarget = 'breast.L'
             else:
@@ -608,7 +601,7 @@ class ToRigify:
             pb.scale[2] = 0.9
         if pb.name=='head':
             cr = pb.constraints.new('COPY_ROTATION')
-            cr.target = bpy.data.objects['rig']
+            cr.target = self.RIG# Util.myccobjs().get('rig')
             cr.subtarget = 'neck'
             cr.use_x = True
             cr.use_y = True
@@ -641,7 +634,7 @@ class ToRigify:
             for lr in lrs:
                 if pb.name == br[0]+lr:
                     cr = pb.constraints.new('COPY_ROTATION')
-                    cr.target = bpy.data.objects['rig']
+                    cr.target = self.RIG#Util.myccobjs().get('rig')
                     cr.subtarget = br[1] + lr
                     cr.use_x = False
                     cr.use_y = True
@@ -769,15 +762,16 @@ class ToRigify:
         except:
             return "Generate Rig Error"
         rig = bpy.context.active_object
+        self.RIG = rig
         Versions.select(rig,True)
         return ""
 
     def fit2Rig(self,blist,db,sw):
         rig = None
         if sw==0:
-            rig = bpy.data.objects['metarig']
+            rig = self.METARIG#Util.myccobjs().get('metarig')
         else:
-            rig = bpy.data.objects['rig']
+            rig = self.RIG#Util.myccobjs().get('rig')
         for meb in rig.data.edit_bones:
             for dmr in db.toRigify:
                 if (sw<2 and dmr[0]>=6) or (sw==2 and dmr[0] < 2):
@@ -818,7 +812,7 @@ class ToRigify:
                     meb.roll = 0.0
 
     def adjust_tweak(self):
-        deb = bpy.data.objects['rig'].data.edit_bones
+        deb = self.RIG.data.edit_bones
         at = [
             ['tweak_spine.003', 'DEF-spine.002'],
             ['tweak_spine.004', 'DEF-spine.004'],
@@ -891,14 +885,15 @@ class ToRigify:
             error = "Missing Addon: 'Rigify'"
         except:
             error =  "Rigify: Broken... Something's wrong with Rigify. Please report this"
-        if ('metarig' in bpy.data.objects) == False:
+        if ('metarig' in Util.myccobjs()) == False:
             error = "MIssing Addon: 'Rigify'"
         if error!='':
             return error
-        metarig = bpy.context.active_object
-        Versions.select(metarig, True)
+        self.METARIG = bpy.context.active_object
+
+        Versions.select(self.METARIG, True)
         for i in range(3):
-            metarig.scale[i] = Global.getSize()
+            self.METARIG.scale[i] = Global.getSize()
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
         return ""

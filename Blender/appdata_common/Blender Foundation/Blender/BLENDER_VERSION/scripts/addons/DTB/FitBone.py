@@ -1,14 +1,15 @@
 from . import Global
 from . import Versions
-import bmesh
 class FitBone:
     is_first = True
-
+    is_asc = False
     def __init__(self, isfirst):
         self.is_first = isfirst
         self.elxyz = [[], []]
         self.erxyz = [[], []]
+        self.is_asc = Global.isAcs()
         self.fitbone()
+        self.correct_foot_toe_orientation()
 
     tbl_fitbone_m = [
         ['lThighBend', 0, 3380, 3380, 165, 165, 1391,1391, 1],
@@ -21,7 +22,8 @@ class FitBone:
         ['lShin', 0, 3852, 3852, 4423,4423,4423,4423, 1],
 
         ['lFoot', 1, 3853, 3855, 3925, 3925, 3853,3853, 1],
-        ['lFoot', 0, 4171,2044, 1382,1382, 4171,4171, 1],
+        ['lFoot', 0, 6203,6203  , 1382, 1382, 4171, 4171, 1],
+        #['lFoot', 0, 4171, 2044, 1382, 1382, 4171, 4171, 1],
 
         ['lHeel', 1, 3853, 3855, 3925, 3925, 3853,3853, 1],
         ['lHeel', 0, 4465,3869, 4465,3869, 4465,3869, 1],
@@ -129,7 +131,7 @@ class FitBone:
         ['pelvis', 1, 3154,3154,3032,3072,3032,3072, 1],
 
         ['abdomenLower', 1, 45, 3154, 3072, 3076, 45, 3154, 0],
-        ['abdomenLower',0, 4345, 4345, 3072, 3076, 4341, 885, 0],
+        ['abdomenLower',0, 4345, 4345, 3072, 3076, 4341, 885, 1],
 
         ['abdomenUpper', 0, 82, 82, 2989, 2989, 82, 82, 0],
 
@@ -233,6 +235,8 @@ class FitBone:
 
     tbl_fitbone_f_g3=[
         ['lowerFaceRig',0 ,61,61,61,61,61,61, 1],
+        ['lCarpal1', 1, 3050, 3050, 2029, 2029,3050, 3050, 1],
+        ['lCarpal2', 0, 6218,6216, 6241, 6242, 4291, 4291, 1],
     ]
     tbl_fitbone_f = [
         ['hip', 1, 44, 44, 4619,4619, 44,44, 1],
@@ -254,7 +258,8 @@ class FitBone:
         ['lPectoral', 0, 6569, 6569, 6569, 6569, 6569, 6569, 1],
 
         ['chestUpper', 0, 50, 58, 895, 148, 58, 50, 1],
-        ['chestUpper', 1, 84, 84, 3759, 3743, 3743, 1513, 1],
+        #['chestUpper', 1, 84, 84, 3759, 3743, 3743, 1513, 1],
+        ['chestUpper', 1, 84, 84, 3759, 3743, 84,85,1],
 
         ['neckLower', 0, 11, 11, 3095, 2307, 3095, 2307, 1],
         ['neckLower', 1, 56, 56, 2733, 2733, 56, 56, 1],
@@ -277,7 +282,9 @@ class FitBone:
         ['lMetatarsals', 0, 309, 309, 1453, 1453, 339, 339, 1],
 
         ['lFoot', 1, 4078, 4078, 4162, 4162, 3996, 3996, 1],
-        ['lFoot', 0, 386, 386, 386, 386, 4084, 4084, 1],
+        ['lFoot', 0, 4081, 4081, 386, 386, 4084, 4084, 1],
+        #['lFoot', 0, 385, 385, 386, 386, 4084, 4084, 1],
+        #['lFoot', 0, 386, 386, 386, 386, 4084, 4084, 1],
 
         ['lHeel', 1, 4078, 4078, 4732, 4732, 4732, 4732, 1],
         ['lHeel', 0, 4093, 4093, 1386, 1386, 1386, 1386, 1],
@@ -320,16 +327,18 @@ class FitBone:
 
         ['lForearmBend', 0, 3039, 3836, 3871, 2996, 3039, 3836, 1],
 
-        ['lForearmTwist', 0, 2036, 2036, 858, 860  , 2033,3050, 1],
+        ['lForearmTwist', 0, 2036, 2033, 858, 860,534,2036,1],
+        #['lForearmTwist', 0, 2036, 2036, 858, 860  , 2033,3050, 1],
 
         ['lHand', 1, 2033, 2036, 860, 860, 2033, 2036, 1],
         ['lHand', 0, 1309, 6277, 2021, 2021, 1309, 6277, 1],
 
         ['lCarpal1', 0, 4291, 4291, 6206, 6206, 4291, 4291, 1],
-        ['lCarpal1', 1, 1340, 1340, 2029, 2029, 2042, 2042, 1],
+        ['lCarpal1', 1, 3050,3050, 2029, 2029, 2042, 2042, 1],
+
 
         ['lCarpal2', 0, 6241, 6242, 6241, 6242, 4291, 4291, 1],
-        ['lCarpal2', 1, 3050, 3050, 522, 522, 3050, 3050, 1],
+        ['lCarpal2', 1, 3050, 3050, 523, 8581, 3050, 3050, 1],
 
         ['lCarpal3', 0, 4291, 4291, 6244, 6243, 4291, 4291, 1],
         ['lCarpal3', 1, 3050, 3050, 522, 571, 3050, 3050, 1],
@@ -338,7 +347,8 @@ class FitBone:
         ['lCarpal4', 1, 3050, 3050, 2045, 2045, 3050, 3050, 1],
 
         ['lThumb1', 0, 975, 973, 6324, 6318, 975, 973, 1],
-        ['lThumb1', 1, 4275, 4275, 4246, 4246, 4275, 4275, 1],
+        ['lThumb1', 1, 4275, 4275, 2028, 2028, 4275, 4275, 1],#2028
+        #['lThumb1', 1, 4275, 4275, 4246, 4246, 4275, 4275, 1],#2028
 
         ['lThumb2', 0, 955, 954, 490, 487, 955, 954, 1],
 
@@ -437,6 +447,16 @@ class FitBone:
         ['lNipple', 1, 6569, 6569, 3913, 3913, 6569, 6569, 1]
     ]
 
+    def connect_when_acs(self):
+        key = ['Pinky','Mid','Index','Ring','Thumb']
+        for eb in Global.getAmtr().data.edit_bones:
+            if eb.name.startswith("l") or eb.name.startswith("r"):
+                for k in key:
+                    if eb.name[1:].startswith(k) and eb.name[1:] != 'Thumb1':
+                        if eb.parent is not None:
+                            eb.use_connect = True
+                            break
+
     def vco(self,vidx):
         xidx = Global.toGeniVIndex(vidx)
         max = Global.getMyMax3()[Global.getSubdivLevel()]
@@ -479,11 +499,29 @@ class FitBone:
                 self.erxyz[sx].append((self.vco(self.eylid_R[sx][idx])[i] + self.vco(self.eylid_R[sx][idx + 1])[i]) / 2)
         return self.erxyz[sx]
 
+
+    def correct_foot_toe_orientation(self):
+        foot_toe_names = [['rFoot','lFoot'],['rToe','lToe']]
+        foot_toe_yx = [[0.38,0.26],[0.12,0.34]]
+        for f_t_idx,foot_toe in enumerate(foot_toe_names):
+            for i, ft in enumerate(foot_toe):
+                bone = Global.getAmtr().data.edit_bones.get(ft)
+                if bone is not None:
+                    len = bone.length
+                    bone.tail[2] = bone.head[2] - (len *foot_toe_yx[f_t_idx][0])
+                    x_sa = len * foot_toe_yx[f_t_idx][1]
+                    if i == 0:
+                        x_sa = 0 - x_sa
+                    bone.tail[0] = bone.head[0] + x_sa
+
+
     def fitbone(self):
         Global.deselect()
         Versions.active_object(Global.getAmtr())
         Versions.select(Global.getAmtr(),True)
         Global.setOpsMode("EDIT")
+        if Global.isAcs():
+            self.connect_when_acs()
         if Global.getIsMan():
             tbl = self.tbl_fitbone_m
             if Global.getIsG3():
@@ -504,7 +542,7 @@ class FitBone:
                 if (c.lower() in eb.name.lower()):
                     eb.use_connect = False
             for tb in tbl:
-                if self.is_first and tb[8]==0:
+                if self.is_first and tb[8]==0 and self.is_asc == False:
                     continue
                 eb_name = eb.name
                 pod =  eb_name.find(".001")

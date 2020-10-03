@@ -2,6 +2,7 @@ import bpy
 import os
 import math
 from . import Global
+from . import Util
 #BV
 if bpy.app.version < (2, 80, 0):
     BV = 2.79
@@ -11,8 +12,10 @@ elif bpy.app.version < (2, 82, 0):
     BV = 2.81
 elif bpy.app.version < (2, 83, 0):
     BV = 2.82
-else:
+elif bpy.app.version < (2, 90, 0):
     BV = 2.83
+else:
+    BV = 2.90
 
 my_local_language = 'en_US'
 
@@ -63,18 +66,24 @@ def subsurface_method(SNBP):
     else:
         SNBP.subsurface_method = 'RANDOM_WALK'
 
-def to_279_subsurface():
-    if BV<2.80:
-        from . import DataBase
-        db = DataBase.DB()
-        db.to_279_subsurface()
 
 def make_sun():
+    if Util.colobjs('DAZ_PUB').get('daz_sun') is not None:
+        return
     if BV < 2.80:
-        bpy.ops.object.lamp_add(type='SUN', radius=6.0, location=(-55, -60, 230), rotation=(0.77, -0.401, -0.244))
+        bpy.ops.object.lamp_add(type='SUN', radius=6.0, location=(
+            -0.55*Global.getSize(),
+            -0.6*Global.getSize(),
+            2.3*Global.getSize()
+        ), rotation=(0.77, -0.401, -0.244))
     else:
-        bpy.ops.object.light_add(type='SUN', radius=6.0, location=(-55, -60, 230), rotation=(0.77, -0.401, -0.244))
-    sun = bpy.data.objects.get('Sun')
+        bpy.ops.object.light_add(type='SUN', radius=6.0, location=(
+            -0.55 * Global.getSize(),
+            -0.6 * Global.getSize(),
+            2.3 * Global.getSize()
+        ), rotation=(0.77, -0.401, -0.244))
+    sun = bpy.context.object
+    sun.name = 'daz_sun'
     sun.data.use_nodes = True
     if sun.data.node_tree is not None:
         sun.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 5
@@ -82,7 +91,7 @@ def make_sun():
         sun.data.shadow_soft_size = 0.5
     else:
         sun.data.angle = math.radians(30)
-
+    Util.to_other_collection([bpy.context.object], 'DAZ_PUB', Util.cur_col_name())
 
 
 def view_from_camera():
@@ -92,6 +101,8 @@ def view_from_camera():
         bpy.ops.view3d.view_camera()
 
 def make_camera():
+    if Util.colobjs('DAZ_PUB').get('daz_cam') is not None:
+        return
     size = Global.getSize()
     if BV<2.80:
         bpy.ops.object.camera_add(view_align=False, enter_editmode=False,
@@ -101,6 +112,12 @@ def make_camera():
         bpy.ops.object.camera_add(align='WORLD', enter_editmode=False,
                                   location=(0.21 * size, -0.802 * size, 1.631 * size),
                                   rotation=(math.radians(91), 0, math.radians(15.2)))
+    bpy.context.object.name = 'daz_cam'
+    for i in range(3):
+        bpy.context.object.scale[i] = size/0.01
+    Util.to_other_collection([bpy.context.object],'DAZ_PUB',Util.cur_col_name())
+
+
 
 def pivot_active_element_and_center_and_trnormal():
     if BV < 2.80:
@@ -167,15 +184,18 @@ def foot_ikbone_rotate(i):
         ms = -34
         if not Global.getIsMan():
             if Global.getIsG3():
-                ps = ps * 2
-                ms = ms * 2
+                pass
             else:
-                ps = ps + 8
-                ms = ms - 16
+                ps = ps + 8 * 2
+                ms = ms - 16 * 2
+        else:
+            if Global.getIsG3() and BV > 2.83:
+                ps = 0 - ps
+                ms = 0 - ms
         bpy.ops.transform.rotate(value=math.radians(ps + (i * ms)), orient_axis='Y',
                                  constraint_axis=(False, True, False))
         bpy.ops.transform.rotate(value=math.radians(-27), orient_axis='X',
-                                constraint_axis=(True, False, False))
+                                 constraint_axis=(True, False, False))
 
 def show_wire(object):
     if object is None:
@@ -192,6 +212,10 @@ def make_vgroup_new(object,vgname):
         object.vertex_groups.new(vgname)
     else:
         object.vertex_groups.new(name=vgname)
+
+
+def active_object_none():
+    bpy.context.view_layer.objects.active = None
 
 def active_object(object):
     if object is None:
@@ -283,7 +307,7 @@ def set_subdiv(object):
                 mod.render_levels = 3-Global.getSubdivLevel()
                 mod.levels = 0
 
-def set_link(object,flg_link):
+def set_link(object,flg_link,colname):
     if object is None:
         return
     if BV < 2.80:
@@ -293,11 +317,12 @@ def set_link(object,flg_link):
             bpy.context.scene.objects.unlink(object)
     else:
         if flg_link:
-            bpy.context.scene.collection.objects.link(object)
+            Util.colobjs(colname).link(object)
+            if object.name in bpy.context.scene.collection.objects:
+                bpy.context.scene.collection.objects.unlink(object)
         else:
-            for scene in bpy.data.scenes:
-                if object.name in scene.collection.objects:
-                    scene.collection.objects.unlink(object)
+            if object.name in Util.colobjs(colname):
+                Util.colobjs(colname).unlink(object)
 
 def set_debug_info(dvr):
     if dvr is None:
@@ -330,7 +355,7 @@ def to_other_layer(obj_names,col_name):
             col.hide_viewport = True
             col.hide_render = True
         for on in obj_names:
-            ob = bpy.data.objects.get(on)
+            ob = Util.colobjs(col_name).get(on)
             if ob is None:
                 continue
             if (on in col.objects)==False:
@@ -401,6 +426,7 @@ def set_language(lang):
     else:
         bpy.context.preferences.view.language=lang
 
+
 def get_language():
     if BV < 2.80:
         if bpy.context.user_preferences.system.use_international_fonts:
@@ -425,7 +451,7 @@ def to_main_layer_active():
         bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection
 
 def import_obj(path):
-    to_main_layer_active()
+
     Global.store_ary(False)
     if BV<2.80:
         bpy.ops.import_scene.obj(filepath=path, axis_forward='-Z', axis_up='Y', filter_glob="*.obj;*.mtl",
@@ -439,7 +465,7 @@ def import_obj(path):
                                  split_mode='OFF', global_clight_size=0.0)
     Global.store_ary(True)
     wnew = Global.what_new()
-    if wnew in bpy.data.objects:
-        return bpy.data.objects[wnew]
+    if wnew in Util.myccobjs():
+        return Util.myccobjs()[wnew]
     else:
         return None

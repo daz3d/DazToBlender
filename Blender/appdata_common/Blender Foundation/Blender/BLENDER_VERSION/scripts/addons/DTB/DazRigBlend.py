@@ -1,103 +1,109 @@
 import bpy
 import os
 import math
-import bmesh
 from . import Global
 from . import Versions
 from . import DataBase
-from . import DtbShaders
+from . import DtbMaterial
+from . import Util
 class DazRigBlend:
     notEnglish = False
     head_vgroup_index = -1
-    root = ""
+    root = Global.getRootPath()
     buttons = []
     del_empty = []
+    mub_ary = []
 
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
         self.head_vgroup_index = -1
         self.notEnglish = False
 
     def convert_file(self, filepath):
+        isacs = Global.isAcs()
         basename = os.path.basename(filepath)
         (filename, fileext) = os.path.splitext(basename)
         ext = fileext.lower()
         if os.path.isfile(filepath):
             if ext == '.fbx':
-                bpy.ops.import_scene.fbx(filepath=filepath, force_connect_children=True
-                                         , automatic_bone_orientation=True, primary_bone_axis='Y',
-                                         secondary_bone_axis='X')
+                bpy.ops.import_scene.fbx(filepath=filepath, global_scale=1,
+                                         force_connect_children= isacs== False,
+                                         automatic_bone_orientation= isacs == False,
+                                         use_prepost_rot = isacs == False,
+                                         use_anim = False,
+                                         ignore_leaf_bones = False,
+                                         use_manual_orientation=False,
+                                         bake_space_transform=False,
+                                         use_custom_normals=True,
+                                         use_image_search=True,
+                                         primary_bone_axis='Y',
+                                         secondary_bone_axis='X'
+                                         )
 
-    def roop_empty(self,obj,loc,rot):
+    def roop_empty(self,obj):
         Global.deselect()
-        if len(obj.children)==0 and obj.type=='MESH':
-            Versions.select(obj, True)
-            Versions.active_object(obj)
-            Global.setOpsMode('OBJECT')
-            bpy.ops.object.parent_clear(type='CLEAR')
-            for i in range(3):
-                if obj.lock_location[i]:
-                    obj.lock_location[i] = False
-                if obj.lock_rotation[i]:
-                    obj.lock_rotation[i] = False
-                obj.location[i] += loc[i]
-                obj.rotation_euler[i] += rot[i]
-                #rint(obj.name,obj.location,obj.rotation_euler)
-            self.buttons.append(obj)
+        Versions.active_object(obj)
+        Versions.select(obj, True)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        Versions.select(obj, False)
+        Versions.active_object_none()
+        Global.deselect()
+        if len(obj.children)==0 or obj.type=='MESH':
+            #check scale
+            if Global.getAmtr().scale[0]<0.015:
+                for i in range(3):
+                    obj.location[i] = obj.location[i] * 100
+                    obj.scale[i] = 100
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            if self.is_mub(obj):
+                pass
+            else:
+                self.buttons.append(obj)
+            max = len(self.del_empty)
+            ms = 0
+            #delete empty
+            for i in range(max):
+                Util.allobjs().remove(self.del_empty.pop(i-ms))
+                ms += 1
+                max -=1
         else:
-            cloc = obj.location
-            crot = obj.rotation_euler
-            for i in range(3):
-                cloc[i] += loc[i]
-                crot[i] += rot[i]
-            self.del_empty.append(obj)
+            if obj.type=='EMPTY':
+                self.del_empty.append(obj)
             for c in obj.children:
-                self.roop_empty(c,cloc,crot)
+                self.roop_empty(c)
 
-    def manage_empty(self,empty_objs):
-        for e in empty_objs:
-            self.del_empty.append(e)
-            for c in e.children:
-                self.roop_empty(c,e.location,e.rotation_euler)
-        for de in self.del_empty:
-            if de.type=='EMPTY':
-                bpy.data.objects.remove(de)
+    def orthopedy_empty(self):
+        self.buttons = []
+        self.add_amtr_objs = []
+        for dobj in Util.allobjs():
+            if dobj.type == 'EMPTY':
+                if dobj.parent == Global.getAmtr():
+                    self.del_empty = []
+                    self.roop_empty(dobj)
+                    Global.deselect()
+                    Versions.active_object_none()
+
+    def clear_pose(self):
+        Versions.select(Global.getAmtr(), True)
+        Versions.active_object(Global.getAmtr())
+        Versions.show_x_ray(Global.getAmtr())
+        Global.setOpsMode('POSE')
+        bpy.ops.pose.transforms_clear()
+        Global.setOpsMode('OBJECT')
 
     def orthopedy_everything(self):
         amtr_objs = []
-        empty_objs = []
-        self.buttons = []
         self.del_empty = []
         Global.deselect()
-        Versions.select(Global.getAmtr(),True)
-        for dobj in bpy.data.objects:
+        for dobj in Util.myacobjs():
             if dobj.type == 'MESH':
-                Versions.select(dobj,True)
-                Versions.active_object(dobj)
-                for modifier in dobj.modifiers:
-                    if modifier.type == "ARMATURE":
-                        if modifier.object.name == Global.get_Amtr_name():
-                            if dobj.type=='MESH':
-                                amtr_objs.append(dobj)
-                                bpy.ops.object.parent_clear()
-                Versions.select(dobj,False)
-            elif dobj.type=='EMPTY':
                 if dobj.parent==Global.getAmtr():
-                    empty_objs.append(dobj)
+                    Versions.select(dobj, True)
+                    Versions.active_object(dobj)
+                    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                    amtr_objs.append(dobj)
+                    bpy.ops.object.parent_clear()
+                    Versions.select(dobj, False)
         Global.deselect()
-        self.manage_empty(empty_objs)
-        Global.deselect()
-        #max = -1
-        if len(self.buttons)>0:
-            for obj in self.buttons:
-                Versions.select(obj,True)
-                Versions.active_object(obj)
-                #bpy.ops.object.join()
-                #max = len(amtr_objs)
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            #Versions.pivot_active_element_and_center_and_trnormal()
-                amtr_objs.append(bpy.context.object)
-                Global.deselect()
         Versions.select(Global.getAmtr(),True)
         Versions.active_object(Global.getAmtr())
         Versions.show_x_ray(Global.getAmtr())
@@ -125,14 +131,16 @@ class DazRigBlend:
             mainbone.lock_rotation[i] = True
             mainbone.lock_scale[i] = True
         Global.setOpsMode('OBJECT')
-
+        for btn in self.buttons:
+            Versions.select(btn, True)
+            Versions.select(mainbone, True)
+            bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+            Versions.select(btn, False)
+            Versions.select(mainbone, False)
         for didx,dobj in enumerate(amtr_objs):
             Versions.select(dobj,True)
             Versions.select(mainbone, True)
-            if dobj in self.buttons:#didx==max:
-                bpy.ops.object.parent_set(type='ARMATURE_AUTO')
-            else:
-                bpy.ops.object.parent_set(type='ARMATURE')
+            bpy.ops.object.parent_set(type='ARMATURE')
             Versions.select(dobj,False)
             Versions.select(mainbone,False)
 
@@ -155,12 +163,10 @@ class DazRigBlend:
             for i in range(3):
                 b.tail[i] = b.head[i]+ikh[i]/5
 
-
-
     def fixGeniWeight(self, db):
         obj = Global.getBody()
         if Global.getIsMan()==False:
-            if (('Futa Genitalia' in bpy.data.objects) or ('Glans' in obj.material_slots))==False:
+            if (('Futa Genitalia' in Util.myccobjs()) or ('Glans' in obj.material_slots))==False:
                 return
         vgs = obj.vertex_groups
         del_vgs = []
@@ -214,6 +220,8 @@ class DazRigBlend:
             for pb in pbs:
                 if pb.name.endswith("_IK"):
                     continue
+                if pb.name == 'hip':
+                    pb.rotation_mode = 'ZXY'  # YXZ
                 if pb.name == row[0]:
                     yzx3 = ['Shin', 'ThighBend', 'ShldrBend','Foot','Tnumb1','Toe']
                     hit = False
@@ -223,6 +231,8 @@ class DazRigBlend:
                             break
                     if hit:
                         pb.rotation_mode = 'YZX'
+                    elif pb.name == 'hip':
+                        pb.rotation_mode = 'ZXY'  # YXZ
                     else:
                         pb.rotation_mode = 'XYZ'
                     pb.constraints.new('LIMIT_ROTATION')
@@ -257,16 +267,13 @@ class DazRigBlend:
                         if 'ThighTwist' in pb.name:
                             pb.ik_stiffness_x = 0.99
 
-    def fix_manfitbone(self, db):
-        for mb in db.mbone:
-            for ridx, row in enumerate(DataBase.tbl_brollfix):
-                if mb[0].lower() == row[0].lower():
-                    DataBase.tbl_brollfix[ridx][1] = mb[1]
-                    break
-
     def ifitsman(self, bname, roll):
         if Global.getIsMan():
-            for mb in DataBase.mbone:
+            if Global.getIsG3():
+                tbl = DataBase.mbone_g3
+            else:
+                tbl = DataBase.mbone
+            for mb in tbl:
                 if mb[0].lower()[1:] == bname.lower()[1:]:
                     return mb[1]
         return roll
@@ -280,7 +287,8 @@ class DazRigBlend:
         tbl = DataBase.tbl_brollfix
         if Global.getIsG3():
             tbl = tbl[3:]
-            tbl.extend(DataBase.tbl_brollfix_g3)
+            #if Global.getIsMan()==False:
+            tbl.extend(DataBase.tbl_brollfix_g3_f)
         for bone in ob.data.edit_bones:
             for ridx, row in enumerate(tbl):
                 if bone.name.lower() == row[0].lower():
@@ -291,20 +299,6 @@ class DazRigBlend:
                         bone.roll = 0 - math.radians(roll)
                     else:
                         bone.roll = math.radians(roll)
-
-    def correct_foot_toe_orientation(self):
-        foot_toe_names = [['rFoot','lFoot'],['rToe','lToe']]
-        foot_toe_yx = [[0.38,0.26],[0.12,0.34]]
-        for f_t_idx,foot_toe in enumerate(foot_toe_names):
-            for i, ft in enumerate(foot_toe):
-                bone = Global.getAmtr().data.edit_bones.get(ft)
-                if bone is not None:
-                    len = bone.length
-                    bone.tail[2] = bone.head[2] - (len *foot_toe_yx[f_t_idx][0])
-                    x_sa = len * foot_toe_yx[f_t_idx][1]
-                    if i == 0:
-                        x_sa = 0 - x_sa
-                    bone.tail[0] = bone.head[0] + x_sa
 
     def makeBRotationCut(self,db):
         for pb in Global.getAmtr().pose.bones:
@@ -403,6 +397,7 @@ class DazRigBlend:
                 c.use_tail = True
                 c.use_stretch = False
         self.copy_rotation()
+        Util.to_other_collection_byname(ctl_bones, 'DAZ_HIDE', Util.cur_col_name())
 
     def copy_rotation(self):
         crbones = ['rFoot','lFoot','rShin_IK','lShin_IK']
@@ -455,61 +450,54 @@ class DazRigBlend:
                         cr.target_space = 'LOCAL'
                         cr.owner_space = 'LOCAL'
 
-    def friday(self):
-        hide_objs = []
-        hids = ['genital', '_gens_', '_shell', 'xy', 'alegen', '_gen_', 'goldenpalace', 'breastacular']
-        for dobj in bpy.data.objects:
-            dnl = dobj.name.lower()
-            for h in hids:
-                if h in dnl:
-                    if Global.get_Hair_name() !=dobj.name:
-                        hide_objs.append(dobj.name)
-            else:
-                if Global.isRiggedObject(dobj):
-                    for modifier in dobj.modifiers:
-                        if modifier.type == "ARMATURE":
-                            modifier.use_deform_preserve_volume = True
-        if len(hide_objs) > 0:
-            Versions.to_other_layer(hide_objs, 'genital_shell')
-        DtbShaders.default_material()
-        Versions.make_camera()
-        Global.scale_environment(100)
-
     def finishjob(self):
-        if Global.getIsPro():
-            from . import ToHighReso
-            thr = ToHighReso.ToHighReso()
-            thr.corrective_smooth()
-            thr.toCorrectVWeight1()
+        DtbMaterial.default_material()
+        Versions.make_sun()
+        from . import ToHighReso
+        thr = ToHighReso.ToHighReso()
+        thr.toCorrectVWeight1()
+        self.subdiv()
         Global.deselect()
         if Global.getIsG3():
             self.foot_finger_forg3()
+            Global.deselect()
+        Versions.active_object_none()
+        if Global.want_real():
+            Global.changeSize(1, [b[1] for b in self.mub_ary])
+        Global.scale_environment()
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
         Versions.show_x_ray(Global.getAmtr())
         Versions.show_wire(bpy.context.object)
-        for ob in bpy.data.objects:
+        for ob in Util.myccobjs():
             if Global.isRiggedObject(ob):
                 for m in ob.modifiers:
                     if m.name == 'Armature':
                         m.show_on_cage = True
                         m.show_in_editmode = True
+                        m.use_deform_preserve_volume = True
                 ob.use_shape_key_edit_mode = True
-        b3 = ['root','rShin_P','lShin_P','hip']
+        b3 = ['root','rShin_P','lShin_P']
         for b in b3:
             pb = Global.getAmtr().pose.bones.get(b)
             if pb is not None:
                 pb.rotation_mode = 'XYZ'
         self.eyes_correct()
+        Global.setOpsMode("OBJECT")
+        self.fix_mub()
+        Global.setOpsMode("POSE")
         bpy.ops.pose.select_all(action='DESELECT')
-        self.mesh_under_bone()
-        Versions.reverse_language()
-        Versions.pivot_active_element_and_center_and_trnormal()
-        Global.setRenderSetting(Global.getIsPro())
 
-    def mesh_under_bone(self):
-        adr = Global.getRootPath() + "DTB.dat"
+    # [mub --means-->  Mesh Under Bone]
+    def fix_mub(self):
+        for obj in Util.myacobjs():
+            if obj.name in [mb[1] for mb in self.mub_ary]:
+                for i in range(3):
+                    obj.location[i] = 0
+
+    def mub_ary_A(self):
+        adr = Global.getHomeTown() + Global.getFileSp()+"FIG.dat"
         if os.path.exists(adr):
             with open(adr) as f:
                 ls = f.readlines()
@@ -518,17 +506,30 @@ class DazRigBlend:
                 if len(ss) >= 2:
                     if (ss[1].endswith("\n")):
                         ss[1] = ss[1][:len(ss[1]) - 1]
+                    self.mub_ary.append(ss)
                     ss[1] += ".Shape"
-                    if (ss[1] in bpy.data.objects) and (ss[0] in Global.getAmtr().pose.bones):
-                        obj = bpy.data.objects.get(ss[1])
-                        vgs =obj.vertex_groups
-                        for vs in vgs:
-                            obj.vertex_groups.remove(vs)
-                        Versions.select(bpy.data.objects.get(ss[1]), True)
-                        Global.getAmtr().pose.bones.get(ss[0]).bone.select = True
-                        Global.getAmtr().data.bones.active = Global.getAmtr().data.bones.get(ss[0])
-                        bpy.ops.object.parent_set(type='BONE')
-                        Global.deselect()
+                    self.mub_ary.append(ss)
+
+    def is_mub(self, obj):
+        for ss in self.mub_ary:
+            if ss[1] == obj.name:
+                return True
+        return False
+
+    def mub_ary_Z(self):
+        for ss in self.mub_ary:
+            if (ss[1] in Util.myacobjs()) and (ss[0] in Global.getAmtr().pose.bones):
+                obj = Util.myacobjs().get(ss[1])
+                if obj.type != 'MESH':
+                    continue
+                vgs =obj.vertex_groups
+                for vs in vgs:
+                    obj.vertex_groups.remove(vs)
+                Versions.select(Util.myacobjs().get(ss[1]), True)
+                Global.getAmtr().pose.bones.get(ss[0]).bone.select = True
+                Global.getAmtr().data.bones.active = Global.getAmtr().data.bones.get(ss[0])
+                bpy.ops.object.parent_set(type='BONE')
+                Global.deselect()
 
     def eyes_correct(self):
         bpy.ops.pose.select_all(action='DESELECT')
@@ -547,24 +548,3 @@ class DazRigBlend:
         bpy.ops.object.modifier_add(type='SUBSURF')
         Versions.set_subdiv(body)
 
-    def layGround(self):
-        bpy.context.scene.render.engine = 'CYCLES'
-        bpy.context.space_data.shading.type = 'SOLID'
-        bpy.context.space_data.shading.color_type = 'OBJECT'
-        Versions.set_english()
-        bco = bpy.context.object
-        if bco != None and bco.mode != 'OBJECT':
-            Global.setOpsMode('OBJECT')
-            bpy.ops.view3d.snap_cursor_to_center()
-            for item in bpy.context.scene.objects:
-                Versions.set_link(item,False)
-        for item in bpy.data.objects:
-            bpy.data.objects.remove(item)
-        for mesh in bpy.data.meshes:
-            bpy.data.meshes.remove(mesh)
-        for item in bpy.data.materials:
-            bpy.data.materials.remove(item)
-        Versions.make_sun()
-        
-        
-        
