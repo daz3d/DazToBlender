@@ -234,6 +234,19 @@ class ReadFbx:
                 rtn.append(eb.name)
         return rtn
 
+    def is_nobuilding(self,amtr,ebones):
+        if amtr.name.lower().startswith('wp_cor_cflr'):
+            return False
+        x = amtr.dimensions[0]/Global.getSize()
+        y = amtr.dimensions[1]/Global.getSize()
+        isover5 = False
+        if x>5.0 or y > 5.0:
+            isover5 = True
+        cnt = 0
+        for eb in ebones:
+            cnt += 1
+        return cnt > 40 and isover5 == False
+
     def orthopedy_armature(self, objs, amtr):
         Global.deselect()
         self.Maru()
@@ -267,10 +280,7 @@ class ReadFbx:
         Global.setOpsMode("EDIT")
         hides = []
         ebones = amtr.data.edit_bones
-        bcnt = 0
-        for eb in ebones:
-            bcnt += 1
-        notbuilding = bcnt > 30
+        notbuilding = self.is_nobuilding(amtr, ebones)
         for eb in ebones:
             binfo = self.get_bone_info(eb.name)
             if binfo is None:
@@ -370,7 +380,9 @@ class ReadFbx:
                             lim.max_y = 1
                             lim.max_z = 1
         for hide in hides:
-            amtr.data.bones.get(hide).hide = True
+            hd = amtr.data.bones.get(hide)
+            if hd is not None:
+                hd.hide = True
 
     def convert_file(self, filepath):
         Global.store_ary(False)

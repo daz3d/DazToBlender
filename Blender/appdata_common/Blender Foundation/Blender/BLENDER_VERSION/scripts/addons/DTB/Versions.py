@@ -70,20 +70,14 @@ def subsurface_method(SNBP):
 def make_sun():
     if Util.colobjs('DAZ_PUB').get('daz_sun') is not None:
         return
-    if BV < 2.80:
-        bpy.ops.object.lamp_add(type='SUN', radius=6.0, location=(
-            -0.55*Global.getSize(),
-            -0.6*Global.getSize(),
-            2.3*Global.getSize()
-        ), rotation=(0.77, -0.401, -0.244))
-    else:
-        bpy.ops.object.light_add(type='SUN', radius=6.0, location=(
-            -0.55 * Global.getSize(),
-            -0.6 * Global.getSize(),
-            2.3 * Global.getSize()
-        ), rotation=(0.77, -0.401, -0.244))
-    sun = bpy.context.object
-    sun.name = 'daz_sun'
+    size = Global.getSize()
+    _sun = bpy.data.lights.new(name = "daz_sun",type='SUN')
+    _sun.energy = 1
+    sun = bpy.data.objects.new("daz_sun", object_data=_sun)
+    sun.location = (-0.55*Global.getSize(), -0.6*Global.getSize(),2.3*Global.getSize())
+    sun.rotation_euler = (0.77, -0.401, -0.244)
+    for i in range(3):
+        sun.scale[i] = size * 0.1
     sun.data.use_nodes = True
     if sun.data.node_tree is not None:
         sun.data.node_tree.nodes['Emission'].inputs['Strength'].default_value = 5
@@ -91,7 +85,7 @@ def make_sun():
         sun.data.shadow_soft_size = 0.5
     else:
         sun.data.angle = math.radians(30)
-    Util.to_other_collection([bpy.context.object], 'DAZ_PUB', Util.cur_col_name())
+    Util.to_other_collection([sun], 'DAZ_PUB', Util.cur_col_name())
 
 
 def view_from_camera():
@@ -104,18 +98,13 @@ def make_camera():
     if Util.colobjs('DAZ_PUB').get('daz_cam') is not None:
         return
     size = Global.getSize()
-    if BV<2.80:
-        bpy.ops.object.camera_add(view_align=False, enter_editmode=False,
-                              location=(0.21 * size, -0.802 * size, 1.631 * size),
-                              rotation=(math.radians(91), 0, math.radians(15.2)))
-    else:
-        bpy.ops.object.camera_add(align='WORLD', enter_editmode=False,
-                                  location=(0.21 * size, -0.802 * size, 1.631 * size),
-                                  rotation=(math.radians(91), 0, math.radians(15.2)))
-    bpy.context.object.name = 'daz_cam'
+    _cam = bpy.data.cameras.new("daz_cam")
+    cam = bpy.data.objects.new("daz_cam",_cam)
+    cam.location = (0.21*size, -0.802*size,1.631 * size)
+    cam.rotation_euler = (math.radians(91), math.radians(0),math.radians(15.2))
     for i in range(3):
-        bpy.context.object.scale[i] = size/0.01
-    Util.to_other_collection([bpy.context.object],'DAZ_PUB',Util.cur_col_name())
+        cam.scale[i] = size * 0.1
+    Util.to_other_collection([cam],'DAZ_PUB',Util.cur_col_name())
 
 
 
