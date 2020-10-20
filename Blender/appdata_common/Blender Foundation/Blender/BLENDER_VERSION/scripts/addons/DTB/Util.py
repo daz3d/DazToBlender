@@ -164,7 +164,10 @@ def orderCollection(cur_col_name):
             if last_col is not None:
                 prtname = get_parent_name(col_name)
                 if prtname is not None and prtname !=last_col.name:
-                    bpy.data.collections.get(prtname).children.unlink(col)
+                    if prtname=='Master Collection':
+                        bpy.context.scene.collection.children.unlink(col)
+                    else:
+                        bpy.data.collections.get(prtname).children.unlink(col)
                 if col_name not in last_col.children.keys():
                     last_col.children.link(col)
         if i==3:
