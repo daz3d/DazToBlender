@@ -287,7 +287,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             drb.unwrapuv()
             Global.deselect()
             if Global.getIsEyls():
-                #drb.integrationEyelashes()
+                drb.integrationEyelashes()
                 Global.deselect()
             ds.makeDct()
             DtbMaterial.McySkin()
