@@ -183,53 +183,53 @@ class DazRigBlend:
                 for d in del_vgs:
                     vgs[d].add([v.index], 1.0, 'SUBTRACT')
 
-def integrationEyelashes(self):
-    Global.setOpsMode('OBJECT')
-    obj1 = Global.getEyls()
-    obj2 = Global.getBody()
-    eyelashkeys = obj1.data.shape_keys
-    bodykeys = obj2.data.shape_keys
-    eylsname = Global.get_KeepEyls_name()
+    def integrationEyelashes(self):
+        Global.setOpsMode('OBJECT')
+        obj1 = Global.getEyls()
+        obj2 = Global.getBody()
+        eyelashkeys = obj1.data.shape_keys
+        bodykeys = obj2.data.shape_keys
+        eylsname = Global.get_KeepEyls_name()
 
-    if eylsname.endswith(".Shape"):
-        eylsname = eylsname[:len(eylsname)-6]
+        if eylsname.endswith(".Shape"):
+            eylsname = eylsname[:len(eylsname)-6]
 
-    if eylsname !="":
-        eylsname = eylsname+"__"
+        if eylsname !="":
+            eylsname = eylsname+"__"
 
-    bodyname = Global.get_Body_name()
-    if bodyname.endswith(".Shape"):
-        bodyname = bodyname[:len(bodyname)-6]
+        bodyname = Global.get_Body_name()
+        if bodyname.endswith(".Shape"):
+            bodyname = bodyname[:len(bodyname)-6]
 
-    if bodyname !="":
-        bodyname = bodyname+"__"
-    
-    # First, before joinng, rename morphs to have the same name, blender will combine them when we join the objects
-    # this is MUCH faster than joining first then deleting morphs
-    # this provides a massive performance increasing when importing a lot of morphs
-    if eyelashkeys is not None and eylsname!="":
-        for keyIdx in range(len(eyelashkeys.key_blocks)):
-            shapekey = obj1.data.shape_keys.key_blocks[keyIdx]
-            if  (eylsname in shapekey.name):
-                print('renaming ' + shapekey.name + " to " + shapekey.name.replace(eylsname, ""))
-                shapekey.name = shapekey.name.replace(eylsname, "")
-            else:
-                print('skipping rename of ' + shapekey.name)
+        if bodyname !="":
+            bodyname = bodyname+"__"
+        
+        # First, before joinng, rename morphs to have the same name, blender will combine them when we join the objects
+        # this is MUCH faster than joining first then deleting morphs
+        # this provides a massive performance increasing when importing a lot of morphs
+        if eyelashkeys is not None and eylsname!="":
+            for keyIdx in range(len(eyelashkeys.key_blocks)):
+                shapekey = obj1.data.shape_keys.key_blocks[keyIdx]
+                if  (eylsname in shapekey.name):
+                    print('renaming ' + shapekey.name + " to " + shapekey.name.replace(eylsname, ""))
+                    shapekey.name = shapekey.name.replace(eylsname, "")
+                else:
+                    print('skipping rename of ' + shapekey.name)
 
-    if bodykeys is not None and bodyname!="":
-        for keyIdx in range(len(bodykeys.key_blocks)):
-            shapekey = obj2.data.shape_keys.key_blocks[keyIdx]
-            if  (bodyname in shapekey.name):
-                print('renaming ' + shapekey.name + " to " + shapekey.name.replace(bodyname, ""))
-                shapekey.name = shapekey.name.replace(bodyname, "")
-            else:
-                print('skipping rename of ' + shapekey.name)
+        if bodykeys is not None and bodyname!="":
+            for keyIdx in range(len(bodykeys.key_blocks)):
+                shapekey = obj2.data.shape_keys.key_blocks[keyIdx]
+                if  (bodyname in shapekey.name):
+                    print('renaming ' + shapekey.name + " to " + shapekey.name.replace(bodyname, ""))
+                    shapekey.name = shapekey.name.replace(bodyname, "")
+                else:
+                    print('skipping rename of ' + shapekey.name)
 
-    Versions.select(obj1,True)
-    Versions.select(obj2,True)
-    Versions.active_object(obj1)
-    Versions.active_object(obj2)
-    bpy.ops.object.join()
+        Versions.select(obj1,True)
+        Versions.select(obj2,True)
+        Versions.active_object(obj1)
+        Versions.active_object(obj2)
+        bpy.ops.object.join()
 
     def unwrapuv(self):
         Global.setOpsMode('OBJECT')
