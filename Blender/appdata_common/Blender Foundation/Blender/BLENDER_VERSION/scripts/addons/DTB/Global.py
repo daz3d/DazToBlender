@@ -279,7 +279,7 @@ def find_BODY(dobj):
                         for slot in dobj.material_slots:
                             for m in mtls:
                                 if m in slot.name:
-                                    point -= 1;
+                                    point -= 1
                                     break
                         if point < 5:
                             _BODY = dobj.name
@@ -448,9 +448,9 @@ def decide_HERO():
     if bool_body[0] == False:
         _BODY = ""
     if bool_body[1] == False:
-        _EYLS = "";
+        _EYLS = ""
     if bool_body[2] == False:
-        _HAIR = "";
+        _HAIR = ""
     if _BODY == "":
         return
     if mf == 0:
@@ -729,13 +729,13 @@ def toGeniVIndex(vidx):
     if getIsMan() == False:
         for ridx, r in enumerate(DataBase.f_geni[Geo_Idx-1]):
             if vidx < r[0] and ridx > 0:
-                vidx -= old;
+                vidx -= old
                 break
             old = r[1]
     else:
         for ridx, r in enumerate(DataBase.m_geni[Geo_Idx-1]):
             if vidx < r[0] and ridx > 0:
-                vidx -= old;
+                vidx -= old
                 break
             old = r[1]
     return vidx

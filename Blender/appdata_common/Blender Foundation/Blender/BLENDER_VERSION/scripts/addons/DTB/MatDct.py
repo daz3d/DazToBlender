@@ -202,7 +202,7 @@ class MatDct:
                     if ac_value != 1.0:
                         bc_value[3] = ac_value
                     self.add_dct(bc_key,bc_value)
-        main_adr = os.path.dirname(main_adr);
+        main_adr = os.path.dirname(main_adr)
         if main_adr=="":
             main_adr =  directory_memo
         if main_adr!="":

@@ -200,20 +200,20 @@ class DazRigBlend:
             Versions.select(obj1,True)
             Versions.active_object(obj1)
             Global.setOpsMode('EDIT')
-            bpy.ops.mesh.select_all(action='TOGGLE');
+            bpy.ops.mesh.select_all(action='TOGGLE')
             bpy.ops.uv.unwrap()
             Global.setOpsMode('OBJECT')
         obj2 = Global.getBody()
         Versions.select(obj2,True)
         Versions.active_object(obj2)
         Global.setOpsMode('EDIT')
-        bpy.ops.mesh.select_all(action='TOGGLE');
+        bpy.ops.mesh.select_all(action='TOGGLE')
         bpy.ops.uv.unwrap()
         Global.setOpsMode('OBJECT')
 
     def bone_limit_modify(self):
         if len(Global.get_bone_limit()) == 0:
-            Global.bone_limit_modify();
+            Global.bone_limit_modify()
         for row in Global.get_bone_limit():
             dobj = Global.getAmtr()
             pbs = dobj.pose.bones

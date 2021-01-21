@@ -213,7 +213,7 @@ class DtbShapeKeys:
     def toshortkey(self):
         for k in bpy.data.shape_keys:
             for b in k.key_blocks:
-                a = b.name.find("__pJCM");
+                a = b.name.find("__pJCM")
                 if a > 2:
                     bpy.data.shape_keys[k.name].key_blocks[b.name].name = b.name[a:]
                 keys = [Global.get_Amtr_name(),'head','_','_','eCTRL','PHM']
@@ -227,8 +227,8 @@ class DtbShapeKeys:
                         bpy.data.shape_keys[k.name].key_blocks[b.name].name = wk
 
     def deleteExtraSkey(self):
+        dels = []
         for k in bpy.data.shape_keys:
-            dels = []
             for aidx, a in enumerate(k.key_blocks):
                 if ('eCTRL' in a.name) and a.name.startswith("D"):
                     for bidx, b in enumerate(k.key_blocks):
@@ -324,10 +324,10 @@ class DtbShapeKeys:
                         z0_same_idx_ary.append(i)
                     old_dv = dv
             else:
-                decisa = onesa / (2.0 * len(z0_same_idx_ary))
-                old_dv = v
                 if z0_same_idx_ary == []:
                     break
+                decisa = onesa / (2.0 * len(z0_same_idx_ary))
+                old_dv = v
                 root_kb_yz = [[d.co[1], d.co[2]] for didx,d in enumerate(kbs[0].data) if didx%4==0]
                 for i in z0_same_idx_ary:
                     dv = int(v + onesa / 2.0 + decisa * i)

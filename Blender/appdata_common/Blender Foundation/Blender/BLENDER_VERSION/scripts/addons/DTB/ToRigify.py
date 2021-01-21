@@ -63,7 +63,7 @@ class ToRigify:
         if dobj is None:
             return
         if len(Global.get_bone_limit())==0:
-            Global.bone_limit_modify();
+            Global.bone_limit_modify()
         wm.progress_update(5)
         Versions.select(dobj, True)
         Versions.active_object(dobj)
@@ -451,7 +451,7 @@ class ToRigify:
                 else:
                     r = r + math.radians(30)
                 bone.roll = r
-                continue;
+                continue
             if 'thigh' in bone.name:
                 if '.L' in bone.name:
                     if bone.name == 'MCH-thigh_ik_target.L':
@@ -468,7 +468,7 @@ class ToRigify:
                     if bone.name == mt:
                         if bone.head[1] > 0:
                             bone.head[1] = 0
-                continue;
+                continue
             if 'shin' in bone.name:
                 mch_ti = ['MCH-shin_ik.L', 'MCH-shin_ik.R']
                 for mt in mch_ti:
@@ -479,13 +479,13 @@ class ToRigify:
                     bone.roll = math.radians(-8)
                 else:
                     bone.roll = math.radians(8)
-                continue;
+                continue
             if bone.name.startswith('DEF-foot'):
                 if '.L' in bone.name:
                     bone.roll = math.radians(-84)
                 else:
                     bone.roll = math.radians(84)
-                continue;
+                continue
             if 'breast' in bone.name:
                 if '.L' in bone.name:
                     bone.roll = math.radians(-50)

@@ -49,7 +49,7 @@ def pose_apply():
     if BV<2.80:
         bpy.ops.pose.armature_apply()
     else:
-        bpy.ops.pose.armature_apply(selected = False)
+        bpy.ops.pose.armature_apply(selected = True)
 
 def select(object,flg_select):
     if object is None:
