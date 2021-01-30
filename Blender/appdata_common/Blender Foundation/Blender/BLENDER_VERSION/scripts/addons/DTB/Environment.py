@@ -383,14 +383,18 @@ class ReadFbx:
         ext = fileext.lower()
         if os.path.isfile(filepath):
             if ext == '.fbx':
-                bpy.ops.import_scene.fbx(filepath=filepath, use_manual_orientation = False,
-                                         #global_scale=(1 if Global.want_real() else 0.01),
-                                         #global_scale=0.01,
-                                         bake_space_transform=False,
-                                         use_image_search=True,  use_anim=False,
-                                         ignore_leaf_bones=False,force_connect_children=False,
-                                         automatic_bone_orientation=False,
-                                         use_prepost_rot=False, )
+                bpy.ops.import_scene.fbx(
+                    filepath = filepath,
+                    use_manual_orientation = False,
+                    bake_space_transform = False,
+                    use_image_search = True,
+                    use_anim = True,
+                    anim_offset = 0,
+                    ignore_leaf_bones = False,
+                    force_connect_children = False,
+                    automatic_bone_orientation = False,
+                    use_prepost_rot = False
+                    )
         Global.store_ary(True)
         return self.what_news()
 

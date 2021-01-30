@@ -484,9 +484,12 @@
 			oSettings.setBoolValue( "doCameras", bIsEnv );
 			
 			// Animations
-			oSettings.setBoolValue( "doAnims", false );
+			oSettings.setBoolValue( "doAnims", true );
 			// Morphs
 			oSettings.setBoolValue( "doMorphs", true );
+			
+			// Fps
+			oSettings.setBoolValue( "doFps", true );
 			
 			// Morph Rules
 			// Format for rules is "Match1\nAction1\nMatch2\nAction2\nMatch3\nAction3",
@@ -1811,7 +1814,6 @@
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
-				applyDefaultTransforms( oFigure );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
 				setSubDivLevelAll( oFigure, nLevel );
 				buildMorphList( oFigure );
