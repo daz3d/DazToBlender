@@ -1754,6 +1754,97 @@
 	};
 
 	/*********************************************************************/
+	// Number : Get the sign of the input number
+	function getSign( nInput )
+	{
+		if( nInput >= 0) return 1;
+		else return -1;
+	}
+
+	/*********************************************************************/
+	// Number : Get the direction of the bone's look at axis. 1 or -1
+	function getLookAtDirection( oNode )
+	{
+		var vecLookAtAxis = oNode.getEndPoint().subtract( oNode.getOrigin() );
+		
+		var nSign = 1;
+		if( oNode.getRotationOrder().firstAxis == 0 )
+		{
+			nSign = getSign( vecLookAtAxis.x );
+		}
+		else if( oNode.getRotationOrder().firstAxis == 1 )
+		{
+			nSign = getSign( vecLookAtAxis.y );
+		}
+		else if( oNode.getRotationOrder().firstAxis == 2 )
+		{
+			nSign = getSign( vecLookAtAxis.z );
+		}
+		
+		return nSign;
+	};
+
+	/*********************************************************************/
+	// DzVec3 : Get the second axis of the node
+	function getNodeSecondAxis( oNode )
+	{
+		var vecSecondAxis = new DzVec3( 0, 0, 0 );
+		var nSign = getLookAtDirection( oNode );
+		
+		if( oNode.getRotationOrder().secondAxis == 0 )
+		{
+			vecSecondAxis.x = nSign;
+		}
+		else if( oNode.getRotationOrder().secondAxis == 1 )
+		{
+			vecSecondAxis.y = nSign;
+		}
+		else if( oNode.getRotationOrder().secondAxis == 2 )
+		{
+			vecSecondAxis.z = nSign;
+		}
+		
+		var quatOrientation = oNode.getOrientation();
+		vecSecondAxis = quatOrientation.multVec( vecSecondAxis );
+		
+		return vecSecondAxis;
+	};
+
+	/*********************************************************************/
+	// DzVec3 : Get the primary axis of the node
+	function getNodePrimaryAxis( oNode, nBoneLength )
+	{
+		var vecFirstAxis = new DzVec3( 0, 0, 0 );
+		var nSign = getLookAtDirection( oNode );
+		
+		if( oNode.getRotationOrder().firstAxis == 0 )
+		{
+			vecFirstAxis.x = nBoneLength * nSign;
+		}
+		else if( oNode.getRotationOrder().firstAxis == 1 )
+		{
+			vecFirstAxis.y = nBoneLength * nSign;
+		}
+		else if( oNode.getRotationOrder().firstAxis == 2 )
+		{
+			vecFirstAxis.z = nBoneLength * nSign;
+		}
+		
+		var quatOrientation = oNode.getOrientation();
+		vecFirstAxis = quatOrientation.multVec( vecFirstAxis );
+		
+		return vecFirstAxis;
+	};
+
+	/*********************************************************************/
+	// Float : Get length of the bone
+	function getBoneNodeLength( oNode )
+	{
+		var vecAlongBone = oNode.getEndPoint().subtract( oNode.getOrigin() );
+		return vecAlongBone.length();
+	}
+
+	/*********************************************************************/
 	// Void : Write bone's limits along with rotation orders
 	function writeFigureBoneData( oBaseNode, sFilename )
 	{
@@ -1775,6 +1866,8 @@
 		var nZRotMax;
 		
 		var aLimitsData = new Array( nNodes );
+		var aHeadTailData = new Array( nNodes );
+		var aAlignAxisData = new Array( nNodes );
 		
 		for( var i = 0; i < nNodes; i += 1 )
 		{
@@ -1794,9 +1887,33 @@
 				nYRotMin, nYRotMax,
 				nZRotMin, nZRotMax
 				].join(",");
+			
+			nBoneLength = getBoneNodeLength( oNode );
+			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
+			vecHead = oNode.getOrigin( false );
+			vecTail = vecHead.add( vecPrimaryAxis );
+			aHeadTailData[i] = [
+				oNode.getName(),
+				vecHead.x,
+				vecHead.y,
+				vecHead.z,
+				vecTail.x,
+				vecTail.y,
+				vecTail.z
+				].join(",");
+			
+			vecSecondAxis = getNodeSecondAxis( oNode );
+			aAlignAxisData[i] = [
+				oNode.getName(),
+				vecSecondAxis.x,
+				vecSecondAxis.y,
+				vecSecondAxis.z
+				].join(",");
 		}
 		
 		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
+		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
+		writeDataFile( aAlignAxisData, sFilename + "_boneAlignAxis.csv" );
 	};
 	
 	/*********************************************************************/

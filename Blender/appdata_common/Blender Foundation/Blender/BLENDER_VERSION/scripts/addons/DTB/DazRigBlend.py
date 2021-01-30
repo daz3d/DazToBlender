@@ -1,11 +1,13 @@
 import bpy
 import os
 import math
+import mathutils
 from . import Global
 from . import Versions
 from . import DataBase
 from . import DtbMaterial
 from . import Util
+
 class DazRigBlend:
     notEnglish = False
     head_vgroup_index = -1
@@ -35,11 +37,11 @@ class DazRigBlend:
                     use_anim = True,
                     anim_offset = 0,
                     ignore_leaf_bones = False,
-                    force_connect_children = True, # isacs== False
-                    automatic_bone_orientation = False, # isacs== False
+                    force_connect_children = True,
+                    automatic_bone_orientation = False,
                     primary_bone_axis = 'Y',
                     secondary_bone_axis = 'X',
-                    use_prepost_rot = False, # isacs== False
+                    use_prepost_rot = False,
                     )
 
     def roop_empty(self,obj):
@@ -146,25 +148,6 @@ class DazRigBlend:
             bpy.ops.object.parent_set(type='ARMATURE')
             Versions.select(dobj,False)
             Versions.select(mainbone,False)
-
-    def roopFitHeadChildren(self,bone_group):
-        for b in bone_group:
-            if len(b.children) > 0:
-                self.roopFitHeadChildren(b.children)
-            else:
-                ikh = [b.head[0] - b.tail[0], b.head[1] - b.tail[1], b.head[2] - b.tail[2]]
-                for i in range(3):
-                    b.tail[i] = b.head[i] + ikh[i] / 5
-
-    def fitHeadChildren(self):
-        Versions.select(Global.getAmtr(), True)
-        Versions.active_object(Global.getAmtr())
-        Global.setOpsMode('EDIT')
-        self.roopFitHeadChildren(Global.getAmtr().data.edit_bones['head'].children)
-        for b in Global.getAmtr().data.edit_bones['head'].children:
-            ikh = [b.head[0]-b.tail[0], b.head[1]-b.tail[1], b.head[2]-b.tail[2]]
-            for i in range(3):
-                b.tail[i] = b.head[i]+ikh[i]/5
 
     def fixGeniWeight(self, db):
         obj = Global.getBody()
@@ -281,31 +264,81 @@ class DazRigBlend:
                     return mb[1]
         return roll
 
-    def fitbone_roll(self):
-        dobj = Global.getAmtr()
-        Versions.select(dobj,True)
-        Versions.active_object(dobj)
+    def set_bone_head_tail(self):
+        # Read bone's head and tail values
+        input_file = open(Global.getHomeTown() + "/FIG_boneHeadTail.csv", "r")
+        lines = input_file.readlines()
+        input_file.close()
+        bone_head_tail_dict = dict()
+        for line in lines:
+            line_split = line.split(",")
+            bone_head_tail_dict[line_split[0]] = line_split[1:]
+
+        # Switch to Edit mode
+        armature_obj = Global.getAmtr()
+        Versions.select(armature_obj,True)
+        Versions.active_object(armature_obj)
         ob = bpy.context.object
         Global.setOpsMode('EDIT')
-        tbl = DataBase.tbl_brollfix
-        if Global.getIsG3():
-            tbl = tbl[3:]
-            #if Global.getIsMan()==False:
-            tbl.extend(DataBase.tbl_brollfix_g3_f)
+
+        # Set head and tail values for all the bones
         for bone in ob.data.edit_bones:
-            for ridx, row in enumerate(tbl):
-                if bone.name.lower() == row[0].lower():
-                    bone.roll = math.radians(row[1])
-                if row[0].startswith("-") and bone.name[1:].lower() == row[0][1:].lower():
-                    roll = self.ifitsman(row[0], row[1])
-                    if bone.name[:1].lower() == 'l':
-                        bone.roll = 0 - math.radians(roll)
-                    else:
-                        bone.roll = math.radians(roll)
+            if bone.name in bone_head_tail_dict.keys():
+                head_and_tail = bone_head_tail_dict[bone.name]
+
+                bone.use_connect = False
+
+                bone.head[0] = float(head_and_tail[0])
+                bone.head[1] = -float(head_and_tail[2])
+                bone.head[2] = float(head_and_tail[1])
+
+                bone.tail[0] = float(head_and_tail[3])
+                bone.tail[1] = -float(head_and_tail[5])
+                bone.tail[2] = float(head_and_tail[4])
+            else:
+                for key in bone_head_tail_dict.keys():
+                    if key in bone.name:
+                        head_and_tail = bone_head_tail_dict[key]
+
+                        bone.use_connect = False
+
+                        bone.head[0] = float(head_and_tail[0])
+                        bone.head[1] = -float(head_and_tail[2])
+                        bone.head[2] = float(head_and_tail[1])
+
+                        bone.tail[0] = float(head_and_tail[3])
+                        bone.tail[1] = -float(head_and_tail[5])
+                        bone.tail[2] = float(head_and_tail[4])
+
+        # Clear roll values for all the bones
+        Global.deselect()
+        Global.setOpsMode('EDIT')
+        for bone in ob.data.edit_bones:
+            bone.select = True
+        bpy.ops.armature.roll_clear()
+
+        # Read bone align axes to calculate the roll
+        input_file = open(Global.getHomeTown() + "/FIG_boneAlignAxis.csv", "r")
+        lines = input_file.readlines()
+        input_file.close()
+        bone_align_axis_dict = dict()
+        for line in lines:
+            line_split = line.split(",")
+            align_axis_vec = mathutils.Vector(( float(line_split[1]), -float(line_split[3]), float(line_split[2])))
+            bone_align_axis_dict[line_split[0]] = align_axis_vec
+
+        # Set roll values based on the align axes
+        for bone in ob.data.edit_bones:
+            if bone.name in bone_align_axis_dict.keys():
+                bone.align_roll(bone_align_axis_dict[bone.name])
+            else:
+                for key in bone_align_axis_dict.keys():
+                    if key in bone.name:
+                        bone.align_roll(bone_align_axis_dict[key])
 
     def makeBRotationCut(self,db):
         for pb in Global.getAmtr().pose.bones:
-            for tb2 in Global.get_bone_limit():
+            for tb2 in DataBase.get_bone_limits():
                 if pb.name==tb2[0]:
                     for i in range(3):
                         if tb2[2+i*2]==0 and tb2[2+i*2+1]==0:

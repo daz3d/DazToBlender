@@ -106,6 +106,17 @@ def set_translation(matrix, loc):
     else:
         return mathutils.Matrix.Translation(loc) @ (rot @ scale)
 
+def set_scene_settings():
+    scene = bpy.context.scene
+    scene.unit_settings.length_unit = 'CENTIMETERS'
+
+    Global.setOpsMode('POSE')
+    armature = Global.getAmtr().data
+    armature.display_type = 'OCTAHEDRAL'
+    armature.show_axes = True
+    armature.show_bone_custom_shapes = False
+    #armature.show_names = True
+
 class DTB_PT_Main(bpy.types.Panel):
     bl_label = "DazToBlender"
     bl_space_type = 'VIEW_3D'
@@ -221,7 +232,7 @@ class DTB_PT_Main(bpy.types.Panel):
 
 class IMP_OT_FBX(bpy.types.Operator):
     bl_idname = "import.fbx"
-    bl_label = " Import New Genesis 3/8"
+    bl_label = "Import New Genesis 3/8"
     bl_options = {'REGISTER', 'UNDO'}
     root = Global.getRootPath()
 
@@ -267,21 +278,19 @@ class IMP_OT_FBX(bpy.types.Operator):
         Global.decide_HERO()
         self.pbar(15, wm)
         if Global.getAmtr() is not None and Global.getBody() is not None:
-            Global.deselect()
-            drb.clear_pose()
-            drb.mub_ary_A()
-            drb.orthopedy_empty()
+            Global.deselect() # deselect all the objects
+            drb.clear_pose() # Select Armature and clear transform
+            drb.mub_ary_A() # Find and read FIG.dat file
+            drb.orthopedy_empty() # On "EMPTY" type objects
             self.pbar(18, wm)
-            drb.orthopedy_everything()
+            drb.orthopedy_everything() # clear transform, clear and reapply parent
             Global.deselect()
             self.pbar(20, wm)
-            drb.fitHeadChildren()
+            drb.set_bone_head_tail() # Sets head and tail positions for all the bones
             Global.deselect()
             FitBone.FitBone(True)
             self.pbar(25, wm)
             drb.bone_limit_modify()
-            drb.fitbone_roll()
-            Global.meipe_bone()
             Global.deselect()
             self.pbar(30, wm)
             drb.unwrapuv()
@@ -303,6 +312,8 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(45, wm)
             Global.setOpsMode('OBJECT')
             Global.deselect()
+
+            # Shape keys
             dsk = DtbShapeKeys.DtbShapeKeys(False)
             dsk.deleteEyelashes()
             self.pbar(50, wm)
@@ -316,6 +327,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             dsk.makeDrives(db)
             Global.deselect()
             self.pbar(80,wm)
+
             drb.makeRoot()
             drb.makePole()
             drb.makeIK()
@@ -334,7 +346,7 @@ class IMP_OT_FBX(bpy.types.Operator):
                     if bc.name == bname + "_IK":
                         pbik = amt.pose.bones.get(bname + "_IK")
                         amt.pose.bones[bname].constraints[bname + '_IK'].influence = 0
-            drb.makeBRotationCut(db)
+            drb.makeBRotationCut(db) # lock movements around axes with zeroed limits for each bone
             Global.deselect()
             DtbMaterial.forbitMinus()
             self.pbar(95,wm)
@@ -347,6 +359,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.setOpsMode("OBJECT")
             Util.Posing().setpose()
             bone_disp(-1, True)
+            set_scene_settings()
             self.pbar(100,wm)
             ik_access_ban = False
             self.report({"INFO"}, "Success")

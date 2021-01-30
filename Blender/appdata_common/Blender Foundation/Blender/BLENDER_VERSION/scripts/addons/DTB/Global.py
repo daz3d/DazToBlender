@@ -485,22 +485,6 @@ def addG3Database(isman):
     cur.close()
     con.close()
 
-def meipe_bone():
-    if getIsMan() or Geo_Idx!=2:
-        return
-    bones = ["labia","rectum","vagina","clitoris","labium"]
-    dobj = getAmtr()
-    Versions.select(dobj,True)
-    Versions.active_object(dobj)
-    ob = bpy.context.object
-    setOpsMode('EDIT')
-    for bone in ob.data.edit_bones:
-        for bn in bones:
-            if bn in bone.name.lower():
-                bone.tail[2] = bone.head[2]-2
-        #if bone.name.endswith("_end"):
-        #    dobj.data.edit_bones.remove(bone)
-
 def getMf():
     global Geo_Idx
     global isMan
