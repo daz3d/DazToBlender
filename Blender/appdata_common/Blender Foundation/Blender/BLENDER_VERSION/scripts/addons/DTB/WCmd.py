@@ -197,9 +197,6 @@ class Command:
             Global.setOpsMode("OBJECT")
             get_obj_name = key
             bpy.ops.imp.object('INVOKE_DEFAULT')
-        elif key=='fitbone':
-            from . import FitBone
-            FitBone.FitBone(False)
         elif key in not_erace:
             pass
         else:

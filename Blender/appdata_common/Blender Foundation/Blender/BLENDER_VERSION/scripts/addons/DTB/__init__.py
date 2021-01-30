@@ -27,7 +27,6 @@ from . import Global
 from . import Versions
 from . import DtbDazMorph
 from . import DtbMaterial
-from . import FitBone
 from . import CustomBones
 from . import Util
 from . import WCmd
@@ -288,7 +287,6 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(20, wm)
             drb.set_bone_head_tail() # Sets head and tail positions for all the bones
             Global.deselect()
-            FitBone.FitBone(True)
             self.pbar(25, wm)
             drb.bone_limit_modify()
             Global.deselect()
