@@ -1,5 +1,30 @@
 from . import Global
 
+bone_limits = []
+
+def load_bone_limits():
+    input_file = open(Global.getHomeTown() + "/FIG_boneLimits.csv", "r")
+    lines = input_file.readlines()
+    input_file.close()
+
+    for line in lines:
+        line_split = line.split(',')
+        bone_limit = []
+        bone_limit.append(line_split[0])
+        bone_limit.append(line_split[1])
+        bone_limit.append(float(line_split[2]))
+        bone_limit.append(float(line_split[3]))
+        bone_limit.append(float(line_split[4]))
+        bone_limit.append(float(line_split[5]))
+        bone_limit.append(float(line_split[6]))
+        bone_limit.append(float(line_split[7]))
+        bone_limits.append(bone_limit)
+
+def get_bone_limits():
+    if (len(bone_limits) == 0):
+        load_bone_limits()
+    return bone_limits
+
 class DB:
     def __init__(self):
         pass
@@ -240,189 +265,6 @@ class DB:
         ['lowerFaceRig',0]
     ]
 
-    g3_blimit=[
-        ['lShldrBend', 'XYZ', 0, 0, -110, 40, -85, 35],
-        ['rShldrBend', 'XYZ', 0, 0, -110, 40, -35, 85],
-        ['lThighBend', 'YZX', -115, 35, 0, 0, -20, 85],
-        ['rThighBend', 'YZX', -115, 35, 0, 0, -85, 20],
-    ]
-    g8_blimit = [
-        ['lShldrBend', 'XYZ', 0, 0, -110, 40, -40, 90],
-        ['rShldrBend', 'XYZ', 0, 0, -40, 110, -90, 40],
-        ['lThighBend', 'YZX', -115, 35, 0, 0, -26, 85],
-        ['rThighBend', 'YZX', -115, 35, 0, 0, -85, 26],
-
-        #['hip', 'YZX', -180, 180, -180, 180, -180, 180],
-        ['pelvis', 'YZX', -25, 25, -15, 15, -10, 10],
-        ['lThighTwist', 'YZX', 0, 0, -75, 75, 0, 0],
-        ['lShin', 'YZX', -11, 155, -25, 10, -5, 5],
-        ['lFoot', 'ZYX', -45, 65, -25, 10, -35, 15],
-        ['lMetatarsals', 'ZYX', -20, 25, 0, 0, -20, 20],
-        ['lToe', 'ZYX', -60, 40, 0, 0, -20, 20],
-        ['lSmallToe4', 'ZYX', -65, 45, -10, 20, -5, 5],
-        ['lSmallToe4_2', 'ZYX', -30, 40, 0, 0, 0, 0],
-        ['lSmallToe3', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['lSmallToe3_2', 'ZYX', -30, 50, 0, 0, 0, 0],
-        ['lSmallToe2', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['lSmallToe2_2', 'ZYX', -30, 50, 0, 0, 0, 0],
-        ['lSmallToe1', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['lSmallToe1_2', 'ZYX', -30, 40, 0, 0, 0, 0],
-        ['lBigToe', 'ZYX', -65, 45, -15, 10, -5, 5],
-        ['lBigToe_2', 'ZYX', -30, 60, 0, 0, 0, 0],
-
-        ['rThighTwist', 'YZX', 0, 0, -75, 75, 0, 0],
-        ['rShin', 'YZX', -11, 155, -10, 25, -5, 5],
-        ['rFoot', 'ZYX', -45, 65, -10, 25, -15, 35],
-        ['rMetatarsals', 'ZYX', -20, 25, 0, 0, -20, 20],
-        ['rToe', 'ZYX', -60, 40, 0, 0, -20, 20],
-        ['rSmallToe4', 'ZYX', -65, 45, -20, 10, -5, 5],
-        ['rSmallToe4_2', 'ZYX', -30, 40, 0, 0, 0, 0],
-        ['rSmallToe3', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['rSmallToe3_2', 'ZYX', -30, 50, 0, 0, 0, 0],
-        ['rSmallToe2', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['rSmallToe2_2', 'ZYX', -30, 50, 0, 0, 0, 0],
-        ['rSmallToe1', 'ZYX', -65, 45, -10, 10, -5, 5],
-        ['rSmallToe1_2', 'ZYX', -30, 40, 0, 0, 0, 0],
-        ['rBigToe', 'ZYX', -65, 45, -10, 15, -5, 5],
-        ['rBigToe_2', 'ZYX', -30, 60, 0, 0, 0, 0],
-        ['abdomenLower', 'YZX', -20, 35, -15, 15, -15, 15],
-        ['abdomenUpper', 'YZX', -25, 40, -20, 20, -24, 24],
-        ['chestLower', 'YZX', -25, 35, -12, 12, -20, 20],
-        ['chestUpper', 'YZX', -15, 15, -10, 10, -10, 10],
-        ['lCollar', 'XYZ', -30, 30, -26, 17, -10, 55],
-
-        ['lShldrTwist', 'XYZ', -95, 80, 0, 0, 0, 0],
-        ['lForearmBend', 'XZY', 0, 0, -135, 20, 0, 0],
-        ['lForearmTwist', 'XZY', -90, 80, 0, 0, 0, 0],
-        ['lHand', 'XYZ', -10, 10, -28, 30, -70, 80],
-        ['lThumb1', 'XZY', -15, 36, -26, 40, -20, 20],
-        ['lThumb2', 'XZY', 0, 0, -15, 65, 0, 0],
-        ['lThumb3', 'XZY', 0, 0, -20, 90, 0, 0],
-        ['lCarpal1', 'XYZ', 0, 0, -3, 4, -4, 4],
-        ['lIndex1', 'XYZ', -5, 5, -18, 12, -90, 50],
-        ['lIndex2', 'XYZ', 0, 0, 0, 0, -105, 12],
-        ['lIndex3', 'XYZ', 0, 0, 0, 0, -90, 20],
-        ['lCarpal2', 'XYZ', 0, 0, -2, 2, -4, 4],
-        ['lMid1', 'XYZ', -5, 5, -12, 12, -95, 50],
-        ['lMid2', 'XYZ', 0, 0, 0, 0, -105, 12],
-        ['lMid3', 'XYZ', 0, 0, 0, 0, -90, 20],
-        ['lCarpal3', 'XYZ', 0, 0, -3, 3, -4, 4],
-        ['lRing1', 'XYZ', -5, 5, -12, 12, -90, 50],
-        ['lRing2', 'XYZ', 0, 0, 0, 0, -105, 12],
-        ['lRing3', 'XYZ', 0, 0, 0, 0, -90, 20],
-        ['lCarpal4', 'XYZ', 0, 0, -4, 3, -4, 4],
-        ['lPinky1', 'XYZ', -5, 5, -12, 18, -90, 50],
-        ['lPinky2', 'XYZ', 0, 0, 0, 0, -105, 12],
-        ['lPinky3', 'XYZ', 0, 0, 0, 0, -90, 20],
-        ['rCollar', 'XYZ', -30, 30, -17, 26, -55, 10],
-
-        ['rShldrTwist', 'XYZ', -95, 80, 0, 0, 0, 0],
-        ['rForearmBend', 'XZY', 0, 0, -20, 135, 0, 0],
-        ['rForearmTwist', 'XZY', -90, 80, 0, 0, 0, 0],
-        ['rHand', 'XYZ', -10, 10, -30, 28, -80, 70],
-        ['rThumb1', 'XZY', -15, 36, -40, 26, -20, 20],
-        ['rThumb2', 'XZY', 0, 0, -65, 15, 0, 0],
-        ['rThumb3', 'XZY', 0, 0, -90, 20, 0, 0],
-        ['rCarpal1', 'XYZ', 0, 0, -4, 3, -4, 4],
-        ['rIndex1', 'XYZ', -5, 5, -12, 18, -50, 90],
-        ['rIndex2', 'XYZ', 0, 0, 0, 0, -12, 105],
-        ['rIndex3', 'XYZ', 0, 0, 0, 0, -20, 90],
-        ['rCarpal2', 'XYZ', 0, 0, -2, 2, -4, 4],
-        ['rMid1', 'XYZ', -5, 5, -12, 12, -50, 95],
-        ['rMid2', 'XYZ', 0, 0, 0, 0, -12, 105],
-        ['rMid3', 'XYZ', 0, 0, 0, 0, -20, 90],
-        ['rCarpal3', 'XYZ', 0, 0, -3, 3, -4, 4],
-        ['rRing1', 'XYZ', -5, 5, -12, 12, -50, 90],
-        ['rRing2', 'XYZ', 0, 0, 0, 0, -12, 105],
-        ['rRing3', 'XYZ', 0, 0, 0, 0, -20, 90],
-        ['rCarpal4', 'XYZ', 0, 0, -3, 4, -4, 4],
-        ['rPinky1', 'XYZ', -5, 5, -18, 12, -50, 90],
-        ['rPinky2', 'XYZ', 0, 0, 0, 0, -12, 105],
-        ['rPinky3', 'XYZ', 0, 0, 0, 0, -20, 90],
-        ['neckLower', 'YZX', -25, 40, -22, 22, -40, 40],
-        ['neckUpper', 'YZX', -27, 12, -22, 22, -10, 10],
-        ['head', 'YZX', -30, 25, -22, 22, -20, 20],
-        ['upperTeeth', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lowerJaw', 'ZYX', -10, 25, -12, 12, 0, 0],
-        ['lowerTeeth', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['tongue01', 'ZYX', -10, 10, -5, 5, -5, 5],
-        ['tongue02', 'ZYX', -30, 40, -25, 25, -25, 25],
-        ['tongue03', 'ZYX', -50, 40, -25, 25, -25, 25],
-        ['tongue04', 'ZYX', -60, 50, -25, 25, -25, 25],
-        ['lowerFaceRig', 'ZYX', 0, 0, 0, 0, 0, 0],
-        ['lNasolabialLower', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rNasolabialLower', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lNasolabialMouthCorner', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rNasolabialMouthCorner', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lLipCorner', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lLipLowerOuter', 'ZYX', -30, 15, -15, 15, -15, 15],
-        ['lLipLowerInner', 'ZYX', -50, 30, -30, 30, -30, 30],
-        ['LipLowerMiddle', 'ZYX', -50, 30, -30, 30, -30, 30],
-        ['rLipLowerInner', 'ZYX', -50, 30, -30, 30, -30, 30],
-        ['rLipLowerOuter', 'ZYX', -30, 15, -15, 15, -15, 15],
-        ['rLipCorner', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['LipBelow', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['Chin', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lCheekLower', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rCheekLower', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['BelowJaw', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lJawClench', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rJawClench', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['upperFaceRig', 'YZX', 0, 0, 0, 0, 0, 0],
-        ['rBrowInner', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['rBrowMid', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['rBrowOuter', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['lBrowInner', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['lBrowMid', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['lBrowOuter', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['CenterBrow', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['MidNoseBridge', 'ZYX', -15, 15, -15, 15, -15, 15],
-        ['lEyelidInner', 'zzz', -5, 5, -5, 5, -5, 5],
-        ['lEyelidUpperInner', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['lEyelidUpper', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['lEyelidUpperOuter', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['lEyelidOuter', 'zzz', -5, 5, -5, 5, -5, 5],
-        ['lEyelidLowerOuter', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['lEyelidLower', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['lEyelidLowerInner', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['rEyelidInner', 'zzz', -5, 5, -5, 5, -5, 5],
-        ['rEyelidUpperInner', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['rEyelidUpper', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['rEyelidUpperOuter', 'zzz', -5, 50, -5, 5, -15, 15],
-        ['rEyelidOuter', 'zzz', -5, 5, -5, 5, -5, 5],
-        ['rEyelidLowerOuter', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['rEyelidLower', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['rEyelidLowerInner', 'zzz', -5, 20, -5, 5, -15, 15],
-        ['lSquintInner', 'ZYX', 0, 0, 0, 0, 0, 0],
-        ['lSquintOuter', 'ZYX', 0, 0, 0, 0, 0, 0],
-        ['rSquintInner', 'ZYX', 0, 0, 0, 0, 0, 0],
-        ['rSquintOuter', 'ZYX', 0, 0, 0, 0, 0, 0],
-        ['lCheekUpper', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rCheekUpper', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['Nose', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lNostril', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rNostril', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lLipBelowNose', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rLipBelowNose', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lLipNasolabialCrease', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rLipNasolabialCrease', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lNasolabialUpper', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rNasolabialUpper', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['lNasolabialMiddle', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['rNasolabialMiddle', 'ZYX', -30, 30, -30, 30, -30, 30],
-        ['LipUpperMiddle', 'ZYX', -30, 50, -30, 30, -30, 30],
-        ['lLipUpperOuter', 'ZYX', -15, 30, -30, 30, -30, 30],
-        ['lLipUpperInner', 'ZYX', -30, 50, -30, 30, -30, 30],
-        ['rLipUpperInner', 'ZYX', -30, 50, -30, 30, -30, 30],
-        ['rLipUpperOuter', 'ZYX', -15, 30, -30, 30, -30, 30],
-        ['lEye', 'zzz', -30, 30, -30, 40, -180, 180],
-        ['rEye', 'zzz', -30, 30, -40, 30, -180, 180],
-        ['lEar', 'XYZ', -10, 30, -30, 10, -10, 10],
-        ['rEar', 'XYZ', -10, 30, -10, 30, -10, 10],
-        ['lPectoral', 'ZYX', -10, 10, -10, 10, -15, 15],
-        ['rPectoral', 'ZYX', -10, 10, -10, 10, -15, 15],
-    ]
-
     tbl_mdrive_g3=[
             ['pJCMShldrDown_75_L', 'lShldrBend', 2, 'val*0.764'],
             ['pJCMShldrDown_75_R', 'rShldrBend', 2, 'val*-0.764'],
@@ -567,7 +409,7 @@ class DB:
 
     def mix_range(self,arg):
         ans = [0,0,0,0,0,0]
-        for l in  Global.get_bone_limit():
+        for l in  get_bone_limits():
             if l[0].startswith(arg):
                 for i in range(6):
                     v = l[i+2]
@@ -869,52 +711,52 @@ class DB:
     ]
 
     fvgroup_swap=[
-    ['ORG-teeth.T', 'upperJaw'],
-    ['ORG-teeth.B', 'lowerJaw'],
-    ['DEF-tongue.002','tongue01'],
-    ['DEF-tongue.001','tongue02'],
-    ['DEF-tongue','tongue03'],
-    ['DEF-cheek.T.L', 'lSquintOuter'],
-    ['DEF-cheek.T.L.001', 'lSquintInner'],
-    ['DEF-cheek.B.L.001', 'lCheekUpper'],
-    ['DEF-cheek.B.L', 'lNasolabialMouthCorner'],
-    #Chin 
-    ['DEF-chin','Chin'],
-    ['DEF-chin.001', 'LipBelow'],
-    ['DEF-jaw', 'BelowJaw'],
-    ['DEF-chin.L', 'lNasolabialLower'],
-    ['DEF-check.B.L','lNasolabialMouthCorner'],
-    ['DEF-cheek.B.L.001','lCheekLower'],
-    ['DEF-cheek.T.L', 'lCheekUpper'],
-    ['DEF-cheek.T.L.001', 'lSquintInner'],
-    ['DEF-jaw.L','lJawClench'],
-    ['DEF-brow.T.L.003','lBrowInner'],
-    ['DEF-brow.T.L.002','lBrowMid'],
-    ['DEF-brow.T.L.001','lBrowOuter'],
-    ['DEF-nose','MidNoseBridge'],
-    ['DEF-lid.T.L.003','lEyelidUpperInner'],
-    ['DEF-lid.T.L.002','lEyelidUpper'],
-    ['DEF-lid.T.L.001','lEyelidUpperOuter'],
-    ['DEF-lid.T.L','lEyelidOuter'],
-    ['DEF-nose.001','Nose'],
-    ['DEF-nose.L.001','lLipBelowNose'],
-    ['DEF-nose.L','lNostril'],
-    ['DEF-nose.004','LipUpperMiddle'],
-    ['ORG-eye.L','lEye'],
-    ['ear.L','lEar'],
+        ['ORG-teeth.T', 'upperJaw'],
+        ['ORG-teeth.B', 'lowerJaw'],
+        ['DEF-tongue.002','tongue01'],
+        ['DEF-tongue.001','tongue02'],
+        ['DEF-tongue','tongue03'],
+        ['DEF-cheek.T.L', 'lSquintOuter'],
+        ['DEF-cheek.T.L.001', 'lSquintInner'],
+        ['DEF-cheek.B.L.001', 'lCheekUpper'],
+        ['DEF-cheek.B.L', 'lNasolabialMouthCorner'],
+        #Chin 
+        ['DEF-chin','Chin'],
+        ['DEF-chin.001', 'LipBelow'],
+        ['DEF-jaw', 'BelowJaw'],
+        ['DEF-chin.L', 'lNasolabialLower'],
+        ['DEF-check.B.L','lNasolabialMouthCorner'],
+        ['DEF-cheek.B.L.001','lCheekLower'],
+        ['DEF-cheek.T.L', 'lCheekUpper'],
+        ['DEF-cheek.T.L.001', 'lSquintInner'],
+        ['DEF-jaw.L','lJawClench'],
+        ['DEF-brow.T.L.003','lBrowInner'],
+        ['DEF-brow.T.L.002','lBrowMid'],
+        ['DEF-brow.T.L.001','lBrowOuter'],
+        ['DEF-nose','MidNoseBridge'],
+        ['DEF-lid.T.L.003','lEyelidUpperInner'],
+        ['DEF-lid.T.L.002','lEyelidUpper'],
+        ['DEF-lid.T.L.001','lEyelidUpperOuter'],
+        ['DEF-lid.T.L','lEyelidOuter'],
+        ['DEF-nose.001','Nose'],
+        ['DEF-nose.L.001','lLipBelowNose'],
+        ['DEF-nose.L','lNostril'],
+        ['DEF-nose.004','LipUpperMiddle'],
+        ['ORG-eye.L','lEye'],
+        ['ear.L','lEar'],
 
-    #Lips
-    ['DEF-lip.B.L.001','lLipLowerOuter'],
-    ['DEF-lip.B.L','lLipLowerInner'],
-    ['DEF-lip.T.L.001', 'lLipUpperOuter'],
-    ['DEF-lip.T.L', 'lLipUpperInner'],
+        #Lips
+        ['DEF-lip.B.L.001','lLipLowerOuter'],
+        ['DEF-lip.B.L','lLipLowerInner'],
+        ['DEF-lip.T.L.001', 'lLipUpperOuter'],
+        ['DEF-lip.T.L', 'lLipUpperInner'],
 
-    ['DEF-forehead.L', 'lCenterBrow'],
-    ['DEF-forehead.R', 'rCenterBrow'],
-    ['DEF-lid.B.L.003','lEyelidLowerOuter'],
-    ['DEF-lid.B.L.002','lEyelidLower'],
-    ['DEF-lid.B.L.001','lEyelidLowerInner'],
-    ['DEF-lid.B.L', 'lEyelidInner'],
+        ['DEF-forehead.L', 'lCenterBrow'],
+        ['DEF-forehead.R', 'rCenterBrow'],
+        ['DEF-lid.B.L.003','lEyelidLowerOuter'],
+        ['DEF-lid.B.L.002','lEyelidLower'],
+        ['DEF-lid.B.L.001','lEyelidLowerInner'],
+        ['DEF-lid.B.L', 'lEyelidInner'],
     ]
     root_verts = [
         (0.7071067690849304, 0.7071067690849304, 0.0),

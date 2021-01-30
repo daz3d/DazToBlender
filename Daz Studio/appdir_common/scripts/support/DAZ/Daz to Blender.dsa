@@ -1752,6 +1752,52 @@
 		
 		oBaseNode.setVisible( bYesNo );
 	};
+
+	/*********************************************************************/
+	// Void : Write bone's limits along with rotation orders
+	function writeFigureBoneData( oBaseNode, sFilename )
+	{
+		if( !oBaseNode.inherits("DzFigure") ) return;
+		
+		var oSkeleton = oBaseNode.getSkeleton();
+		var aNodes = oSkeleton.getAllBones();
+		
+		var nNodes = aNodes.length;
+		if( nNodes == 0 ) return;
+		
+		var oNode;
+		var sRotOrder;
+		var nXRotMin;
+		var nXRotMax;
+		var nYRotMin;
+		var nYRotMax;
+		var nZRotMin;
+		var nZRotMax;
+		
+		var aLimitsData = new Array( nNodes );
+		
+		for( var i = 0; i < nNodes; i += 1 )
+		{
+			oNode = aNodes[i];
+			
+			sRotOrder = oNode.getRotationOrder().toString();
+			nXRotMin = oNode.getXRotControl().getMin();
+			nXRotMax = oNode.getXRotControl().getMax();
+			nYRotMin = oNode.getYRotControl().getMin();
+			nYRotMax = oNode.getYRotControl().getMax();
+			nZRotMin = oNode.getZRotControl().getMin();
+			nZRotMax = oNode.getZRotControl().getMax();
+			aLimitsData[i] = [
+				oNode.getName(),
+				sRotOrder,
+				nXRotMin, nXRotMax,
+				nYRotMin, nYRotMax,
+				nZRotMin, nZRotMax
+				].join(",");
+		}
+		
+		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
+	};
 	
 	/*********************************************************************/
 	// void : ...
@@ -1813,11 +1859,13 @@
 				
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
+				writeFigureBoneData( oFigure, sFileBasename );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
 				setSubDivLevelAll( oFigure, nLevel );
 				buildMorphList( oFigure );
-				if( !promptMorphRules( oFigure ) ){
+	
+				if( !promptMorphRules( oFigure) ){
 					continue;
 				}
 				

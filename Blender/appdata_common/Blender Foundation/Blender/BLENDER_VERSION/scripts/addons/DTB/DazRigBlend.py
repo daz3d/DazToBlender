@@ -217,7 +217,7 @@ class DazRigBlend:
     def bone_limit_modify(self):
         if len(Global.get_bone_limit()) == 0:
             Global.bone_limit_modify()
-        for row in Global.get_bone_limit():
+        for row in DataBase.get_bone_limits():
             dobj = Global.getAmtr()
             pbs = dobj.pose.bones
             for pb in pbs:

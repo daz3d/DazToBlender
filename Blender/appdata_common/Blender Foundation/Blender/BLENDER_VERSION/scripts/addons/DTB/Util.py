@@ -344,8 +344,7 @@ class Posing:
         return newv3ary
 
     def make_pose(self, v3ary):
-        db = DataBase.DB()
-        cur = db.g8_blimit
+        cur = DataBase.get_bone_limits()
         pbs = Global.getAmtr().pose.bones
         cur.append(['hip', 'ZYX'])#YXZ#'ZXY'#YXZ
         cur.append(['root', 'ZZZ'])
@@ -436,6 +435,7 @@ class Posing:
                         pbs[v3[0]].rotation_euler[v3[1]] = math.radians(v3[2])
         cur.pop(len(cur) - 1)
         cur.pop(len(cur) - 1)
+
     def setpose(self):
         v3ary = []
         Versions.active_object(Global.getAmtr())
