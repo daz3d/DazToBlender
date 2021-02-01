@@ -72,6 +72,7 @@ ik_access_ban = False
 ds = DtbMaterial.DtbShaders()
 region = 'UI'
 BV = Versions.getBV()
+total_key_count = 0 # To keep track of the max number of the keys in actions, so to set fps
 
 def get_influece_data_path(bname):
     amtr = Global.getAmtr()
@@ -105,10 +106,29 @@ def set_translation(matrix, loc):
     else:
         return mathutils.Matrix.Translation(loc) @ (rot @ scale)
 
+def reset_total_key_count():
+    global total_key_count
+    total_key_count = 0
+
+def update_total_key_count(key_count):
+    global total_key_count
+    if key_count > total_key_count:
+        total_key_count = key_count
+
+def get_total_key_count():
+    global total_key_count
+    return total_key_count
+
 def set_scene_settings():
     scene = bpy.context.scene
     scene.unit_settings.length_unit = 'CENTIMETERS'
 
+    # Set start and end playable range for the animations.
+    scene.frame_start = 0
+    scene.frame_end = get_total_key_count() - 1
+    scene.frame_current = 0
+
+    # Set armature display settings
     Global.setOpsMode('POSE')
     armature = Global.getAmtr().data
     armature.display_type = 'OCTAHEDRAL'
@@ -265,6 +285,7 @@ def clean_animations():
                     fcurve_y = action.fcurves[index + 1]
                     fcurve_z = action.fcurves[index + 2]
                     point_count = len(fcurve_x.keyframe_points)
+                    update_total_key_count(point_count)
 
                     for i in range(point_count):
                         # Y invert (-Y)
@@ -289,6 +310,7 @@ def clean_animations():
                     fcurve_y = action.fcurves[index + 1]
                     fcurve_z = action.fcurves[index + 2]
                     point_count = len(fcurve_x.keyframe_points)
+                    update_total_key_count(point_count)
 
                     if rotation_order == 'XYZ':
                         for i in range(point_count):
@@ -518,6 +540,7 @@ class IMP_OT_FBX(bpy.types.Operator):
         wm.progress_begin(0, 100)
         Global.clear_variables()
         ik_access_ban = True
+        reset_total_key_count()
         drb = DazRigBlend.DazRigBlend()
         self.pbar(5,wm)
         drb.convert_file(filepath=fbx_adr)
