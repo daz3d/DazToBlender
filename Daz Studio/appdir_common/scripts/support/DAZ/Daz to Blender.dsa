@@ -1894,6 +1894,9 @@
 		var nZRotMin;
 		var nZRotMax;
 		
+		// To account for the scale on the skeleton due to morphs
+		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
+		
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
 		var aAlignAxisData = new Array( nNodes );
@@ -1923,12 +1926,12 @@
 			vecTail = vecHead.add( vecPrimaryAxis );
 			aHeadTailData[i] = [
 				oNode.getName(),
-				vecHead.x,
-				vecHead.y,
-				vecHead.z,
-				vecTail.x,
-				vecTail.y,
-				vecTail.z
+				vecHead.x * nSkeletonScale,
+				vecHead.y * nSkeletonScale,
+				vecHead.z * nSkeletonScale,
+				vecTail.x * nSkeletonScale,
+				vecTail.y * nSkeletonScale,
+				vecTail.z * nSkeletonScale
 				].join(",");
 			
 			vecSecondAxis = getNodeSecondAxis( oNode );
