@@ -295,20 +295,6 @@ class DazRigBlend:
                 bone.tail[0] = float(head_and_tail[3])
                 bone.tail[1] = -float(head_and_tail[5])
                 bone.tail[2] = float(head_and_tail[4])
-            else:
-                for key in bone_head_tail_dict.keys():
-                    if key in bone.name:
-                        head_and_tail = bone_head_tail_dict[key]
-
-                        bone.use_connect = False
-
-                        bone.head[0] = float(head_and_tail[0])
-                        bone.head[1] = -float(head_and_tail[2])
-                        bone.head[2] = float(head_and_tail[1])
-
-                        bone.tail[0] = float(head_and_tail[3])
-                        bone.tail[1] = -float(head_and_tail[5])
-                        bone.tail[2] = float(head_and_tail[4])
 
         # Clear roll values for all the bones
         Global.deselect()
@@ -331,10 +317,6 @@ class DazRigBlend:
         for bone in ob.data.edit_bones:
             if bone.name in bone_align_axis_dict.keys():
                 bone.align_roll(bone_align_axis_dict[bone.name])
-            else:
-                for key in bone_align_axis_dict.keys():
-                    if key in bone.name:
-                        bone.align_roll(bone_align_axis_dict[key])
 
     def makeBRotationCut(self,db):
         for pb in Global.getAmtr().pose.bones:

@@ -1852,6 +1852,35 @@
 		
 		var oSkeleton = oBaseNode.getSkeleton();
 		var aNodes = oSkeleton.getAllBones();
+		var numFollowers = oSkeleton.getNumFollowSkeletons();
+		var oFollowSkeleton;
+		var aFollowNodes;
+		var oFollowNode;
+		var bIsNewNode;
+		
+		// Collect followers' bones that does not exist in the main skeleton
+		for( var i = 0; i < numFollowers; i += 1 )
+		{
+			oFollowSkeleton = oSkeleton.getFollowSkeleton( i );
+			aFollowNodes = oFollowSkeleton.getAllBones();
+			for( var j = 0; j < aFollowNodes.length; j += 1 )
+			{
+				oFollowNode = aFollowNodes[j];
+				bIsNewNode = false;
+				for( var k = 0; k < aNodes.length; k += 1 )
+				{
+					if( oFollowNode.name == aNodes[k].name )
+					{
+						bIsNewNode = true;
+						break;
+					}
+				}
+				if( bIsNewNode == false )
+				{
+					aNodes = aNodes.concat( aFollowNodes[j] );
+				}
+			}
+		}
 		
 		var nNodes = aNodes.length;
 		if( nNodes == 0 ) return;
