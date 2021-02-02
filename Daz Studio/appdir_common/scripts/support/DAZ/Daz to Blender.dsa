@@ -1924,6 +1924,7 @@
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 			vecHead = oNode.getOrigin( false );
 			vecTail = vecHead.add( vecPrimaryAxis );
+			vecSecondAxis = getNodeSecondAxis( oNode );
 			aHeadTailData[i] = [
 				oNode.getName(),
 				vecHead.x * nSkeletonScale,
@@ -1931,12 +1932,7 @@
 				vecHead.z * nSkeletonScale,
 				vecTail.x * nSkeletonScale,
 				vecTail.y * nSkeletonScale,
-				vecTail.z * nSkeletonScale
-				].join(",");
-			
-			vecSecondAxis = getNodeSecondAxis( oNode );
-			aAlignAxisData[i] = [
-				oNode.getName(),
+				vecTail.z * nSkeletonScale,
 				vecSecondAxis.x,
 				vecSecondAxis.y,
 				vecSecondAxis.z
@@ -1945,7 +1941,6 @@
 		
 		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
 		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
-		writeDataFile( aAlignAxisData, sFilename + "_boneAlignAxis.csv" );
 	};
 	
 	/*********************************************************************/

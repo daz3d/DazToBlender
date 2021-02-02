@@ -265,7 +265,7 @@ class DazRigBlend:
         return roll
 
     def set_bone_head_tail(self):
-        # Read bone's head and tail values
+        # Read bone's head, tail and a vector to calculate roll
         input_file = open(Global.getHomeTown() + "/FIG_boneHeadTail.csv", "r")
         lines = input_file.readlines()
         input_file.close()
@@ -281,42 +281,30 @@ class DazRigBlend:
         ob = bpy.context.object
         Global.setOpsMode('EDIT')
 
-        # Set head and tail values for all the bones
+        # Set head, tail and roll values for all the bones
         for bone in ob.data.edit_bones:
             if bone.name in bone_head_tail_dict.keys():
                 head_and_tail = bone_head_tail_dict[bone.name]
 
                 bone.use_connect = False
 
+                # set head
                 bone.head[0] = float(head_and_tail[0])
                 bone.head[1] = -float(head_and_tail[2])
                 bone.head[2] = float(head_and_tail[1])
 
+                # set tail
                 bone.tail[0] = float(head_and_tail[3])
                 bone.tail[1] = -float(head_and_tail[5])
                 bone.tail[2] = float(head_and_tail[4])
 
-        # Clear roll values for all the bones
-        Global.deselect()
-        Global.setOpsMode('EDIT')
-        for bone in ob.data.edit_bones:
-            bone.select = True
-        bpy.ops.armature.roll_clear()
-
-        # Read bone align axes to calculate the roll
-        input_file = open(Global.getHomeTown() + "/FIG_boneAlignAxis.csv", "r")
-        lines = input_file.readlines()
-        input_file.close()
-        bone_align_axis_dict = dict()
-        for line in lines:
-            line_split = line.split(",")
-            align_axis_vec = mathutils.Vector(( float(line_split[1]), -float(line_split[3]), float(line_split[2])))
-            bone_align_axis_dict[line_split[0]] = align_axis_vec
-
-        # Set roll values based on the align axes
-        for bone in ob.data.edit_bones:
-            if bone.name in bone_align_axis_dict.keys():
-                bone.align_roll(bone_align_axis_dict[bone.name])
+                # calculate roll aligning bone towards a vector
+                align_axis_vec = mathutils.Vector((
+                                    float(head_and_tail[6]),
+                                    -float(head_and_tail[8]),
+                                    float(head_and_tail[7])
+                                    ))
+                bone.align_roll(align_axis_vec)
 
     def makeBRotationCut(self,db):
         for pb in Global.getAmtr().pose.bones:
