@@ -159,7 +159,10 @@ def get_or_create_fcurve(action, data_path, array_index=-1, group=None):
 def add_keyframe_euler(action, euler, frame, bone_prefix, group):
     for i in range(len(euler)):
         fc = get_or_create_fcurve(
-            action, bone_prefix+"rotation_euler", i, group)
+                action, bone_prefix + "rotation_euler",
+                i,
+                group
+                )
         pos = len(fc.keyframe_points)
         fc.keyframe_points.add(1)
         fc.keyframe_points[pos].co = [frame, euler[i]]
@@ -183,16 +186,17 @@ def fcurves_group(action, data_path):
 
 
 def convert_quaternion_to_euler(action, obj):
+    # Get all the bones with quaternion animation data
     bone_prefixes = set()
-    for fc in action.fcurves:
-        if fc.data_path == "rotation_quaternion" or fc.data_path[-20:] == ".rotation_quaternion":
-            bone_prefixes.add(fc.data_path[:-19])
+    for fcurve in action.fcurves:
+        if fcurve.data_path == "rotation_quaternion" or fcurve.data_path[-20:] == ".rotation_quaternion":
+            bone_prefixes.add(fcurve.data_path[:-19])
 
     for bone_prefix in bone_prefixes:
         if (bone_prefix == ""):
             bone = obj
         else:
-            # I wish I knew a better way to do this
+            # get the bone using the data path prefix
             bone = eval("obj." + bone_prefix[:-1])
 
         data_path = bone_prefix + "rotation_quaternion"
@@ -200,20 +204,27 @@ def convert_quaternion_to_euler(action, obj):
         group = fcurves_group(action, data_path)
 
         for fr in frames:
+            # Get quaternion keyframe value
             quat = bone.rotation_quaternion.copy()
-            for fc in action.fcurves:
-                if fc.data_path == data_path:
-                    quat[fc.array_index] = fc.evaluate(fr)
+            for fcurve in action.fcurves:
+                if fcurve.data_path == data_path:
+                    quat[fcurve.array_index] = fcurve.evaluate(fr)
 
-            start_index = bone_prefix.find("[")
-            end_index = bone_prefix.find("]")
-            bone_name = bone_prefix[start_index + 2: end_index - 1]
-            order = get_rotation_order(bone_name)
-
+            # Calculate euler equivalent for the quaternion
+            order = get_rotation_order(bone.name)
             euler = quat.to_euler(order)
 
+            # Add euler keyframe and set correct rotation order
             add_keyframe_euler(action, euler, fr, bone_prefix, group)
             bone.rotation_mode = order
+    
+    # delete all the curves with quaternion data
+    quat_fcurves = []
+    for fcurve in action.fcurves:
+        if fcurve.data_path[-20:] == ".rotation_quaternion":
+            quat_fcurves.append(fcurve)
+    for fcurve in quat_fcurves:
+        action.fcurves.remove(fcurve)    
 
 # endregion - Quaternion to Euler
 
