@@ -305,13 +305,14 @@ def clean_animations():
                         # Z invert (-Z)
                         fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
 
-                    # Scale down trasnform animations to match armature's scale
+                    # Get skeleton scale and set to location animation data
+                    skeleton_data = DataBase.get_skeleton_data()
+                    skeleton_scale = skeleton_data["skeletonScale"]
+                    skeleton_scale *= 0.01 # To match armature scale
                     for i in range(point_count):
-                        fcurve_x.keyframe_points[i].co[1] = 0.0093 * fcurve_x.keyframe_points[i].co[1]
-
-                        fcurve_y.keyframe_points[i].co[1] = 0.0093 * fcurve_y.keyframe_points[i].co[1]
-
-                        fcurve_z.keyframe_points[i].co[1] = 0.0093 * fcurve_z.keyframe_points[i].co[1]
+                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
 
                     index += 2
 

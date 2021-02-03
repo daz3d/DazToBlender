@@ -1882,12 +1882,13 @@
 		var nZRotMin;
 		var nZRotMax;
 		
-		// To account for the scale on the skeleton due to morphs
-		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
-		
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
-		var aAlignAxisData = new Array( nNodes );
+		var aSkeletonData = new Array( 1 );
+		
+		// To account for the scale on the skeleton due to morphs
+		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
+		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
@@ -1928,6 +1929,7 @@
 		
 		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
 		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
+		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
 	};
 	
 	/*********************************************************************/

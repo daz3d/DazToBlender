@@ -1,6 +1,7 @@
 from . import Global
 
 bone_limits = []
+skeleton_data = dict()
 
 def load_bone_limits():
     input_file = open(Global.getHomeTown() + "/FIG_boneLimits.csv", "r")
@@ -21,9 +22,23 @@ def load_bone_limits():
         bone_limits.append(bone_limit)
 
 def get_bone_limits():
-    if (len(bone_limits) == 0):
+    if len(bone_limits) == 0:
         load_bone_limits()
     return bone_limits
+
+def load_skeleton_data():
+    input_file = open(Global.getHomeTown() + "/FIG_skeletonData.csv", "r")
+    lines = input_file.readlines()
+    input_file.close()
+
+    for line in lines:
+        line_split = line.split(',')
+        skeleton_data[line_split[0], line_split[1]]
+
+def get_skeleton_data():
+    if len(skeleton_data) == 0:
+        load_skeleton_data()
+    return skeleton_data
 
 class DB:
     def __init__(self):
