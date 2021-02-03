@@ -1757,8 +1757,11 @@
 	// Number : Get the sign of the input number
 	function getSign( nInput )
 	{
-		if( nInput >= 0) return 1;
-		else return -1;
+		if( nInput >= 0 ){
+			return 1;
+		} else{
+			return -1;
+		}
 	}
 
 	/*********************************************************************/
@@ -1768,16 +1771,11 @@
 		var vecLookAtAxis = oNode.getEndPoint().subtract( oNode.getOrigin() );
 		
 		var nSign = 1;
-		if( oNode.getRotationOrder().firstAxis == 0 )
-		{
+		if( oNode.getRotationOrder().firstAxis == 0 ){
 			nSign = getSign( vecLookAtAxis.x );
-		}
-		else if( oNode.getRotationOrder().firstAxis == 1 )
-		{
+		} else if( oNode.getRotationOrder().firstAxis == 1 ){
 			nSign = getSign( vecLookAtAxis.y );
-		}
-		else if( oNode.getRotationOrder().firstAxis == 2 )
-		{
+		} else if( oNode.getRotationOrder().firstAxis == 2 ){
 			nSign = getSign( vecLookAtAxis.z );
 		}
 		
@@ -1791,16 +1789,11 @@
 		var vecSecondAxis = new DzVec3( 0, 0, 0 );
 		var nSign = getLookAtDirection( oNode );
 		
-		if( oNode.getRotationOrder().secondAxis == 0 )
-		{
+		if( oNode.getRotationOrder().secondAxis == 0 ){
 			vecSecondAxis.x = nSign;
-		}
-		else if( oNode.getRotationOrder().secondAxis == 1 )
-		{
+		} else if( oNode.getRotationOrder().secondAxis == 1 ){
 			vecSecondAxis.y = nSign;
-		}
-		else if( oNode.getRotationOrder().secondAxis == 2 )
-		{
+		} else if( oNode.getRotationOrder().secondAxis == 2 ){
 			vecSecondAxis.z = nSign;
 		}
 		
@@ -1817,16 +1810,11 @@
 		var vecFirstAxis = new DzVec3( 0, 0, 0 );
 		var nSign = getLookAtDirection( oNode );
 		
-		if( oNode.getRotationOrder().firstAxis == 0 )
-		{
+		if( oNode.getRotationOrder().firstAxis == 0 ){
 			vecFirstAxis.x = nBoneLength * nSign;
-		}
-		else if( oNode.getRotationOrder().firstAxis == 1 )
-		{
+		} else if( oNode.getRotationOrder().firstAxis == 1 ){
 			vecFirstAxis.y = nBoneLength * nSign;
-		}
-		else if( oNode.getRotationOrder().firstAxis == 2 )
-		{
+		} else if( oNode.getRotationOrder().firstAxis == 2 ){
 			vecFirstAxis.z = nBoneLength * nSign;
 		}
 		
@@ -1848,7 +1836,9 @@
 	// Void : Write bone's limits along with rotation orders
 	function writeFigureBoneData( oBaseNode, sFilename )
 	{
-		if( !oBaseNode.inherits("DzFigure") ) return;
+		if( !oBaseNode.inherits("DzFigure") ){
+			return;
+		}
 		
 		var oSkeleton = oBaseNode.getSkeleton();
 		var aNodes = oSkeleton.getAllBones();
@@ -1859,31 +1849,29 @@
 		var bIsNewNode;
 		
 		// Collect followers' bones that does not exist in the main skeleton
-		for( var i = 0; i < numFollowers; i += 1 )
-		{
+		for( var i = 0; i < numFollowers; i += 1 ){
 			oFollowSkeleton = oSkeleton.getFollowSkeleton( i );
 			aFollowNodes = oFollowSkeleton.getAllBones();
-			for( var j = 0; j < aFollowNodes.length; j += 1 )
-			{
+			for( var j = 0; j < aFollowNodes.length; j += 1 ){
 				oFollowNode = aFollowNodes[j];
 				bIsNewNode = false;
-				for( var k = 0; k < aNodes.length; k += 1 )
-				{
-					if( oFollowNode.name == aNodes[k].name )
-					{
+				for( var k = 0; k < aNodes.length; k += 1 ){
+					if( oFollowNode.name == aNodes[k].name ){
 						bIsNewNode = true;
 						break;
 					}
 				}
-				if( bIsNewNode == false )
-				{
+
+				if( bIsNewNode == false ){
 					aNodes = aNodes.concat( aFollowNodes[j] );
 				}
 			}
 		}
 		
 		var nNodes = aNodes.length;
-		if( nNodes == 0 ) return;
+		if( nNodes == 0 ){
+			return;
+		}
 		
 		var oNode;
 		var sRotOrder;
@@ -1901,8 +1889,7 @@
 		var aHeadTailData = new Array( nNodes );
 		var aAlignAxisData = new Array( nNodes );
 		
-		for( var i = 0; i < nNodes; i += 1 )
-		{
+		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			
 			sRotOrder = oNode.getRotationOrder().toString();
