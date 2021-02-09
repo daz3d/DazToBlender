@@ -702,9 +702,7 @@
 		s_sMorphRules += "Anything\n0";
 
 		return true;
-
 	};
-	
 	/*********************************************************************/
 	// void : ...
 	function writeBoneData( oBaseNode, sFilename )
@@ -1789,7 +1787,165 @@
 		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
 		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
 	};
-	
+	/*********************************************************************/	
+	// Configure DTU File
+	// Running into issue of Materials becoming one list. 
+	// void : ...
+	function writeConfiguration(oNode,sFilename)
+	{
+		var sDTUfilename = sFilename + ".dtu";
+		var oDTUfile = new DzFile(sDTUfilename);
+		oDTUfile.open(DzFile.WriteOnly);
+		oDTUfile.writeLine("{" );
+		oDTUfile.writeLine("				\"Asset Name\": \"" + oNode.getLabel() + "\",");
+		oDTUfile.writeLine("				\"Materials\": [ " );
+		aFigureMats = writeMaterials(oNode);
+		oDTUfile.write(JSON.stringify(aFigureMats,null,4))
+		var aChildren = oNode.getNodeChildren( true );
+		var iChildren = aChildren.length;
+		if (iChildren > 0)
+		{
+			
+			oDTUfile.writeLine(",")
+			for ( var i = 0; i < iChildren; i++)
+			{
+				var oChild = aChildren[i]; 
+				aChildMats = writeMaterials(oChild);
+				if (aChildMats != false)
+				{
+					oDTUfile.write(JSON.stringify(aChildMats,null,4));
+					
+					
+					oDTUfile.writeLine(",");
+						
+				}
+				
+			}
+		}
+		
+		// Place Holder to deal with format
+		oDTUfile.writeLine("1]}" );
+		oDTUfile.close();
+
+	}
+	/*********************************************************************/	
+	// Cycle through all the Materials on a Node and return an array
+	// Array : ...
+	function writeMaterials(oNode)
+	{
+		
+		var oObj = oNode.getObject();
+		if (oObj != null)
+		{
+			var oShape = oObj.getCurrentShape();
+			var nMat = oShape.getNumMaterials();
+			var Materials = [];
+			if (oShape)
+			{
+				for (var k=0; k < nMat; k++)
+				{
+					var AssetInfo = {};
+					var Properties = [];
+					var oMat = oShape.getMaterial(k);
+					if (oMat)
+					{	
+						
+						AssetInfo["Asset Name"] = oNode.getLabel();
+						AssetInfo["Material Name"] = oMat.getName();
+						AssetInfo["Material Type"] = oMat.getMaterialName();
+						
+						var presentation = oNode.getPresentation();
+					
+						if (presentation != undefined)
+						{	
+							
+							presentationType = "test"
+							AssetInfo["Value"]  = presentationType;
+						}
+						else {
+							AssetInfo["Value"]  = "Unknown";
+						}
+						
+						for (var propertyIndex = 0; propertyIndex <  oMat.getNumProperties(); propertyIndex++)
+						{	
+							var oProperty =oMat.getProperty(propertyIndex);
+							
+							var ImageProperty = oProperty.inherits("DzImageProperty");
+							if (ImageProperty)
+							{
+								var sName = oProperty.getName();
+								
+								var TextureName ="";
+								if (oProperty.getValue()){
+									TextureName = oProperty.getValue().getFilename();
+									
+								}
+							
+								Properties.push(
+									{
+									"Name" : sName,
+									"Value" : oMat.getDiffuseColor().name(),
+									"Data Type" : "Texture",
+									"Texture" : TextureName
+									}
+								);
+
+							}
+							
+							var ColorProperty = oProperty.inherits("DzColorProperty");
+							if (ColorProperty)
+							{
+						
+								var sName = oProperty.getName();
+								
+								var TextureName ="";
+								if (oProperty.getMapValue()){
+									TextureName = oProperty.getMapValue().getFilename();
+								}
+								Properties.push(
+									{
+									"Name" : sName,
+									"Value" : oProperty.getColorValue(),
+									"Data Type" : "Color",
+									"Texture" : TextureName
+									}
+								)
+							}
+							var NumericProperty = oProperty.inherits("DzNumericProperty");
+							if (NumericProperty)
+							{
+								var sName = oProperty.getName();
+								
+								var TextureName ="";
+								if (oProperty.getMapValue()){
+									TextureName = oProperty.getMapValue().getFilename();
+								}
+								Properties.push(
+									{
+									"Name" : sName,
+									"Value" : oProperty.getValue(),
+									"Data Type" : "Double",
+									"Texture" : TextureName
+									}
+								)
+							}
+						
+						}
+					AssetInfo["Properties"] = Properties 
+					Materials.push(AssetInfo)	
+						
+					}
+					
+				}				
+			
+			}
+			
+			return Materials
+		}
+		else{
+			return false
+		}
+	}
 	/*********************************************************************/
 	// void : ...
 	function main()
@@ -1853,6 +2009,7 @@
 				writeFigureBoneData( oFigure, sFileBasename );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
+				writeConfiguration(oFigure,sFileBasename);
 				setSubDivLevelAll( oFigure, nLevel );
 				buildMorphList( oFigure );
 	
