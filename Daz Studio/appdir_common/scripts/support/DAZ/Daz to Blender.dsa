@@ -50,6 +50,7 @@
 	/*********************************************************************/
 	// void : ...
 	// Note: destructive - modifies the scene contents
+	// TODO: Redo Morph export need to give users a choice
 	function buildMorphList( oNode )
 	{
 		if( oNode.inherits( "DzFigure" ) ){
@@ -71,7 +72,7 @@
 		var sTmp;
 		
 		for( var i = 0; i < aProperties.length; i += 1 ){
-			oProp = aProperties[ i ];
+			oProp = aProperties[i];
 			oOwner = oProp.getOwner();
 			sPath = oProp.getPath();
 			sHead = "";
@@ -98,7 +99,6 @@
 			}
 			
 			sName = oProp.getName()
-			// To do sort all the data for Morphs to create more cleaner UI
 			s_aMorphs[sLabel] = {
 								"sMorphHead": sHead, 
 								"sMorphName" : sName, 
@@ -503,14 +503,17 @@
 	
 	/*********************************************************************/
 	// Array<String> : ...
+	// TODO: Only export base Morphs 
 	function getMinimalMorphRules()
 	{
-		var sResult 
+		var sResult; 
 
 		for( sMorphLabel in s_aMorphs ){
-			if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Head' ) > 0)
+			var sMorphPath = s_aMorphs[sMorphLabel]['sMorphPath']
+			var sMorphName = s_aMorphs[sMorphLabel]['sMorphName']
+			if ( sMorphPath.indexOf( '/Head' ) > 0 )
 			{
-				sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
+				sResult += sMorphName + "\n1\n";
 			}
 		}
 		
@@ -519,38 +522,41 @@
 	
 	/*********************************************************************/
 	// Array<String> : ...
-	function getMorphPresets(sPreset)
+	// TODO: Add better customization for Presets
+	function getMorphPresets( sPreset )
 	{
 		var sResult 
 
 		for( sMorphLabel in s_aMorphs ){
+			var sMorphPath = s_aMorphs[sMorphLabel]['sMorphPath']
+			var sMorphName = s_aMorphs[sMorphLabel]['sMorphName']
 			if ( sPreset == "All Body Morphs" ){
-				if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Arms' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Hip' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Torso' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Neck' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Legs' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Hands' ) > 0
-					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Feet' ) > 0 ){
-				sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
+				if ( sMorphPath.indexOf( '/Arms' ) > 0
+					||sMorphPath.indexOf( '/Hip' ) > 0
+					||sMorphPath.indexOf( '/Torso' ) > 0
+					||sMorphPath.indexOf( '/Neck' ) > 0
+					||sMorphPath.indexOf( '/Legs' ) > 0
+					||sMorphPath.indexOf( '/Hands' ) > 0
+					||sMorphPath.indexOf( '/Feet' ) > 0 ){
+				sResult += sMorphName + "\n1\n";
 				}		
 			}
 			else{
-				if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Head' ) > 0 ){
+				if ( sMorphPath.indexOf( '/Head' ) > 0 ){
 					if ( sPreset == "Face Controls" ){
-						if(!( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Expressions' ) > 0 
-							||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Visemes' ) > 0 ) ){
-							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
+						if(!( sMorphPath.indexOf( 'Expressions' ) > 0 
+							||sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
+							sResult += sMorphName + "\n1\n";
 						}
 					}
 					if ( sPreset == "Expressions" ){
-						if( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Expressions' ) > 0 ){
-							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
+						if( sMorphPath.indexOf( 'Expressions' ) > 0 ){
+							sResult += sMorphName + "\n1\n";
 						}
 					}
 					if ( sPreset == "Visemes" ){
-						if	( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Visemes' ) > 0 ){
-							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
+						if	( sMorphPath.indexOf( 'Visemes' ) > 0 ){
+							sResult += sMorphName + "\n1\n";
 						}
 					}		
 				}
@@ -576,7 +582,7 @@
 	/*********************************************************************/
 	// Boolean : ...
 	// TODO: Replace a listbox for a more functional option
-	function promptMorphRules( oNode)
+	function promptMorphRules( oNode )
 	{	
 		
 		var wDlg = new DzBasicDialog();
@@ -617,36 +623,45 @@
 		wDlg.addWidget( wValidMorphNamesLbl );
 
 		
-		var sMorphList = []
+		var aMorphList = []
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
+		var sMorphHead;
+		var sMorphPath;
+
 		for(var s_aMorphLabel in s_aMorphs) {
-			if( s_aMorphs[ s_aMorphLabel ][ "sMorphHead" ] != "Hidden" ){
-				var sMorphHeaders = s_aMorphs[ s_aMorphLabel ][ 'sMorphPath' ].split("/") 
-				sMorphList.push( 
-								sMorphHeaders[ sMorphHeaders.length -2 ] + " "+ 
-								sMorphHeaders[ sMorphHeaders.length -1 ] + " "+
+			sMorphHead = s_aMorphs[s_aMorphLabel]["sMorphHead"];
+			sMorphPath = s_aMorphs[s_aMorphLabel]["sMorphPath"];
+			if( sMorphHead != "Hidden" ){
+				var sMorphHeaders = sMorphPath.split("/") 
+				aMorphList.push( 
+								sMorphHeaders[sMorphHeaders.length - 2] + " " + 
+								sMorphHeaders[sMorphHeaders.length - 1] + " " +
 								":" + s_s3Spaces + s_aMorphLabel
 								);
 			}
 		}
+
 		// Organize the Visible Morphs
-		sMorphList.sort()
-		for( var s_aMorphLabel in s_aMorphs ){
-			if( s_aMorphs[ s_aMorphLabel ][ "sMorphHead" ] == "Hidden" ){
-				sMorphList.push( 
-								s_aMorphs [ s_aMorphLabel ][ "sMorphHead" ] + 
-								":" + s_s3Spaces + s_aMorphLabel
+		aMorphList.sort()
+
+		for( var sMorphLabel in s_aMorphs ){
+			sMorphHead = s_aMorphs[sMorphLabel]["sMorphHead"];
+			if( sMorphHead == "Hidden" ){
+				aMorphList.push( 
+								sMorphHead + 
+								":" + s_s3Spaces + sMorphLabel
 								);
 			}
 		}
+
 		// Add a few temporary presets for ease of use.	
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Face Controls" );
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Expressions" );
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Visemes" );	
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Body Morphs" );
-		for( var i = 0; i < sMorphList.length; i += 1 ){
-		
-			wValidMorphNamesLBox.insertItem( sMorphList[i] );
+
+		for( var i = 0; i < aMorphList.length; i += 1 ){
+			wValidMorphNamesLBox.insertItem( aMorphList[i] );
 		}
 		wDlg.addWidget( wValidMorphNamesLBox );
 		
@@ -674,24 +689,28 @@
 	
 		return true;
 	};
+
 	/*********************************************************************/
 	// Take List of Morph Labels and Convert to Format for FBX Exporter
 	// void : ...
-	function createMorphRules(aMorphLabels)
+	// TODO: Allow Partial Names to Export Morphs
+	function createMorphRules( aMorphLabels )
 	{	
 		var sMorphName;
 		var sMorphLabel;
-
+		
 		// To do find a better way to stop if nothing is chosen
 		if ( aMorphLabels !==undefined ){
 			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
 				sMorphLabel = aMorphLabels[i];
-				if ( s_aMorphs[ sMorphLabel ] !== undefined ){
+				
+				if ( s_aMorphs[sMorphLabel] !== undefined ){
 
 					if (s_aMorphs[ sMorphLabel ][ "sMorphHead" ] == 'Pose' ){
 					sMorphName = s_aMorphs[ sMorphLabel ][ "sMorphName" ];
 					}
 					else{
+						//Hidden Morphs do not have labels
 						sMorphName = sMorphLabel;
 					}
 				}
@@ -705,6 +724,7 @@
 
 		return true;
 	};
+
 	/*********************************************************************/
 	// void : ...
 	function writeBoneData( oBaseNode, sFilename )
@@ -1792,18 +1812,17 @@
 	/*********************************************************************/	
 	// void : ...
 	// Note: Configure DTU File
-	// Current Issue(s): Running into problems formatting the DTU/JSON
-	// TO DO: Add same functionality for Environments
+	// TO DO: Add same functionality for Environments, Grab Subdivision info and Morphs Exporting
 	function writeConfiguration( oNode, sFilename )
 	{
 		var sDTUfilename = sFilename + ".dtu";
 		var oDTUfile = new DzFile( sDTUfilename );
-		var aDTUJSON = {}
+		var aDTUJSON = {};
 		var aChildren = oNode.getNodeChildren( true );
 		var nChildren = aChildren.length;
 		
-		aDTUJSON[ "Asset Name" ] = oNode.getLabel()
-		aDTUJSON[ "Materials" ] = []
+		aDTUJSON[ "Asset Name" ] = oNode.getLabel();
+		aDTUJSON[ "Materials" ] = [];
 		aFigureMats = writeMaterials( oNode );
 		aDTUJSON["Materials"].push( aFigureMats );
 
@@ -1815,52 +1834,66 @@
 					aDTUJSON[ "Materials" ].push( aChildMats );
 				}		
 			}
-		}
-
+		};
+		function combineMaterials( key, value ){
+			var aNewMaterials = [];
+			if( key == "Materials" ){
+				for (var i=0; i < value.length; i++ ){
+					var aNodeMats = value[i];
+					for (var k=0; k < aNodeMats.length; k++ ){
+						var aMat = aNodeMats[k];
+						aNewMaterials.push( aMat );
+					}
+				}
+				return aNewMaterials;
+			}
+			else{
+				return value;
+			}
+		};
 		oDTUfile.open( DzFile.WriteOnly );
-		oDTUfile.write( JSON.stringify( aDTUJSON,null,4 ) );
+		oDTUfile.write( JSON.stringify( aDTUJSON, combineMaterials, 4 ) );
 		oDTUfile.close();
+	};
 
-	}
 	/*********************************************************************/	
 	// Array : ...
 	// Note: Cycle through all the Materials on a Node and return an array
-	// Current Issue(s): Can't get the Asset Type, Not sure what value we need from the Color Info
+	// TODO: Some Properties are coming up a Color and Numeric eg. Diffuse Color
 	function writeMaterials( oNode )
 	{	
 		var oObj = oNode.getObject();
-		if ( oObj != null ){
+		if( oObj != null ){
 			var oShape = oObj.getCurrentShape();
 			var nMat = oShape.getNumMaterials();
 			var aMaterials = [];
-			if ( oShape ){
-				for ( var k=0; k < nMat; k++ ){
+			if( oShape ){
+				for( var k=0; k < nMat; k++ ){
 					var aAssetInfo = {};
 					var aProperties = [];
 					var oMat = oShape.getMaterial( k );
-					if (oMat){	
-						aAssetInfo[ "Asset Name" ] = oNode.getLabel();
-						aAssetInfo[ "Material Name" ] = oMat.getName();
-						aAssetInfo[ "Material Type" ] = oMat.getMaterialName();
+					if(oMat){	
+						aAssetInfo["Asset Name"] = oNode.getLabel();
+						aAssetInfo["Material Name"] = oMat.getName();
+						aAssetInfo["Material Type"] = oMat.getMaterialName();
 						var oPresentation = oNode.getPresentation();
-						if ( oPresentation != undefined ){
-							// Type should be oPresentation.getType() Coming up as undefined	
-							var sPresentationType = "Place Holder"
-							aAssetInfo[ "Value" ]  = sPresentationType;
+						if( oPresentation != undefined ){
+							var sPresentationType = oPresentation.type
+							aAssetInfo["Value"]  = sPresentationType;
 						}
-						else {
-							aAssetInfo[ "Value" ]  = "Unknown";
+						else{
+							aAssetInfo["Value"]  = "Unknown";
 						}
-						for ( var i = 0; i <  oMat.getNumProperties(); i++){	
+						for( var i = 0; i < oMat.getNumProperties(); i++){	
 							var oProperty =oMat.getProperty( i );
 							var bImageProperty = oProperty.inherits( "DzImageProperty" );
 							var bColorProperty = oProperty.inherits( "DzColorProperty" );
 							var bNumericProperty = oProperty.inherits( "DzNumericProperty" );
 
-							if ( bImageProperty ){
+							if( bImageProperty ){
 								var sName = oProperty.getName();
 								var sTextureName ="";
-								if (oProperty.getValue()){
+								if(oProperty.getValue()){
 									sTextureName = oProperty.getValue().getFilename();	
 								}
 								aProperties.push(
@@ -1873,7 +1906,7 @@
 								);
 							}
 							
-							if ( bColorProperty ){
+							if( bColorProperty ){
 								var sName = oProperty.getName();
 								var sTextureName ="";
 								if ( oProperty.getMapValue() ){
@@ -1882,32 +1915,34 @@
 								aProperties.push(
 									{
 									"Name" : sName,
-									// We only take the color name in the Unity Version
-									"Value" : oProperty.getColorValue(),
+									"Value" : oProperty.getColorValue().name,
 									"Data Type" : "Color",
 									"Texture" : sTextureName
 									}
 								)
 							}
-							
-							if ( bNumericProperty ){
-								var sName = oProperty.getName();
-								var sTextureName ="";
-								if ( oProperty.getMapValue() ){
-									sTextureName = oProperty.getMapValue().getFilename();
-								}
-								aProperties.push(
-									{
-									"Name" : sName,
-									"Value" : oProperty.getValue(),
-									"Data Type" : "Double",
-									"Texture" : sTextureName
+
+							if( bNumericProperty ){
+								// To deal with Color Property being the Choice we want.
+								if( !bColorProperty){
+									var sName = oProperty.getName();
+									var sTextureName ="";
+									if ( oProperty.getMapValue() ){
+										sTextureName = oProperty.getMapValue().getFilename();
 									}
-								)
+									aProperties.push(
+										{
+										"Name" : sName,
+										"Value" : oProperty.getValue(),
+										"Data Type" : "Double",
+										"Texture" : sTextureName
+										}
+									)
+								}
 							}
 						}
-					aAssetInfo[ "Properties" ] = aProperties 
-					aMaterials.push( aAssetInfo )	
+					aAssetInfo["Properties"] = aProperties;
+					aMaterials.push( aAssetInfo );
 					}
 				}						
 			}
@@ -1916,7 +1951,8 @@
 		else{
 			return false
 		}
-	}
+	};
+
 	/*********************************************************************/
 	// void : ...
 	function main()
