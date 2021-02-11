@@ -742,7 +742,7 @@
 		if( aData.length < 1 ){
 			return;
 		}
-		
+
 		writeDataFile( aData, sFilename );
 	};
 	
@@ -1788,159 +1788,128 @@
 		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
 	};
 	/*********************************************************************/	
-	// Configure DTU File
-	// Running into issue of Materials becoming one list. 
 	// void : ...
-	function writeConfiguration(oNode,sFilename)
+	// Note: Configure DTU File
+	// Current Issue(s): Running into problems formatting the DTU/JSON
+	// TO DO: Add same functionality for Environments
+	function writeConfiguration( oNode,sFilename )
 	{
 		var sDTUfilename = sFilename + ".dtu";
-		var oDTUfile = new DzFile(sDTUfilename);
-		oDTUfile.open(DzFile.WriteOnly);
-		oDTUfile.writeLine("{" );
-		oDTUfile.writeLine("				\"Asset Name\": \"" + oNode.getLabel() + "\",");
-		oDTUfile.writeLine("				\"Materials\": [ " );
-		aFigureMats = writeMaterials(oNode);
-		oDTUfile.write(JSON.stringify(aFigureMats,null,4))
+		var oDTUfile = new DzFile( sDTUfilename );
+		var aDTUJSON = {}
 		var aChildren = oNode.getNodeChildren( true );
-		var iChildren = aChildren.length;
-		if (iChildren > 0)
-		{
-			
-			oDTUfile.writeLine(",")
-			for ( var i = 0; i < iChildren; i++)
-			{
-				var oChild = aChildren[i]; 
-				aChildMats = writeMaterials(oChild);
-				if (aChildMats != false)
-				{
-					oDTUfile.write(JSON.stringify(aChildMats,null,4));
-					
-					
-					oDTUfile.writeLine(",");
-						
-				}
-				
+		var nChildren = aChildren.length;
+		
+		aDTUJSON[ "Asset Name" ] = oNode.getLabel()
+		aDTUJSON[ "Materials" ] = []
+		aFigureMats = writeMaterials( oNode );
+		aDTUJSON["Materials"].push( aFigureMats );
+
+		if (nChildren > 0){
+			for ( var i = 0; i < nChildren; i++ ){
+				var oChild = aChildren[ i ]; 
+				aChildMats = writeMaterials( oChild );
+				if ( aChildMats != false ){
+					aDTUJSON[ "Materials" ].push( aChildMats );
+				}		
 			}
 		}
-		
-		// Place Holder to deal with format
-		oDTUfile.writeLine("1]}" );
+
+		oDTUfile.open( DzFile.WriteOnly );
+		oDTUfile.write( JSON.stringify( aDTUJSON,null,4 ) );
 		oDTUfile.close();
 
 	}
 	/*********************************************************************/	
-	// Cycle through all the Materials on a Node and return an array
 	// Array : ...
-	function writeMaterials(oNode)
-	{
-		
+	// Note: Cycle through all the Materials on a Node and return an array
+	// Current Issue(s): Can't get the Asset Type, Not sure what value we need from the Color Info
+	function writeMaterials( oNode )
+	{	
 		var oObj = oNode.getObject();
-		if (oObj != null)
-		{
+		if ( oObj != null ){
 			var oShape = oObj.getCurrentShape();
 			var nMat = oShape.getNumMaterials();
-			var Materials = [];
-			if (oShape)
-			{
-				for (var k=0; k < nMat; k++)
-				{
-					var AssetInfo = {};
-					var Properties = [];
-					var oMat = oShape.getMaterial(k);
-					if (oMat)
-					{	
-						
-						AssetInfo["Asset Name"] = oNode.getLabel();
-						AssetInfo["Material Name"] = oMat.getName();
-						AssetInfo["Material Type"] = oMat.getMaterialName();
-						
-						var presentation = oNode.getPresentation();
-					
-						if (presentation != undefined)
-						{	
-							
-							presentationType = "test"
-							AssetInfo["Value"]  = presentationType;
+			var aMaterials = [];
+			if ( oShape ){
+				for ( var k=0; k < nMat; k++ ){
+					var aAssetInfo = {};
+					var aProperties = [];
+					var oMat = oShape.getMaterial( k );
+					if (oMat){	
+						aAssetInfo[ "Asset Name" ] = oNode.getLabel();
+						aAssetInfo[ "Material Name" ] = oMat.getName();
+						aAssetInfo[ "Material Type" ] = oMat.getMaterialName();
+						var oPresentation = oNode.getPresentation();
+						if ( oPresentation != undefined ){
+							// Type should be oPresentation.getType() Coming up as undefined	
+							var sPresentationType = "Place Holder"
+							aAssetInfo[ "Value" ]  = sPresentationType;
 						}
 						else {
-							AssetInfo["Value"]  = "Unknown";
+							aAssetInfo[ "Value" ]  = "Unknown";
 						}
-						
-						for (var propertyIndex = 0; propertyIndex <  oMat.getNumProperties(); propertyIndex++)
-						{	
-							var oProperty =oMat.getProperty(propertyIndex);
-							
-							var ImageProperty = oProperty.inherits("DzImageProperty");
-							if (ImageProperty)
-							{
+						for ( var i = 0; i <  oMat.getNumProperties(); i++){	
+							var oProperty =oMat.getProperty( i );
+							var bImageProperty = oProperty.inherits( "DzImageProperty" );
+							var bColorProperty = oProperty.inherits( "DzColorProperty" );
+							var bNumericProperty = oProperty.inherits( "DzNumericProperty" );
+
+							if ( bImageProperty ){
 								var sName = oProperty.getName();
-								
-								var TextureName ="";
+								var sTextureName ="";
 								if (oProperty.getValue()){
-									TextureName = oProperty.getValue().getFilename();
-									
+									sTextureName = oProperty.getValue().getFilename();	
 								}
-							
-								Properties.push(
+								aProperties.push(
 									{
 									"Name" : sName,
 									"Value" : oMat.getDiffuseColor().name(),
 									"Data Type" : "Texture",
-									"Texture" : TextureName
+									"Texture" : sTextureName
 									}
 								);
-
 							}
 							
-							var ColorProperty = oProperty.inherits("DzColorProperty");
-							if (ColorProperty)
-							{
-						
+							if ( bColorProperty ){
 								var sName = oProperty.getName();
-								
-								var TextureName ="";
-								if (oProperty.getMapValue()){
-									TextureName = oProperty.getMapValue().getFilename();
+								var sTextureName ="";
+								if ( oProperty.getMapValue() ){
+									sTextureName = oProperty.getMapValue().getFilename();
 								}
-								Properties.push(
+								aProperties.push(
 									{
 									"Name" : sName,
+									// We only take the color name in the Unity Version
 									"Value" : oProperty.getColorValue(),
 									"Data Type" : "Color",
-									"Texture" : TextureName
+									"Texture" : sTextureName
 									}
 								)
 							}
-							var NumericProperty = oProperty.inherits("DzNumericProperty");
-							if (NumericProperty)
-							{
+							
+							if ( bNumericProperty ){
 								var sName = oProperty.getName();
-								
-								var TextureName ="";
-								if (oProperty.getMapValue()){
-									TextureName = oProperty.getMapValue().getFilename();
+								var sTextureName ="";
+								if ( oProperty.getMapValue() ){
+									sTextureName = oProperty.getMapValue().getFilename();
 								}
-								Properties.push(
+								aProperties.push(
 									{
 									"Name" : sName,
 									"Value" : oProperty.getValue(),
 									"Data Type" : "Double",
-									"Texture" : TextureName
+									"Texture" : sTextureName
 									}
 								)
 							}
-						
 						}
-					AssetInfo["Properties"] = Properties 
-					Materials.push(AssetInfo)	
-						
+					aAssetInfo[ "Properties" ] = aProperties 
+					aMaterials.push( aAssetInfo )	
 					}
-					
-				}				
-			
+				}						
 			}
-			
-			return Materials
+			return aMaterials
 		}
 		else{
 			return false
@@ -2009,7 +1978,7 @@
 				writeFigureBoneData( oFigure, sFileBasename );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
-				writeConfiguration(oFigure,sFileBasename);
+				writeConfiguration( oFigure,sFileBasename );
 				setSubDivLevelAll( oFigure, nLevel );
 				buildMorphList( oFigure );
 	
