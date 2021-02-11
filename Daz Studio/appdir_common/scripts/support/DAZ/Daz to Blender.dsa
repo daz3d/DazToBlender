@@ -55,8 +55,7 @@
 		if( oNode.inherits( "DzFigure" ) ){
             oNode = oNode.getSkeleton();
 			var aProperties = getElementProperties( oNode, true, true );
-        }
-        
+        }    
 		else{
 			var aProperties = getElementProperties( oNode, true, true );
 		}
@@ -88,10 +87,9 @@
 			if( sHead.isEmpty() ){
 				continue;
 			}
-			
-			
+				
 			sLabel = oProp.getLabel();
-			if( (sLabel.length + 2 + s_nMaxName) > s_nMaxAll ){
+			if( ( sLabel.length + 2 + s_nMaxName ) > s_nMaxAll ){
 				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
 				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
 				oOwner.name = sLabel;
@@ -101,8 +99,11 @@
 			
 			sName = oProp.getName()
 			// To do sort all the data for Morphs to create more cleaner UI
-			s_aMorphs[sLabel] = {'sMorphHead': sHead, "sMorphName" : sName, "sMorphPath" : sPath};
-
+			s_aMorphs[sLabel] = {
+								"sMorphHead": sHead, 
+								"sMorphName" : sName, 
+								"sMorphPath" : sPath
+								};
 		}
 	};
 	
@@ -504,12 +505,12 @@
 	// Array<String> : ...
 	function getMinimalMorphRules()
 	{
-		
 		var sResult 
-		for(sMorphLabel in s_aMorphs){
-			if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Head') > 0)
+
+		for( sMorphLabel in s_aMorphs ){
+			if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Head' ) > 0)
 			{
-				sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+				sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
 			}
 		}
 		
@@ -520,36 +521,36 @@
 	// Array<String> : ...
 	function getMorphPresets(sPreset)
 	{
-		
 		var sResult 
-		for(sMorphLabel in s_aMorphs){
-			if (sPreset == "All Body Morphs"){
-				if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Arms') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Hip') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Torso') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Neck') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Legs') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Hands') > 0
-					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Feet') > 0){
-				sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+
+		for( sMorphLabel in s_aMorphs ){
+			if ( sPreset == "All Body Morphs" ){
+				if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Arms' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Hip' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Torso' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Neck' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Legs' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Hands' ) > 0
+					||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Feet' ) > 0 ){
+				sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
 				}		
 			}
 			else{
-				if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Head') > 0){
-					if (sPreset == "Face Controls"){
-						if(!(s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Expressions') > 0 
-							||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Visemes') > 0 )){
-							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+				if ( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( '/Head' ) > 0 ){
+					if ( sPreset == "Face Controls" ){
+						if(!( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Expressions' ) > 0 
+							||s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Visemes' ) > 0 ) ){
+							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
 						}
 					}
-					if (sPreset == "Expressions"){
-						if( s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Expressions') > 0){
-							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+					if ( sPreset == "Expressions" ){
+						if( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Expressions' ) > 0 ){
+							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
 						}
 					}
-					if (sPreset == "Visemes"){
-						if	( s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Visemes') > 0 ){
-							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+					if ( sPreset == "Visemes" ){
+						if	( s_aMorphs[ sMorphLabel ][ 'sMorphPath' ].indexOf( 'Visemes' ) > 0 ){
+							sResult += s_aMorphs[ sMorphLabel ][ 'sMorphName' ] + "\n1\n";
 						}
 					}		
 				}
@@ -558,7 +559,7 @@
 		
 		return sResult;
 	};
-	
+
 	/*********************************************************************/
 	
 	// void : ...
@@ -574,6 +575,7 @@
 	
 	/*********************************************************************/
 	// Boolean : ...
+	// TODO: Replace a listbox for a more functional option
 	function promptMorphRules( oNode)
 	{	
 		
@@ -613,41 +615,44 @@
 		var wValidMorphNamesLbl = new DzLabel( wDlg );
 		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names and Presets:\n[double-click to copy above]" );
 		wDlg.addWidget( wValidMorphNamesLbl );
-		// TODO Replace a listbox for a more functional option
+
+		
 		var sMorphList = []
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
 		for(var s_aMorphLabel in s_aMorphs) {
-			if(s_aMorphs[s_aMorphLabel]["sMorphHead"] != "Hidden"){
-				var sMorphHeaders = s_aMorphs[s_aMorphLabel]['sMorphPath'].split("/") 
-				sMorphList.push(sMorphHeaders[sMorphHeaders.length -2] + " "+ 
-											sMorphHeaders[sMorphHeaders.length -1] + " "+
-											":" + s_s3Spaces + s_aMorphLabel);
+			if( s_aMorphs[ s_aMorphLabel ][ "sMorphHead" ] != "Hidden" ){
+				var sMorphHeaders = s_aMorphs[ s_aMorphLabel ][ 'sMorphPath' ].split("/") 
+				sMorphList.push( 
+								sMorphHeaders[ sMorphHeaders.length -2 ] + " "+ 
+								sMorphHeaders[ sMorphHeaders.length -1 ] + " "+
+								":" + s_s3Spaces + s_aMorphLabel
+								);
 			}
-	
 		}
 		// Organize the Visible Morphs
 		sMorphList.sort()
-		for(var s_aMorphLabel in s_aMorphs){
-			if(s_aMorphs[s_aMorphLabel]["sMorphHead"] == "Hidden"){
-				sMorphList.push(s_aMorphs[s_aMorphLabel]["sMorphHead"] + 
-								":" + s_s3Spaces + s_aMorphLabel);
+		for( var s_aMorphLabel in s_aMorphs ){
+			if( s_aMorphs[ s_aMorphLabel ][ "sMorphHead" ] == "Hidden" ){
+				sMorphList.push( 
+								s_aMorphs [ s_aMorphLabel ][ "sMorphHead" ] + 
+								":" + s_s3Spaces + s_aMorphLabel
+								);
 			}
 		}
 		// Add a few temporary presets for ease of use.	
-		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Face Controls");
-		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Expressions");
-		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Visemes");	
-		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"All Body Morphs");
+		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Face Controls" );
+		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Expressions" );
+		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Visemes" );	
+		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Body Morphs" );
 		for( var i = 0; i < sMorphList.length; i += 1 ){
 		
-			wValidMorphNamesLBox.insertItem(sMorphList[i]);
+			wValidMorphNamesLBox.insertItem( sMorphList[i] );
 		}
 		wDlg.addWidget( wValidMorphNamesLBox );
 		
-		function addValidMorphName()
-		{
+		function addValidMorphName(){
 			var sCurText = wValidMorphNamesLBox.currentText;
-			sCurText = sCurText.split(":"+s_s3Spaces)[1];
+			sCurText = sCurText.split( ":"+s_s3Spaces )[1];
 			wMorphNamesTEdit.append( sCurText );
 		};
 		wValidMorphNamesLBox.doubleClicked.connect( wValidMorphNamesLBox, addValidMorphName );
@@ -665,7 +670,7 @@
 			s_sMorphRules = getMinimalMorphRules();
 		}
 		
-		createMorphRules(wMorphNamesTEdit.text.split("\n"));
+		createMorphRules( wMorphNamesTEdit.text.split( "\n" ) );
 	
 		return true;
 	};
@@ -675,30 +680,27 @@
 	function createMorphRules(aMorphLabels)
 	{	
 		var sMorphName;
-		var s_aMorphLabel;
-		
-		// To do find a better way to stop if nothing is chosen
-		if (aMorphLabels !==undefined){
-			
-			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
-				
-				s_aMorphLabel = aMorphLabels[i];
-				if (s_aMorphs[s_aMorphLabel] !== undefined){
+		var sMorphLabel;
 
-					if (s_aMorphs[s_aMorphLabel]["sMorphHead"] == 'Pose'){
-					sMorphName = s_aMorphs[s_aMorphLabel]["sMorphName"];
+		// To do find a better way to stop if nothing is chosen
+		if ( aMorphLabels !==undefined ){
+			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
+				sMorphLabel = aMorphLabels[i];
+				if ( s_aMorphs[ sMorphLabel ] !== undefined ){
+
+					if (s_aMorphs[ sMorphLabel ][ "sMorphHead" ] == 'Pose' ){
+					sMorphName = s_aMorphs[ sMorphLabel ][ "sMorphName" ];
 					}
 					else{
-						sMorphName = s_aMorphLabel
+						sMorphName = sMorphLabel;
 					}
 				}
 				else{
-					s_sMorphRules += getMorphPresets(s_aMorphLabel);
+					s_sMorphRules += getMorphPresets ( sMorphLabel );
 					}
 				s_sMorphRules += sMorphName + "\n1\n";
 			}
 		}
-		
 		s_sMorphRules += "Anything\n0";
 
 		return true;
@@ -1792,7 +1794,7 @@
 	// Note: Configure DTU File
 	// Current Issue(s): Running into problems formatting the DTU/JSON
 	// TO DO: Add same functionality for Environments
-	function writeConfiguration( oNode,sFilename )
+	function writeConfiguration( oNode, sFilename )
 	{
 		var sDTUfilename = sFilename + ".dtu";
 		var oDTUfile = new DzFile( sDTUfilename );
@@ -1978,7 +1980,7 @@
 				writeFigureBoneData( oFigure, sFileBasename );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
-				writeConfiguration( oFigure,sFileBasename );
+				writeConfiguration( oFigure, sFileBasename );
 				setSubDivLevelAll( oFigure, nLevel );
 				buildMorphList( oFigure );
 	
