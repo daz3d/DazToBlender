@@ -33,7 +33,7 @@ def load_skeleton_data():
 
     for line in lines:
         line_split = line.split(',')
-        skeleton_data[line_split[0], line_split[1]]
+        skeleton_data[line_split[0]] = float(line_split[1])
 
 def get_skeleton_data():
     if len(skeleton_data) == 0:
