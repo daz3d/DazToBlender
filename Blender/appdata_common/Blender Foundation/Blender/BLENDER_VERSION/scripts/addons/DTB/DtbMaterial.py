@@ -44,15 +44,13 @@ ftable = [["d","Diffuse"],
           ["z","Subsurface"],
           ["n","Normal"]]
 class DtbShaders:
-    dct ={}
-    evaluate = -1
+    dct = {}
 
-    def makeDct(self):
+    def make_dct(self):
         self.dct = []
-        md = MatDct.MatDct()
-        md.makeDctFromMtl()
-        self.dct =md.getResult()
-        self.evaluate = md.getEvaluate()
+        mat_dct = MatDct.MatDct()
+        mat_dct.make_dct_from_mtl()
+        self.dct = mat_dct.get_dct()
 
     def __init__(self):
         pass
