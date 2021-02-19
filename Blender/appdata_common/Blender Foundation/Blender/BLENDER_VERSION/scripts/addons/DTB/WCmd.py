@@ -45,8 +45,8 @@ class IMP_OT_dir(bpy.types.Operator, ImportHelper):
         md = MatDct.MatDct()
         if self.filepath.endswith("\\"):
             self.filepath = self.filepath[0:len(self.filepath)-1]
-        md.makeDctFromDirectory(self.filepath)
-        dct = md.getResult()
+        md.make_dct_from_directory(self.filepath)
+        dct = md.get_dct()
         DtbMaterial.readImages(dct)
         return{'FINISHED'}
 

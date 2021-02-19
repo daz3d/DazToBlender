@@ -69,7 +69,6 @@ fbx_exsported = ""
 obj_exsported = ""
 mute_bones = []
 ik_access_ban = False
-ds = DtbMaterial.DtbShaders()
 region = 'UI'
 BV = Versions.getBV()
 total_key_count = 0 # To keep track of the max number of the keys in actions, so to set fps
@@ -554,12 +553,14 @@ class IMP_OT_FBX(bpy.types.Operator):
         ik_access_ban = True
         reset_total_key_count()
         drb = DazRigBlend.DazRigBlend()
+        dtb_shaders = DtbMaterial.DtbShaders()
         self.pbar(5,wm)
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
         db = DataBase.DB()
         Global.decide_HERO()
         self.pbar(15, wm)
+
         if Global.getAmtr() is not None and Global.getBody() is not None:
             Global.deselect() # deselect all the objects
             drb.clear_pose() # Select Armature and clear transform
@@ -581,14 +582,17 @@ class IMP_OT_FBX(bpy.types.Operator):
             if Global.getIsEyls():
                 drb.integrationEyelashes()
                 Global.deselect()
-            ds.makeDct()
+            
+            # materials
+            dtb_shaders.make_dct()
             DtbMaterial.McySkin()
             DtbMaterial.McyEyeWet()
             DtbMaterial.McyEyeDry()
-            ds.bodyTexture()
+            dtb_shaders.bodyTexture()
             self.pbar(35, wm)
-            ds.propTexture()
+            dtb_shaders.propTexture()
             self.pbar(40, wm)
+
             if Global.getIsGen():
                 drb.fixGeniWeight(db)
             Global.deselect()
@@ -631,9 +635,12 @@ class IMP_OT_FBX(bpy.types.Operator):
                         amt.pose.bones[bname].constraints[bname + '_IK'].influence = 0
             drb.makeBRotationCut(db) # lock movements around axes with zeroed limits for each bone
             Global.deselect()
+            
+            # materials
             DtbMaterial.forbitMinus()
             self.pbar(95,wm)
             Global.deselect()
+
             Versions.active_object(Global.getAmtr())
             Global.setOpsMode("POSE")
             drb.mub_ary_Z()
