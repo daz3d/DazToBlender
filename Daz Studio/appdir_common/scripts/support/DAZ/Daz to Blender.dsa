@@ -33,7 +33,7 @@
 	
 	var s_sRootPath = "";
 	
-	var s_aMorphs = {};
+	var s_oMorphs = {};
 	var s_aSearch = [];
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
@@ -99,7 +99,7 @@
 			}
 			
 			sName = oProp.getName()
-			s_aMorphs[sLabel] = {
+			s_oMorphs[sLabel] = {
 								"sMorphHead": sHead, 
 								"sMorphName" : sName, 
 								"sMorphPath" : sPath
@@ -508,9 +508,9 @@
 	{
 		var sResult; 
 
-		for( sMorphLabel in s_aMorphs ){
-			var sMorphPath = s_aMorphs[sMorphLabel]['sMorphPath']
-			var sMorphName = s_aMorphs[sMorphLabel]['sMorphName']
+		for( sMorphLabel in s_oMorphs ){
+			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
+			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
 			if ( sMorphPath.indexOf( '/Head' ) > 0 )
 			{
 				sResult += sMorphName + "\n1\n";
@@ -527,17 +527,17 @@
 	{
 		var sResult 
 
-		for( sMorphLabel in s_aMorphs ){
-			var sMorphPath = s_aMorphs[sMorphLabel]['sMorphPath']
-			var sMorphName = s_aMorphs[sMorphLabel]['sMorphName']
+		for( sMorphLabel in s_oMorphs ){
+			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
+			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
 			if ( sPreset == "All Body Morphs" ){
 				if ( sMorphPath.indexOf( '/Arms' ) > 0
-					||sMorphPath.indexOf( '/Hip' ) > 0
-					||sMorphPath.indexOf( '/Torso' ) > 0
-					||sMorphPath.indexOf( '/Neck' ) > 0
-					||sMorphPath.indexOf( '/Legs' ) > 0
-					||sMorphPath.indexOf( '/Hands' ) > 0
-					||sMorphPath.indexOf( '/Feet' ) > 0 ){
+					|| sMorphPath.indexOf( '/Hip' ) > 0
+					|| sMorphPath.indexOf( '/Torso' ) > 0
+					|| sMorphPath.indexOf( '/Neck' ) > 0
+					|| sMorphPath.indexOf( '/Legs' ) > 0
+					|| sMorphPath.indexOf( '/Hands' ) > 0
+					|| sMorphPath.indexOf( '/Feet' ) > 0 ){
 				sResult += sMorphName + "\n1\n";
 				}		
 			}
@@ -545,7 +545,7 @@
 				if ( sMorphPath.indexOf( '/Head' ) > 0 ){
 					if ( sPreset == "Face Controls" ){
 						if(!( sMorphPath.indexOf( 'Expressions' ) > 0 
-							||sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
+							|| sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
 							sResult += sMorphName + "\n1\n";
 						}
 					}
@@ -622,15 +622,14 @@
 		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names and Presets:\n[double-click to copy above]" );
 		wDlg.addWidget( wValidMorphNamesLbl );
 
-		
 		var aMorphList = []
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
 		var sMorphHead;
 		var sMorphPath;
 
-		for(var s_aMorphLabel in s_aMorphs) {
-			sMorphHead = s_aMorphs[s_aMorphLabel]["sMorphHead"];
-			sMorphPath = s_aMorphs[s_aMorphLabel]["sMorphPath"];
+		for(var s_aMorphLabel in s_oMorphs) {
+			sMorphHead = s_oMorphs[s_aMorphLabel]["sMorphHead"];
+			sMorphPath = s_oMorphs[s_aMorphLabel]["sMorphPath"];
 			if( sMorphHead != "Hidden" ){
 				var sMorphHeaders = sMorphPath.split("/") 
 				aMorphList.push( 
@@ -644,8 +643,8 @@
 		// Organize the Visible Morphs
 		aMorphList.sort()
 
-		for( var sMorphLabel in s_aMorphs ){
-			sMorphHead = s_aMorphs[sMorphLabel]["sMorphHead"];
+		for( var sMorphLabel in s_oMorphs ){
+			sMorphHead = s_oMorphs[sMorphLabel]["sMorphHead"];
 			if( sMorphHead == "Hidden" ){
 				aMorphList.push( 
 								sMorphHead + 
@@ -704,10 +703,10 @@
 			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
 				sMorphLabel = aMorphLabels[i];
 				
-				if ( s_aMorphs[sMorphLabel] !== undefined ){
+				if ( s_oMorphs[sMorphLabel] !== undefined ){
 
-					if (s_aMorphs[ sMorphLabel ][ "sMorphHead" ] == 'Pose' ){
-					sMorphName = s_aMorphs[ sMorphLabel ][ "sMorphName" ];
+					if (s_oMorphs[sMorphLabel]["sMorphHead"] == 'Pose' ){
+					sMorphName = s_oMorphs[sMorphLabel]["sMorphName"];
 					}
 					else{
 						//Hidden Morphs do not have labels
@@ -1214,9 +1213,12 @@
 				if( 
 				(oNode.name.startsWith( "Genesis8Female" )
 				|| oNode.name.startsWith( "Genesis8Male" )
+				|| oNode.name.startsWith( "Genesis8_1Male" )
+				|| oNode.name.startsWith( "Genesis8_1Female" )
 				|| oNode.name.startsWith( "Genesis3Male" )
 				|| oNode.name.startsWith( "Genesis3Female" ))
 					&& oNode.name.indexOf( "Eyelash" ) < 0
+					&& oNode.name.indexOf( "Tear" ) < 0
 				){
 					s_aFigures.push( oNode );
 				} else {
@@ -1812,26 +1814,26 @@
 	/*********************************************************************/	
 	// void : ...
 	// Note: Configure DTU File
-	// TO DO: Add same functionality for Environments, Grab Subdivision info and Morphs Exporting
+	// TO DO: Grab Subdivision info and Morphs Exporting
 	function writeConfiguration( oNode, sFilename )
 	{
-		var sDTUfilename = sFilename + ".dtu";
-		var oDTUfile = new DzFile( sDTUfilename );
-		var aDTUJSON = {};
+		var sDtufilename = sFilename + ".dtu";
+		var oDtufile = new DzFile( sDtufilename );
+		var oDtuJson = {};
 		var aChildren = oNode.getNodeChildren( true );
 		var nChildren = aChildren.length;
 		
-		aDTUJSON[ "Asset Name" ] = oNode.getLabel();
-		aDTUJSON[ "Materials" ] = [];
+		oDtuJson["Asset Name"] = oNode.getLabel();
+		oDtuJson["Materials"] = [];
 		aFigureMats = writeMaterials( oNode );
-		aDTUJSON["Materials"].push( aFigureMats );
+		oDtuJson["Materials"].push( aFigureMats );
 
 		if (nChildren > 0){
 			for ( var i = 0; i < nChildren; i++ ){
 				var oChild = aChildren[ i ]; 
 				aChildMats = writeMaterials( oChild );
 				if ( aChildMats != false ){
-					aDTUJSON[ "Materials" ].push( aChildMats );
+					oDtuJson["Materials"].push( aChildMats );
 				}		
 			}
 		};
@@ -1851,15 +1853,14 @@
 				return value;
 			}
 		};
-		oDTUfile.open( DzFile.WriteOnly );
-		oDTUfile.write( JSON.stringify( aDTUJSON, combineMaterials, 4 ) );
-		oDTUfile.close();
+		oDtufile.open( DzFile.WriteOnly );
+		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
+		oDtufile.close();
 	};
 
 	/*********************************************************************/	
 	// Array : ...
 	// Note: Cycle through all the Materials on a Node and return an array
-	// TODO: Some Properties are coming up a Color and Numeric eg. Diffuse Color
 	function writeMaterials( oNode )
 	{	
 		var oObj = oNode.getObject();
@@ -1869,20 +1870,21 @@
 			var aMaterials = [];
 			if( oShape ){
 				for( var k=0; k < nMat; k++ ){
-					var aAssetInfo = {};
+					var oAssetInfo = {};
 					var aProperties = [];
 					var oMat = oShape.getMaterial( k );
 					if(oMat){	
-						aAssetInfo["Asset Name"] = oNode.getLabel();
-						aAssetInfo["Material Name"] = oMat.getName();
-						aAssetInfo["Material Type"] = oMat.getMaterialName();
+						oAssetInfo["Asset Name"] = oNode.getLabel();
+						oAssetInfo["Material Name"] = oMat.getName();
+						oAssetInfo["Material Type"] = oMat.getMaterialName();
+						
 						var oPresentation = oNode.getPresentation();
 						if( oPresentation != undefined ){
 							var sPresentationType = oPresentation.type
-							aAssetInfo["Value"]  = sPresentationType;
+							oAssetInfo["Value"]  = sPresentationType;
 						}
 						else{
-							aAssetInfo["Value"]  = "Unknown";
+							oAssetInfo["Value"]  = "Unknown";
 						}
 						for( var i = 0; i < oMat.getNumProperties(); i++){	
 							var oProperty =oMat.getProperty( i );
@@ -1899,7 +1901,7 @@
 								aProperties.push(
 									{
 									"Name" : sName,
-									"Value" : oMat.getDiffuseColor().name(),
+									"Value" : oMat.getDiffuseColor().name,
 									"Data Type" : "Texture",
 									"Texture" : sTextureName
 									}
@@ -1941,8 +1943,9 @@
 								}
 							}
 						}
-					aAssetInfo["Properties"] = aProperties;
-					aMaterials.push( aAssetInfo );
+		
+					oAssetInfo["Properties"] = aProperties;
+					aMaterials.push( oAssetInfo );
 					}
 				}						
 			}
@@ -2070,7 +2073,8 @@
 				sFileBasename = sEnvPath + s_sEnv;
 				sPoseFilename = sFileBasename + ".csv";
 				sBoneFilename = sFileBasename + ".bon";
-				
+
+				writeConfiguration( oNode, sFileBasename );
 				if( bIsBone ){
 					writeBoneData( oNode, sBoneFilename );
 				} else {
