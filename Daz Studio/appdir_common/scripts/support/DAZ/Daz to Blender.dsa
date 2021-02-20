@@ -30,7 +30,7 @@
 	var s_nExportType = s_oExportTypes.None;
 	
 	var s_sMorphRules = "";
-	
+	var s_aMorphExported = [];
 	var s_sRootPath = "";
 	
 	var s_oMorphs = {};
@@ -511,9 +511,15 @@
 		for( sMorphLabel in s_oMorphs ){
 			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
 			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
-			if ( sMorphPath.indexOf( '/Head' ) > 0 )
-			{
-				sResult += sMorphName + "\n1\n";
+			if( sMorphPath.indexOf( '/Head' ) > 0 ){
+				if( sMorphPath.endsWith( 'Expressions' ) ){
+					sResult += sMorphName + "\n1\n";
+					s_aMorphExported.push( sMorphName );
+				}
+				if( sMorphPath.indexOf( '/Expressions' ) < 0 ){
+					sResult += sMorphName + "\n1\n";
+					s_aMorphExported.push( sMorphName );
+				}
 			}
 		}
 		
@@ -539,6 +545,7 @@
 					|| sMorphPath.indexOf( '/Hands' ) > 0
 					|| sMorphPath.indexOf( '/Feet' ) > 0 ){
 				sResult += sMorphName + "\n1\n";
+				s_aMorphExported.push(sMorphName );
 				}		
 			}
 			else{
@@ -547,16 +554,19 @@
 						if(!( sMorphPath.indexOf( 'Expressions' ) > 0 
 							|| sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
 							sResult += sMorphName + "\n1\n";
+							s_aMorphExported.push( sMorphName );
 						}
 					}
 					if ( sPreset == "Expressions" ){
 						if( sMorphPath.indexOf( 'Expressions' ) > 0 ){
 							sResult += sMorphName + "\n1\n";
+							s_aMorphExported.push( sMorphName );
 						}
 					}
 					if ( sPreset == "Visemes" ){
 						if	( sMorphPath.indexOf( 'Visemes' ) > 0 ){
 							sResult += sMorphName + "\n1\n";
+							s_aMorphExported.push( sMorphName );
 						}
 					}		
 				}
@@ -581,7 +591,7 @@
 	
 	/*********************************************************************/
 	// Boolean : ...
-	// TODO: Replace a listbox for a more functional option
+	// TODO: Replace a listbox for a more functional option, Allow user to Choose From Their Expressions
 	function promptMorphRules( oNode )
 	{	
 		
@@ -692,7 +702,7 @@
 	/*********************************************************************/
 	// Take List of Morph Labels and Convert to Format for FBX Exporter
 	// void : ...
-	// TODO: Allow Partial Names to Export Morphs
+	// TODO: Allow Partial Names to Export Morphs, Refactor Code to Grab Morph Info Cleaner
 	function createMorphRules( aMorphLabels )
 	{	
 		var sMorphName;
@@ -712,11 +722,13 @@
 						//Hidden Morphs do not have labels
 						sMorphName = sMorphLabel;
 					}
+					s_aMorphExported.push( sMorphName );
 				}
 				else{
-					s_sMorphRules += getMorphPresets ( sMorphLabel );
+					s_sMorphRules += getMorphPresets( sMorphLabel );
 					}
 				s_sMorphRules += sMorphName + "\n1\n";
+				
 			}
 		}
 		s_sMorphRules += "Anything\n0";
@@ -1827,7 +1839,7 @@
 		oDtuJson["Materials"] = [];
 		aFigureMats = writeMaterials( oNode );
 		oDtuJson["Materials"].push( aFigureMats );
-
+		oDtuJson['Morphs'] = s_aMorphExported;
 		if (nChildren > 0){
 			for ( var i = 0; i < nChildren; i++ ){
 				var oChild = aChildren[ i ]; 
@@ -1837,6 +1849,7 @@
 				}		
 			}
 		};
+		
 		function combineMaterials( key, value ){
 			var aNewMaterials = [];
 			if( key == "Materials" ){
@@ -1853,6 +1866,7 @@
 				return value;
 			}
 		};
+
 		oDtufile.open( DzFile.WriteOnly );
 		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
 		oDtufile.close();
@@ -2016,17 +2030,16 @@
 				
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
+				buildMorphList( oFigure );
 				writeFigureBoneData( oFigure, sFileBasename );
 				writePoseData( oFigure, sFileBasename + ".csv", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
-				writeConfiguration( oFigure, sFileBasename );
 				setSubDivLevelAll( oFigure, nLevel );
-				buildMorphList( oFigure );
 	
 				if( !promptMorphRules( oFigure) ){
 					continue;
 				}
-				
+				writeConfiguration( oFigure, sFileBasename );
 				setEyelashVisibility( oFigure, false );
 				exportOBJ( oFigure, s_sFig, i );
 				setEyelashVisibility( oFigure, true );
