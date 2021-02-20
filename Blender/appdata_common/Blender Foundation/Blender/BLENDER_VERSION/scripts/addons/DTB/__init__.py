@@ -588,9 +588,9 @@ class IMP_OT_FBX(bpy.types.Operator):
             DtbMaterial.McySkin()
             DtbMaterial.McyEyeWet()
             DtbMaterial.McyEyeDry()
-            dtb_shaders.bodyTexture()
+            dtb_shaders.body_texture()
             self.pbar(35, wm)
-            dtb_shaders.propTexture()
+            dtb_shaders.prop_texture()
             self.pbar(40, wm)
 
             if Global.getIsGen():

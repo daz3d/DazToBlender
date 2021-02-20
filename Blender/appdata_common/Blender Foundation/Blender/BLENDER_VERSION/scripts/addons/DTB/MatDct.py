@@ -5,76 +5,77 @@ import bpy
 
 from . import Global
 
+
 class MatDct:
     dct = {}
-    
+
     mat_types__bpart = [
         ["face", "1"],
         ["head", "1"],
-        ["ears","1"],
-        ["eyesocket","1"],
-        ["lips","1"],
-        ["torso","2"],
-        ["legs","3"],
-        ["toenails","3"],
-        ["arms","4"],
-        ["fingernails","4"],
-        ["mouth","5"],
-        ["teeth","5"],
-        ["eyelashes","0"],
-        ["irises","6"], # I
-        ["sclera","6"], # II
-        ["pupils","6"], # III
-        ["irises","7"], # I
-        ["sclera","7"], # II
-        ["pupils","7"], # III
-        ["cornea","8"],
-        ["eyemoisture","8"],
-        ["genitaria","9"],
-        ["anus","9"],
-        ["rectum","9"],
-        ["labia","9"],
-        ["clitoris","9"],
-        ["vagina","9"],
-        ["glans","9"],
-        ["shaft","9"],
-        ["testicles","9"],
+        ["ears", "1"],
+        ["eyesocket", "1"],
+        ["lips", "1"],
+        ["torso", "2"],
+        ["legs", "3"],
+        ["toenails", "3"],
+        ["arms", "4"],
+        ["fingernails", "4"],
+        ["mouth", "5"],
+        ["teeth", "5"],
+        ["eyelashes", "0"],
+        ["irises", "6"],  # I
+        ["sclera", "6"],  # II
+        ["pupils", "6"],  # III
+        ["irises", "7"],  # I
+        ["sclera", "7"],  # II
+        ["pupils", "7"],  # III
+        ["cornea", "8"],
+        ["eyemoisture", "8"],
+        ["genitaria", "9"],
+        ["anus", "9"],
+        ["rectum", "9"],
+        ["labia", "9"],
+        ["clitoris", "9"],
+        ["vagina", "9"],
+        ["glans", "9"],
+        ["shaft", "9"],
+        ["testicles", "9"],
     ]
     mat_props__imgs = [
-        ["diff","diff","d"],
+        ["diff", "diff", "d"],
         ["diff", "MapD", "d"],
         ["Albedo", "mapd", "d"],
         ["Base", "TX", "d"],
         ["base_color", "basecolor", "d"],
         ["Base Color", "BaseColor", "d"],
-        ["bump","bump","b"],
-        ["bump","MapB","b"],
+        ["bump", "bump", "b"],
+        ["bump", "MapB", "b"],
         ["bump", "mapb", "b"],
         ["bump", "mapb01", "b"],
         ["bump", "Height", "b"],
         ["bump", "bmp.", "b"],
         ["bump", "disp.", "b"],
-        ["bump","MapB01","b"],
-        ["specu","specc.","s"],
+        ["bump", "MapB01", "b"],
+        ["specu", "specc.", "s"],
         ["specu", "spec.", "s"],
         ["specu", "MapS", "s"],
         ["specu", "Maps", "s"],
-        ["sss","sss","z"],
-        ["normal","nm","n"],
-        ["rough","rough","r"],
-        ["trans","tr","t"],
-        ["eyelashes","eyelashes","t"],
-        ["diff","D","d"],
-        ["bump","B","b"],
-        ["specu","S","s"],
-        ["sss","sss","z"],
-        ["normal","NM","n"],
+        ["sss", "sss", "z"],
+        ["normal", "nm", "n"],
+        ["rough", "rough", "r"],
+        ["trans", "tr", "t"],
+        ["eyelashes", "eyelashes", "t"],
+        ["diff", "D", "d"],
+        ["bump", "B", "b"],
+        ["specu", "S", "s"],
+        ["sss", "sss", "z"],
+        ["normal", "NM", "n"],
         ["normal", "nml.", "n"],
-        ["normal","Nm","n"],
-        ["rough","R","r"],
-        ["trans","TR","t"],
-        ["trans","Tr","t"],
-        ["Alpha","alpha","t"]
+        ["normal", "Nm", "n"],
+        ["rough", "R", "r"],
+        ["trans", "TR", "t"],
+        ["trans", "Tr", "t"],
+        ["Alpha", "alpha", "t"]
     ]
 
     def get_dct(self):
@@ -105,22 +106,22 @@ class MatDct:
                                 suffix_index = mat_slot_name.rfind(".00")
                                 if suffix_index > 2:
                                     mat_slot_name = mat_slot_name[
-                                                        0 : suffix_index
-                                                    ]
+                                        0: suffix_index
+                                    ]
 
                                 for mat_name_num in self.mat_types__bpart:
                                     if mat_name_num[0].lower() in mat_slot_name.lower():
                                         mat_num = mat_name_num[1]
                                         if mat_num == '6':
                                             mat_num = '7'
-                                        
+
                                         key = mat_num + 'd'
                                         self.add_to_dct(key, tex_path)
 
                                         if int(mat_num) < 5 and tex_dir_path == "":
                                             tex_dir_path = os.path.dirname(
-                                                                tex_path
-                                                            )
+                                                tex_path
+                                            )
         if tex_dir_path != "":
             self.search_directory(tex_dir_path)
 
@@ -145,11 +146,11 @@ class MatDct:
             return
 
         mtl_lines = []
-        with open(mtl_path, errors = 'ignore', encoding = 'utf-8') as mtl_file:
+        with open(mtl_path, errors='ignore', encoding='utf-8') as mtl_file:
             lines = mtl_file.readlines()
         for line in lines:
             line = line.strip()
-            line = line.replace('"','')
+            line = line.replace('"', '')
             if len(line) > 2:
                 mtl_lines.append(line.lower())
         directory_memo = ""
@@ -231,7 +232,7 @@ class MatDct:
                     self.add_to_dct(base_color_key, base_color_value)
 
         if tex_dir_path == "":
-            tex_dir_path =  directory_memo
+            tex_dir_path = directory_memo
         if tex_dir_path != "":
             self.search_directory(tex_dir_path)
 
@@ -273,12 +274,12 @@ class MatDct:
     # Find matches with all the textures in the directory and add to self.dct
     def search_directory(self, dir_path):
         daz_tex_path_win = {
-            "female" : "C:\\Users\\Public\\Documents\\My DAZ 3D Library\\Runtime\\Textures\\DAZ\\Characters\\Genesis8\\FemaleBase",
-            "male" : "C:\\Users\\Public\\Documents\\My DAZ 3D Library\\Runtime\\Textures\\DAZ\\Characters\\Genesis8\\MaleBase"
+            "female": "C:\\Users\\Public\\Documents\\My DAZ 3D Library\\Runtime\\Textures\\DAZ\\Characters\\Genesis8\\FemaleBase",
+            "male": "C:\\Users\\Public\\Documents\\My DAZ 3D Library\\Runtime\\Textures\\DAZ\\Characters\\Genesis8\\MaleBase"
         }
         daz_tex_path_mac = {
-            "female" : "/Users/Share/My DAZ 3D Library/Runtime/Textures/DAZ/Characters/Genesis8/FemaleBase",
-            "male" : "/Users/Share/My DAZ 3D Library/Runtime/Textures/DAZ/Characters/Genesis8/MaleBase"
+            "female": "/Users/Share/My DAZ 3D Library/Runtime/Textures/DAZ/Characters/Genesis8/FemaleBase",
+            "male": "/Users/Share/My DAZ 3D Library/Runtime/Textures/DAZ/Characters/Genesis8/MaleBase"
         }
         fig_tex_paths = [dir_path, ""]
 
@@ -314,7 +315,8 @@ class MatDct:
                         for mat_name_num in self.mat_types__bpart:
                             mat_v = mat_name_num[i]
                             case1 = (i == 0) and mat_v in tex_name_lower
-                            case2 = (i == 1) and ("00" + mat_v) in tex_name_lower
+                            case2 = (i == 1) and (
+                                "00" + mat_v) in tex_name_lower
                             if case1 or case2:
                                 if mat_type_prop[0] == "":
                                     mat_type_prop[0] = mat_name_num[1]
@@ -324,17 +326,17 @@ class MatDct:
                         for mat_prop in self.mat_props__imgs:
                             prop = mat_prop[i]
                             case1 = self.check_match(
-                                            prop,
-                                            tex_name,
-                                            i,
-                                            is_cloth = False
-                                        )
+                                prop,
+                                tex_name,
+                                i,
+                                is_cloth=False
+                            )
                             case2 = self.check_match(
-                                            prop,
-                                            tex_name_lower,
-                                            i,
-                                            is_cloth = False
-                                        )
+                                prop,
+                                tex_name_lower,
+                                i,
+                                is_cloth=False
+                            )
                             if case1 or case2:
                                 if mat_type_prop[1] == "":
                                     mat_type_prop[1] = mat_prop[2]
@@ -364,7 +366,7 @@ class MatDct:
         if c_name != "":
             for i in range(3):
                 if i == 0:
-                    rtn = self.cloth_dct(c_name, c_dir,adr)
+                    rtn = self.cloth_dct(c_name, c_dir, adr)
                     if rtn != []:
                         return rtn
                 elif i == 1:
@@ -372,8 +374,9 @@ class MatDct:
                         if img[2] == 'd':
                             for j in range(2):
                                 if c_name.endswith(img[j]):
-                                    myc_name = c_name[0:len(c_name) - len(img[j])]
-                                    rtn = self.cloth_dct(myc_name, c_dir,adr)
+                                    myc_name = c_name[0:len(
+                                        c_name) - len(img[j])]
+                                    rtn = self.cloth_dct(myc_name, c_dir, adr)
 
                                     if rtn != []:
                                         return rtn
@@ -384,18 +387,18 @@ class MatDct:
                         c_name = c_name[:3]
                     else:
                         c_name = c_name[:1]
-                    return self.cloth_dct(c_name, c_dir,adr)
+                    return self.cloth_dct(c_name, c_dir, adr)
         return None
 
     def cloth_dct(self, cname, aadr, skip_adr):
         skip_adr = os.path.realpath(os.path.abspath(skip_adr))
         cloth_dct = []
         if os.path.exists(aadr) and os.path.isdir(aadr):
-            list = os.listdir(path = aadr)
+            list = os.listdir(path=aadr)
             for l in list:
                 L = l
                 l = l.lower()
-                if L.startswith(cname)==False:
+                if L.startswith(cname) == False:
                     continue
                 twd = [cname, ""]
                 for z in range(2):
@@ -406,14 +409,14 @@ class MatDct:
                                 twd[1] = img[2]
                                 break
                 if twd[0] != "" and twd[1] != "":
-                    wd = twd[0] + "-" +  twd[1]
+                    wd = twd[0] + "-" + twd[1]
                     for cd in cloth_dct:
                         if cd[0] == wd:
                             wd = ""
                             break
-                    if wd!="":
+                    if wd != "":
                         ans = aadr + Global.getFileSp() + L
                         ans = os.path.realpath(os.path.abspath(ans))
                         if skip_adr != ans:
-                            cloth_dct.append([wd,ans])
+                            cloth_dct.append([wd, ans])
         return cloth_dct
