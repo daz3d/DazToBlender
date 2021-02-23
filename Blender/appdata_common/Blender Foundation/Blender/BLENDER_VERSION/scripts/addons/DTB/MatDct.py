@@ -16,6 +16,7 @@ class MatDct:
         ["eyesocket", "1"],
         ["lips", "1"],
         ["torso", "2"],
+        ["body", "2"],
         ["legs", "3"],
         ["toenails", "3"],
         ["arms", "4"],

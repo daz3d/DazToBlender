@@ -20,7 +20,6 @@ bone_limit_memory = []
 Geo_Idx = 0
 now_ary = []
 pst_ary = []
-_ISPRO = 0
 _BVCount = 0
 _SIZE = 0
 root =""
@@ -51,16 +50,6 @@ EYLSCOUNT =464
 
 def getMyMax3():
     return max_vs[getSex()][get_geo_idx()]
-
-def getIsPro():
-    global _ISPRO
-    if _ISPRO==0:
-        dir = os.path.dirname(__file__)+getFileSp()+"ToHighReso.py"
-        if os.path.exists(dir):
-            _ISPRO = 1
-        else:
-            _ISPRO = -1
-    return _ISPRO > 0
 
 def getIsG3():
     return get_geo_idx()==G3_GEOIDX
@@ -428,18 +417,14 @@ def decide_HERO():
                             isGen = False
                             break
                     for vc in max_vs[i][G3_GEOIDX]:
-                        if lon == vc:
-                            if getIsPro() == False:
-                                bool_body[0] = False
-                                break
-                            elif _ISG3 == 2:
-                                _ISG3 = 0
-                                mf = (1 if i == 1 else 2)
-                                isMan = mf==1
-                                addG3Database(isMan)
-                                Geo_Idx = G3_GEOIDX
-                                isGen = True
-                                break
+                        if lon == vc and _ISG3 == 2:
+                            _ISG3 = 0
+                            mf = (1 if i == 1 else 2)
+                            isMan = mf==1
+                            addG3Database(isMan)
+                            Geo_Idx = G3_GEOIDX
+                            isGen = True
+                            break
                 break
             elif z>0 and bool_body[1]==False and find_EYLS(dobj):
                 bool_body[1] = True
@@ -806,7 +791,7 @@ def bone_limit_modify():
         
         elif do_conversion and order == "YZX":
             # Bones that are pointed down with YZX order
-            # todo: remove hardcoding
+            # TODO: remove hardcoding
             if name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
                 # Y invert (-Y)
                 temp = 0 - bone_limit[5]

@@ -361,7 +361,7 @@ def clean_animations():
 
                     elif rotation_order == "YZX":
                         # Bones that are pointed down with YZX order
-                        # todo: remove hardcoding
+                        # TODO: remove hardcoding
                         if node_name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
                             for i in range(point_count):
                                 # Y invert (-Y)
@@ -525,7 +525,7 @@ class IMP_OT_FBX(bpy.types.Operator):
     def finish_obj(self):
         Versions.reverse_language()
         Versions.pivot_active_element_and_center_and_trnormal()
-        Global.setRenderSetting(Global.getIsPro())
+        Global.setRenderSetting(True)
 
     def layGround(self):
         bpy.context.preferences.inputs.use_mouse_depth_navigate = True
