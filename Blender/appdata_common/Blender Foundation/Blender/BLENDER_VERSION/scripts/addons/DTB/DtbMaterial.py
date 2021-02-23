@@ -14,6 +14,8 @@ EDRY = 2
 
 mtable = [
     ["Torso", 2],
+    ["Head", 1],
+    ["Body", 2],
     ["Face", 1],
     ["Lips", 1],
     ["Teeth", 5],
@@ -347,23 +349,25 @@ def forbitMinus():
             mat = bpy.data.materials.get(slot.name)
             if mat is None or mat.node_tree is None:
                 continue
-            ROOT = mat.node_tree.nodes
-            for r in ROOT:
-                if pbsdf in r.name:
-                    for input in ROOT[pbsdf].inputs:
-                        if len(input.links) == 0:
-                            if type(input.default_value) is float:
-                                if input.default_value < 0:
-                                    input.default_value = 0.0
-                                if input.name == 'Metallic' and input.default_value == 1.0:
-                                    input.default_value = 0.0
-                                if input.name == 'Specular' and input.default_value == 2.0:
-                                    input.default_value = 0.2
-                            elif type(input.default_value) is list:
-                                for i in input.default_value:
-                                    if type(i) is float:
-                                        if input.default_value < 0:
-                                            input.default_value = 0.0
+            mat_nodes = mat.node_tree.nodes
+            for mat_node in mat_nodes:
+                if pbsdf not in mat_node.name:
+                    continue
+                for node_input in mat_nodes[pbsdf].inputs:
+                    if len(node_input.links) != 0:
+                        continue
+                    if type(node_input.default_value) is float:
+                        if node_input.default_value < 0:
+                            node_input.default_value = 0.0
+                        if node_input.name == 'Metallic' and node_input.default_value == 1.0:
+                            node_input.default_value = 0.0
+                        if node_input.name == 'Specular' and node_input.default_value == 2.0:
+                            node_input.default_value = 0.2
+                    elif type(node_input.default_value) is list:
+                        for i in node_input.default_value:
+                            if type(i) is float:
+                                if node_input.default_value < 0:
+                                    node_input.default_value = 0.0
 
 
 def default_material():
@@ -436,31 +440,31 @@ def readImages(dct):
                                 Versions.to_color_space_non(SNTIMG)
 
 
-def insertBumpMap(ROOT, LINK):
+def insert_bump_map(nodes, links):
     rtn = [None, None]
     PBSDF = None
     NML = None
-    for n in ROOT:
+    for n in nodes:
         if n.name == 'Principled BSDF':
             PBSDF = n
         elif n.name == 'Normal Map':
             NML = n
     if PBSDF is None:
-        return ROOT
+        return nodes
     nlinks = PBSDF.inputs['Normal'].links
     for nl in nlinks:
-        BUMP = ROOT.new(type='ShaderNodeBump')
+        BUMP = nodes.new(type='ShaderNodeBump')
         if NML is not None and nl.from_node == NML:
-            LINK.new(BUMP.outputs['Normal'], PBSDF.inputs['Normal'])
-            LINK.new(NML.outputs['Normal'], BUMP.inputs['Normal'])
+            links.new(BUMP.outputs['Normal'], PBSDF.inputs['Normal'])
+            links.new(NML.outputs['Normal'], BUMP.inputs['Normal'])
             rtn[1] = BUMP
         elif nl.from_node.name == 'Bump Map':
             rtn[1] = nl.from_node
     if rtn[1] is None:
-        BUMP = ROOT.new(type='ShaderNodeBump')
-        LINK.new(BUMP.outputs['Normal'], PBSDF.inputs['Normal'])
+        BUMP = nodes.new(type='ShaderNodeBump')
+        links.new(BUMP.outputs['Normal'], PBSDF.inputs['Normal'])
         rtn[1] = BUMP
-    rtn[0] = ROOT
+    rtn[0] = nodes
     return rtn
 
 
@@ -476,204 +480,245 @@ class DtbShaders:
         mat_dct.make_dct_from_mtl()
         self.dct = mat_dct.get_dct()
 
-    def eyelash(self, ROOT, LINK, cyclesOUT, eeveeOUT):
-        adr = ""
-        ALF = ROOT.new(type='ShaderNodeBsdfTransparent')
+    def set_eyelash_mat(self, mat_nodes, mat_links, out_node_cy, out_node_ev):
+        # Create and set BSDF Transparent node
+        bsdf_trans_node = mat_nodes.new(type='ShaderNodeBsdfTransparent')
+        tex_path = ""
         if "0t" in self.dct.keys():
-            adr = self.dct["0t"]
-        if os.path.exists(adr) == False:
-            LINK.new(ALF.outputs['BSDF'], cyclesOUT.inputs[0])
-            LINK.new(ALF.outputs['BSDF'], eeveeOUT.inputs[0])
+            tex_path = self.dct["0t"]
+        # If texture is not found, set bsdf_trans node outputs and return
+        if not os.path.exists(tex_path):
+            mat_links.new(bsdf_trans_node.outputs['BSDF'], out_node_cy.inputs[0])
+            mat_links.new(bsdf_trans_node.outputs['BSDF'], out_node_ev.inputs[0])
             return
-        SNTIMG = ROOT.new(type='ShaderNodeTexImage')
-        img = bpy.data.images.load(filepath=adr)
-        SNTIMG.image = img
-        MIX = ROOT.new(type='ShaderNodeMixShader')
-        DIF = ROOT.new(type='ShaderNodeBsdfDiffuse')
-        IVT = ROOT.new(type='ShaderNodeInvert')
-        DIF.inputs['Color'].default_value = (0.1, 0.1, 0.1, 1)
-        DIF.inputs['Roughness'].default_value = 0.2
-        nodemap = [
-            [IVT.inputs['Color'], SNTIMG.outputs['Color']],
-            [MIX.inputs[0], IVT.outputs['Color']],
-            [MIX.inputs[2], ALF.outputs['BSDF']],
-            [MIX.inputs[1], DIF.outputs['BSDF']],
-            [MIX.outputs[0], cyclesOUT.inputs[0]],
-            [MIX.outputs[0], eeveeOUT.inputs[0]]
+
+        # Create and set other nodes
+        tex_image_node = mat_nodes.new(type='ShaderNodeTexImage')
+        tex_image_node.image = bpy.data.images.load(filepath=tex_path)
+
+        mix_shader_node = mat_nodes.new(type='ShaderNodeMixShader')
+        invert_node = mat_nodes.new(type='ShaderNodeInvert')
+
+        bsdf_diff_node = mat_nodes.new(type='ShaderNodeBsdfDiffuse')
+        bsdf_diff_node.inputs['Color'].default_value = (0.1, 0.1, 0.1, 1)
+        bsdf_diff_node.inputs['Roughness'].default_value = 0.2
+
+        # Create node liking maps and set the links
+        node_maps = [
+            [invert_node.inputs['Color'], tex_image_node.outputs['Color']],
+            [mix_shader_node.inputs[0], invert_node.outputs['Color']],
+            [mix_shader_node.inputs[2], bsdf_trans_node.outputs['BSDF']],
+            [mix_shader_node.inputs[1], bsdf_diff_node.outputs['BSDF']],
+            [mix_shader_node.outputs[0], out_node_cy.inputs[0]],
+            [mix_shader_node.outputs[0], out_node_ev.inputs[0]]
         ]
-        for n in nodemap:
-            LINK.new(n[0], n[1])
+        for node_map in node_maps:
+            mat_links.new(node_map[0], node_map[1])
 
     def body_texture(self):
         moisture_count = 0
-        for slot in Global.getBody().material_slots:
-            for midx in range(len(mtable)):
-                m_name = mtable[midx][0]
-                mban = mtable[midx][1]
-                if m_name.lower() in slot.name.lower():
-                    mname = "drb_" + m_name + Util.get_dzidx()
-                    if "Moisture" in slot.name:
+        for mat_slot in Global.getBody().material_slots:
+            mat_nodes = None
+            for mat_index in range(len(mtable)):
+                mat_name = mtable[mat_index][0]
+                mat_type = mtable[mat_index][1]
+                if mat_name.lower() in mat_slot.name.lower():
+                    # Create new material name
+                    mat_new_name = "drb_" + mat_name + Util.get_dzidx()
+                    if "Moisture" in mat_slot.name:
                         moisture_count += 1
-                        if moisture_count > 1 and ('.0' in slot.name):
-                            mname = 'drb_EylsMoisture' + Util.get_dzidx()
-                    if mname not in bpy.data.materials:
-                        mat = bpy.data.materials.new(name=mname)
-                    else:
-                        mat = bpy.data.materials.get(mname)
-                    mname = mat.name
-                    bpy.data.materials[mname].use_nodes = True
-                    ROOT = bpy.data.materials[mname].node_tree.nodes
-                    LINK = bpy.data.materials[mname].node_tree.links
-                    dels = ['Material Output',
-                            'Diffuse BSDF', 'Principled BSDF']
-                    for r in ROOT:
-                        for d in dels:
-                            if r.name == d:
-                                ROOT.remove(ROOT[d])
+                        if moisture_count > 1 and ('.0' in mat_slot.name):
+                            mat_new_name = 'drb_EylsMoisture' + Util.get_dzidx()
+
+                    # Get or create new material and do required setup
+                    mat = bpy.data.materials.get(mat_new_name) \
+                            or bpy.data.materials.new(name=mat_new_name)
+                    bpy.data.materials[mat_new_name].use_nodes = True
+                    mat_nodes = bpy.data.materials[mat_new_name].node_tree.nodes
+                    mat_links = bpy.data.materials[mat_new_name].node_tree.links
+
+                    # Nodes that need to be removed from the old material
+                    nodes_to_remove = [
+                                        'Material Output',
+                                        'Diffuse BSDF', 
+                                        'Principled BSDF'
+                                    ]
+                    for mat_node in mat_nodes:
+                        for node_to_remove in nodes_to_remove:
+                            if mat_node.name == node_to_remove:
+                                mat_nodes.remove(mat_nodes[node_to_remove])
                                 break
-                    cyclesOUT = ROOT.new(type="ShaderNodeOutputMaterial")
-                    cyclesOUT.target = 'CYCLES'
-                    eeveeOUT = ROOT.new(type="ShaderNodeOutputMaterial")
-                    eeveeOUT.target = 'EEVEE'
-                    SNBP = ROOT.new(type='ShaderNodeGroup')
-                    if mban == 8:
-                        SNBP.node_tree = bpy.data.node_groups[ngroup3(EWET)]
-                    elif mban == 7:
-                        SNBP.node_tree = bpy.data.node_groups[ngroup3(EDRY)]
-                    elif mban == 0:
+
+                    # Crete material output nodes and set corresponding targets
+                    out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
+                    out_node_cy.target = 'CYCLES'
+                    out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
+                    out_node_ev.target = 'EEVEE'
+
+                    # Create shader group node and set custom shader node tree
+                    shader_node = mat_nodes.new(type='ShaderNodeGroup')
+                    if mat_type == 8:
+                        # Cornea, EyeMoisture, EyeMoisture.00, EylsMoisture
+                        shader_node.node_tree = bpy.data.node_groups[ngroup3(EWET)]
+                    elif mat_type == 7:
+                        # Pupils, Trises, Sclera
+                        shader_node.node_tree = bpy.data.node_groups[ngroup3(EDRY)]
+                    elif mat_type == 0:
+                        # Setup nodes and break for Eyelashes
                         Versions.eevee_alpha(mat, 'BLEND', 0)
-                        ROOT.remove(SNBP)
-                        self.eyelash(ROOT, LINK, cyclesOUT, eeveeOUT)
-                        slot.material = mat
+                        mat_nodes.remove(shader_node)
+                        self.set_eyelash_mat(mat_nodes, mat_links, out_node_cy, out_node_ev)
+                        mat_slot.material = mat
                         break
                     else:
-                        SNBP.node_tree = bpy.data.node_groups[ngroup3(SKIN)]
-                    if mban == 7 or mban == 0 or mname == 'drb_EyeSocket':
-                        LINK.new(SNBP.outputs['EEVEE'],
-                                 cyclesOUT.inputs['Surface'])
+                        shader_node.node_tree = bpy.data.node_groups[ngroup3(SKIN)]
+
+                    # Link the nodes in the material
+                    render_output = None
+                    surface_input = out_node_cy.inputs['Surface']
+                    if mat_type == 7 or mat_type == 0 or mat_new_name == 'drb_EyeSocket':
+                        render_output = shader_node.outputs['EEVEE']
                     else:
-                        if Global.getIsPro():
-                            LINK.new(SNBP.outputs['Cycles'],
-                                     cyclesOUT.inputs['Surface'])
-                        else:
-                            LINK.new(SNBP.outputs['EEVEE'],
-                                     cyclesOUT.inputs['Surface'])
-                    if mban > 0 and mban < 7 and Global.getIsPro():
-                        LINK.new(SNBP.outputs['Displacement'],
-                                 cyclesOUT.inputs['Displacement'])
-                    LINK.new(SNBP.outputs['EEVEE'], eeveeOUT.inputs['Surface'])
-                    bc_key = slot.name.lower()+"_c"
-                    bc_value = []
-                    if bc_key in self.dct.keys():
-                        bc_value = self.dct[bc_key]
-                    if len(bc_value) == 4 and mban != 8:
-                        SNBP.inputs['Diffuse'].default_value = (
-                            bc_value[0], bc_value[1], bc_value[2], bc_value[3])
-                    if mban == 8:
+                        render_output = shader_node.outputs['Cycles']
+                    mat_links.new(render_output, surface_input)
+
+                    if mat_type > 0 and mat_type < 7:
+                        mat_links.new(
+                                    shader_node.outputs['Displacement'],
+                                    out_node_cy.inputs['Displacement']
+                                )
+                    mat_links.new(
+                                shader_node.outputs['EEVEE'], 
+                                out_node_ev.inputs['Surface']
+                            )
+                    base_color_key = mat_slot.name.lower() + "_c"
+                    base_color_value = []
+                    if base_color_key in self.dct.keys():
+                        base_color_value = self.dct[base_color_key]
+
+                    if len(base_color_value) == 4 and mat_type != 8:
+                        shader_node.inputs['Diffuse'].default_value = (
+                            base_color_value[0], base_color_value[1],
+                            base_color_value[2], base_color_value[3]
+                        )
+
+                    if mat_type == 8:
                         Versions.eevee_alpha(mat, 'HASHED', 0)
-                    if mban == 0:
-                        Versions.eevee_alpha(mat, 'BLEND', 0)
-                        self.eyelashes(
-                            ROOT, LINK, SNBP.outputs['Cycles'], mname, cyclesOUT, eeveeOUT)
+
+                    # Find and set texture image and link to shader node
+                    for f_index, ft in enumerate(ftable):
+                        if mat_new_name == 'drb_Cornea':
+                            break
+                        key = str(mat_type) + ft[0]
+                        if ft[1] not in shader_node.inputs:
+                            continue
+                        if key in self.dct.keys():
+                            tex_path = self.dct[key]
+                        else:
+                            tex_path = ""
+                        if not os.path.exists(tex_path):
+                            continue
+                        tex_image_node = mat_nodes.new(
+                                            type='ShaderNodeTexImage'
+                                        )
+                        tex_image = bpy.data.images.load(filepath=tex_path)
+                        tex_image_node.image = tex_image
+                        tex_color_output = tex_image_node.outputs['Color']
+                        if f_index != 0:
+                            Versions.to_color_space_non(tex_image_node)
+                        mat_links.new(
+                                tex_color_output,
+                                shader_node.inputs[ft[1]]
+                            )
+                        if f_index == 1 and mat_type < 7 and mat_type > 0:
+                            mat_links.new(
+                                    tex_color_output,
+                                    shader_node.inputs['Displacement']
+                                )
+
+                    mat_slot.material = mat
+                    # Set displacement method
+                    if mat_type == 8 or mat_type == 7 or mat_type == 0:
+                        mat_slot.material.cycles.displacement_method = 'BUMP'
                     else:
-                        for fidx, ft in enumerate(ftable):
-                            if mname == 'drb_Cornea':
-                                break
-                            key = str(mban)+ft[0]
-                            if ft[1] not in SNBP.inputs:
-                                continue
-                            if key in self.dct.keys():
-                                adr = self.dct[key]
-                            else:
-                                adr = ""
-                            if os.path.exists(adr) == False:
-                                continue
-                            SNTIMG = ROOT.new(type='ShaderNodeTexImage')
-                            img = bpy.data.images.load(filepath=adr)
-                            SNTIMG.image = img
-                            out_sntimg_color = SNTIMG.outputs['Color']
-                            if fidx != 0:
-                                Versions.to_color_space_non(SNTIMG)
-                            # [ftable[1][fidx]])
-                            LINK.new(out_sntimg_color, SNBP.inputs[ft[1]])
-                            if fidx == 1 and mban < 7 and mban > 0:
-                                LINK.new(out_sntimg_color,
-                                         SNBP.inputs['Displacement'])
-                    slot.material = mat
-                    if mban == 8 or mban == 7 or mban == 0 or Global.getIsPro() == False:
-                        slot.material.cycles.displacement_method = 'BUMP'
-                    else:
-                        slot.material.cycles.displacement_method = 'BOTH'
-            NodeArrange.toNodeArrange(ROOT)
+                        mat_slot.material.cycles.displacement_method = 'BOTH'
+
+            if mat_nodes is not None:
+                NodeArrange.toNodeArrange(mat_nodes)
 
     def prop_texture(self):
-        skip = [Global.get_Body_name(), Global.get_Hair_name() +
-                "OK", Global.get_Eyls_name()]
+        fig_objs_names = [
+                Global.get_Body_name(),
+                Global.get_Hair_name() + "OK",
+                Global.get_Eyls_name()
+            ]
         for obj in Util.myacobjs():
-            if Global.isRiggedObject(obj):
-                if obj.name in skip:
+            # Skip for any of the following cases
+            case1 = not Global.isRiggedObject(obj)
+            case2 = obj.name in fig_objs_names
+            if case1 or case2:
+                continue
+
+            for mat_slot in obj.material_slots:
+                mat = bpy.data.materials[mat_slot.name]
+                if mat is None:
                     continue
-                for slot in obj.material_slots:
-                    mat = bpy.data.materials[slot.name]
-                    if mat is None:
-                        return
-                    count = 0
-                    LINK = mat.node_tree.links
-                    ROOT = mat.node_tree.nodes
-                    PBSDF = None
-                    NORM = None
-                    bckey = slot.name.lower()+"_c"
-                    bc_value = []
-                    if bckey in self.dct.keys():
-                        bc_value = self.dct[bckey]
-                    if len(bc_value) == 4 and bc_value[3] < 1.0:
-                        Versions.eevee_alpha(mat, 'BLEND', 0)
-                    name4 = ['Material Output', 'Image Texture',
-                             'Principled BSDF', 'Normal Map']
-                    source_adr = ""
-                    if len(mat.node_tree.nodes) == 5 or len(mat.node_tree.nodes) == 4:
-                        for node in ROOT:
-                            for nidx, nm in enumerate(name4):
-                                if node.name == nm:
-                                    count += 1
-                                    if nidx == 1:
-                                        source_adr = node.image.filepath
-                                    elif nidx == 2:
-                                        PBSDF = node
-                                    elif nidx == 3:
-                                        NORM = node
-                        if source_adr != "":
-                            md = MatDct.MatDct()
-                            cary = md.cloth_dct_0(source_adr)
-                            pandb = insertBumpMap(ROOT, LINK)
-                            BUMP = pandb[1]
-                            ROOT = pandb[0]
-                            PBSDF.inputs['Specular'].default_value = 0.3
-                            if(len(PBSDF.inputs['Alpha'].links) > 0):
-                                Versions.eevee_alpha(mat, 'BLEND', 0)
-                            for ca in cary:
-                                for ft in ftable:
-                                    if ft[0] == 'd':
-                                        continue
-                                    if ca[0].endswith(ft[0]):
-                                        SNTIMG = ROOT.new(
-                                            type='ShaderNodeTexImage')
-                                        img = bpy.data.images.load(
-                                            filepath=ca[1])
-                                        SNTIMG.image = img
-                                        Versions.to_color_space_non(SNTIMG)
-                                        if ft[0] == 'n':
-                                            if NORM is not None:
-                                                LINK.new(
-                                                    SNTIMG.outputs['Color'], NORM.inputs['Color'])
-                                        elif ft[0] == 'b':
-                                            if BUMP is not None:
-                                                LINK.new(
-                                                    SNTIMG.outputs['Color'], BUMP.inputs['Height'])
-                                        else:
-                                            LINK.new(
-                                                SNTIMG.outputs['Color'], PBSDF.inputs[ft[1]])
-                    NodeArrange.toNodeArrange(ROOT)
+                
+                base_color_key = mat_slot.name.lower() + "_c"
+                base_color_value = []
+                if base_color_key not in self.dct.keys():
+                    continue
+                base_color_value = self.dct[base_color_key]
+                if len(base_color_value) == 4 and base_color_value[3] < 1.0:
+                    Versions.eevee_alpha(mat, 'BLEND', 0)
+
+                mat_nodes = mat.node_tree.nodes
+                mat_links = mat.node_tree.links
+                image_path = ""
+                prin_bsdf_node = None
+                norm_map_node = None
+                if len(mat_nodes) == 5 or len(mat_nodes) == 4:
+                    for node in mat_nodes:
+                        if node.name == "Image Texture":
+                            image_path = node.image.filepath
+                        elif node.name == "Principled BSDF":
+                            prin_bsdf_node = node
+                        elif node.name == "Normal Map":
+                            norm_map_node = node
+
+                    if image_path != "":
+                        md = MatDct.MatDct()
+                        cary = md.cloth_dct_0(image_path)
+                        pandb = insert_bump_map(mat_nodes, mat_links)
+                        BUMP = pandb[1]
+                        mat_nodes = pandb[0]
+                        prin_bsdf_node.inputs['Specular'].default_value = 0.3
+                        if(len(prin_bsdf_node.inputs['Alpha'].links) > 0):
+                            Versions.eevee_alpha(mat, 'BLEND', 0)
+                        for ca in cary:
+                            for ft in ftable:
+                                if ft[0] == 'd':
+                                    continue
+                                if ca[0].endswith(ft[0]):
+                                    SNTIMG = mat_nodes.new(
+                                        type='ShaderNodeTexImage')
+                                    img = bpy.data.images.load(
+                                        filepath=ca[1])
+                                    SNTIMG.image = img
+                                    Versions.to_color_space_non(SNTIMG)
+                                    if ft[0] == 'n':
+                                        if norm_map_node is not None:
+                                            mat_links.new(
+                                                SNTIMG.outputs['Color'], norm_map_node.inputs['Color'])
+                                    elif ft[0] == 'b':
+                                        if BUMP is not None:
+                                            mat_links.new(
+                                                SNTIMG.outputs['Color'], BUMP.inputs['Height'])
+                                    else:
+                                        mat_links.new(
+                                            SNTIMG.outputs['Color'], prin_bsdf_node.inputs[ft[1]])
+
+                NodeArrange.toNodeArrange(mat_nodes)
 
 
 class McyEyeDry:
@@ -878,6 +923,7 @@ class McySkin:
         ROOT = self.mcy_skin.nodes
         LINK = self.mcy_skin.links
         old_gname = ""
+
         for g_index, g_name in enumerate(generate_names):
             if g_name == '':
                 g_name = old_gname
@@ -892,6 +938,7 @@ class McySkin:
                 n.blend_type = sub
             self.shaders.append(n)
             old_gname = g_name
+            
         for cidx, cn in enumerate(con_nums):
             outp = cn[0]
             inp = cn[1]
