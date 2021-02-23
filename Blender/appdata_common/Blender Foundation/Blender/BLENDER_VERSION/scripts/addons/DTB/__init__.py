@@ -131,9 +131,9 @@ def set_scene_settings():
     Global.setOpsMode('POSE')
     armature = Global.getAmtr().data
     armature.display_type = 'OCTAHEDRAL'
-    armature.show_axes = True
-    armature.show_bone_custom_shapes = False
-    #armature.show_names = True
+    armature.show_names = False
+    armature.show_axes = False
+    armature.show_bone_custom_shapes = True
 
 # region - Quaternion to Euler
 
