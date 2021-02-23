@@ -11,12 +11,12 @@ class MatDct:
 
     mat_types__bpart = [
         ["face", "1"],
-        ["head", "1"],
+        ["head", "2"],
         ["ears", "1"],
         ["eyesocket", "1"],
         ["lips", "1"],
         ["torso", "2"],
-        ["body", "2"],
+        ["body", "3"],
         ["legs", "3"],
         ["toenails", "3"],
         ["arms", "4"],
@@ -296,9 +296,10 @@ class MatDct:
             else:
                 fig_tex_paths[1] = daz_tex_path_mac["female"]
 
+        # TODO: Verify if we need to search in default path
         # Skip if both represent same directories
-        if os.path.samefile(fig_tex_paths[0], fig_tex_paths[1]):
-            fig_tex_paths[1] = "skip"
+        # if os.path.samefile(fig_tex_paths[0], fig_tex_paths[1]):
+        #     fig_tex_paths[1] = "skip"
 
         for index in range(len(fig_tex_paths)):
             if index > 0:
