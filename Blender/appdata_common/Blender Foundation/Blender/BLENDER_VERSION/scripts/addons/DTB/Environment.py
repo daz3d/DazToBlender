@@ -429,7 +429,7 @@ class ReadFbx:
                             mainNode.inputs['Metallic'].default_value = 0.0
                             mainNode.inputs['Specular'].default_value = 0.2
                             mainNode.inputs['Roughness'].default_value = 0.5
-                            root_bump = DtbMaterial.insertBumpMap(ROOT, LINK)
+                            root_bump = DtbMaterial.insert_bump_map(ROOT, LINK)
                             ROOT = root_bump[0]
                             bumpNode = root_bump[1]
                             bcolor_by_asc = ""
