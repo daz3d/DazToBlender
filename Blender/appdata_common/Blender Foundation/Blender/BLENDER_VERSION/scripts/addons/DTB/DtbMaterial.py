@@ -14,8 +14,8 @@ EDRY = 2
 
 mtable = [
     ["Torso", 2],
-    ["Head", 1],
-    ["Body", 2],
+    ["Head", 2],
+    ["Body", 3],
     ["Face", 1],
     ["Lips", 1],
     ["Teeth", 5],
