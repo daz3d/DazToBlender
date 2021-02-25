@@ -100,9 +100,9 @@
 			
 			sName = oProp.getName()
 			s_oMorphs[sLabel] = {
-								"sMorphHead": sHead, 
-								"sMorphName" : sName, 
-								"sMorphPath" : sPath
+									"sMorphHead": sHead,
+									"sMorphName" : sName,
+									"sMorphPath" : sPath
 								};
 		}
 	};
@@ -643,9 +643,9 @@
 			if( sMorphHead != "Hidden" ){
 				var sMorphHeaders = sMorphPath.split("/") 
 				aMorphList.push( 
-								sMorphHeaders[sMorphHeaders.length - 2] + " " + 
-								sMorphHeaders[sMorphHeaders.length - 1] + " " +
-								":" + s_s3Spaces + s_aMorphLabel
+									sMorphHeaders[sMorphHeaders.length - 2] + " "
+									+ sMorphHeaders[sMorphHeaders.length - 1] + " :"
+									+ s_s3Spaces + s_aMorphLabel
 								);
 			}
 		}
@@ -656,10 +656,7 @@
 		for( var sMorphLabel in s_oMorphs ){
 			sMorphHead = s_oMorphs[sMorphLabel]["sMorphHead"];
 			if( sMorphHead == "Hidden" ){
-				aMorphList.push( 
-								sMorphHead + 
-								":" + s_s3Spaces + sMorphLabel
-								);
+				aMorphList.push( sMorphHead + ":" + s_s3Spaces + sMorphLabel );
 			}
 		}
 
@@ -676,7 +673,7 @@
 		
 		function addValidMorphName(){
 			var sCurText = wValidMorphNamesLBox.currentText;
-			sCurText = sCurText.split( ":"+s_s3Spaces )[1];
+			sCurText = sCurText.split( ":" + s_s3Spaces )[1];
 			wMorphNamesTEdit.append( sCurText );
 		};
 		wValidMorphNamesLBox.doubleClicked.connect( wValidMorphNamesLBox, addValidMorphName );
@@ -1880,86 +1877,72 @@
 		var oObj = oNode.getObject();
 		if( oObj != null ){
 			var oShape = oObj.getCurrentShape();
-			var nMat = oShape.getNumMaterials();
 			var aMaterials = [];
 			if( oShape ){
-				for( var k=0; k < nMat; k++ ){
-					var oAssetInfo = {};
+				for( var k = 0; k < oShape.getNumMaterials(); k++ ){
+					var oMaterialInfo = {};
 					var aProperties = [];
 					var oMat = oShape.getMaterial( k );
-					if(oMat){	
-						oAssetInfo["Asset Name"] = oNode.getLabel();
-						oAssetInfo["Material Name"] = oMat.getName();
-						oAssetInfo["Material Type"] = oMat.getMaterialName();
+					if( oMat ){	
+						oMaterialInfo["Asset Name"] = oNode.getLabel();
+						oMaterialInfo["Material Name"] = oMat.getName();
+						oMaterialInfo["Material Type"] = oMat.getMaterialName();
 						
+						// Get presentation and set material info
 						var oPresentation = oNode.getPresentation();
 						if( oPresentation != undefined ){
 							var sPresentationType = oPresentation.type
-							oAssetInfo["Value"]  = sPresentationType;
+							oMaterialInfo["Value"]  = sPresentationType;
 						}
 						else{
-							oAssetInfo["Value"]  = "Unknown";
+							oMaterialInfo["Value"]  = "Unknown";
 						}
-						for( var i = 0; i < oMat.getNumProperties(); i++){	
-							var oProperty =oMat.getProperty( i );
+
+						// Load all the porperties info
+						for( var i = 0; i < oMat.getNumProperties(); i++ ){
+							var oProperty = oMat.getProperty( i );
+							var oPropertyInfo = {};
+							
+							oPropertyInfo["Name"] = oProperty.getName();
+							
 							var bImageProperty = oProperty.inherits( "DzImageProperty" );
 							var bColorProperty = oProperty.inherits( "DzColorProperty" );
 							var bNumericProperty = oProperty.inherits( "DzNumericProperty" );
 
 							if( bImageProperty ){
-								var sName = oProperty.getName();
-								var sTextureName ="";
+								var sTextureName = "";
 								if(oProperty.getValue()){
 									sTextureName = oProperty.getValue().getFilename();	
 								}
-								aProperties.push(
-									{
-									"Name" : sName,
-									"Value" : oMat.getDiffuseColor().name,
-									"Data Type" : "Texture",
-									"Texture" : sTextureName
-									}
-								);
+								oPropertyInfo["Value"] = oMat.getDiffuseColor().name;
+								oPropertyInfo["Data Type"] = "Texture";
+								oPropertyInfo["Texture"] = sTextureName;
 							}
-							
-							if( bColorProperty ){
+							else if( bColorProperty ){
 								var sName = oProperty.getName();
 								var sTextureName ="";
 								if ( oProperty.getMapValue() ){
 									sTextureName = oProperty.getMapValue().getFilename();
 								}
-								aProperties.push(
-									{
-									"Name" : sName,
-									"Value" : oProperty.getColorValue().name,
-									"Data Type" : "Color",
-									"Texture" : sTextureName
-									}
-								)
+								oPropertyInfo["Value"] = oProperty.getColorValue().name;
+								oPropertyInfo["Data Type"] = "Color";
+								oPropertyInfo["Texture"] = sTextureName;
 							}
-
-							if( bNumericProperty ){
-								// To deal with Color Property being the Choice we want.
-								if( !bColorProperty){
-									var sName = oProperty.getName();
-									var sTextureName ="";
-									if ( oProperty.getMapValue() ){
-										sTextureName = oProperty.getMapValue().getFilename();
-									}
-									aProperties.push(
-										{
-										"Name" : sName,
-										"Value" : oProperty.getValue(),
-										"Data Type" : "Double",
-										"Texture" : sTextureName
-										}
-									)
+							else if( bNumericProperty ){
+								var sName = oProperty.getName();
+								var sTextureName = "";
+								if ( oProperty.getMapValue() ){
+									sTextureName = oProperty.getMapValue().getFilename();
 								}
+								oPropertyInfo["Value"] = oProperty.getValue();
+								oPropertyInfo["Data Type"] = "Double";
+								oPropertyInfo["Texture"] = sTextureName;
 							}
+							aProperties.push( oPropertyInfo );
 						}
-		
-					oAssetInfo["Properties"] = aProperties;
-					aMaterials.push( oAssetInfo );
+						oMaterialInfo["Properties"] = aProperties;
+						
+						aMaterials.push( oMaterialInfo );
 					}
 				}						
 			}
