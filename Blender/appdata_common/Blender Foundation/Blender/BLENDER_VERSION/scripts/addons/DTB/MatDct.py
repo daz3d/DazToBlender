@@ -1,6 +1,5 @@
 import os
 import re
-
 import bpy
 
 from . import Global

@@ -1,4 +1,5 @@
 import os
+import json
 import bpy
 
 from . import Global
@@ -54,6 +55,7 @@ ftable = [
     ["n", "Normal"]
 ]
 
+# region top-level methods
 
 def ngroup3(idx):
     return NGROUP3[idx] + Util.get_dzidx()
@@ -467,9 +469,11 @@ def insert_bump_map(nodes, links):
     rtn[0] = nodes
     return rtn
 
+# endregion top-level methods
 
 class DtbShaders:
     dct = {}
+    mat_data_dict = {}
 
     def __init__(self):
         pass
@@ -479,6 +483,12 @@ class DtbShaders:
         mat_dct = MatDct.MatDct()
         mat_dct.make_dct_from_mtl()
         self.dct = mat_dct.get_dct()
+
+        input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG.dtu")
+        dtu_content = input_file.read()
+        mat_info_list = json.loads(dtu_content)["Materials"]
+        for mat_info in mat_info_list:
+            self.mat_data_dict[mat_info["Material Name"]] = mat_info
 
     def set_eyelash_mat(self, mat_nodes, mat_links, out_node_cy, out_node_ev):
         # Create and set BSDF Transparent node
@@ -515,133 +525,148 @@ class DtbShaders:
         for node_map in node_maps:
             mat_links.new(node_map[0], node_map[1])
 
+    # TODO: Remove all the hardcoding
     def body_texture(self):
-        moisture_count = 0
         for mat_slot in Global.getBody().material_slots:
-            mat_nodes = None
-            for mat_index in range(len(mtable)):
-                mat_name = mtable[mat_index][0]
-                mat_type = mtable[mat_index][1]
-                if mat_name.lower() in mat_slot.name.lower():
-                    # Create new material name
-                    mat_new_name = "drb_" + mat_name + Util.get_dzidx()
-                    if "Moisture" in mat_slot.name:
-                        moisture_count += 1
-                        if moisture_count > 1 and ('.0' in mat_slot.name):
-                            mat_new_name = 'drb_EylsMoisture' + Util.get_dzidx()
+            mat_name = mat_slot.name
+            mat_data = self.mat_data_dict[mat_name]
+            bpy.data.materials[mat_name].use_nodes = True
+            mat_nodes = bpy.data.materials[mat_name].node_tree.nodes
+            mat_links = bpy.data.materials[mat_name].node_tree.links
 
-                    # Get or create new material and do required setup
-                    mat = bpy.data.materials.get(mat_new_name) \
-                            or bpy.data.materials.new(name=mat_new_name)
-                    bpy.data.materials[mat_new_name].use_nodes = True
-                    mat_nodes = bpy.data.materials[mat_new_name].node_tree.nodes
-                    mat_links = bpy.data.materials[mat_new_name].node_tree.links
+            # Get or create new material and do required setup
+            mat = bpy.data.materials.get(mat_name) \
+                    or bpy.data.materials.new(name=mat_name)
 
-                    # Nodes that need to be removed from the old material
-                    nodes_to_remove = [
-                                        'Material Output',
-                                        'Diffuse BSDF', 
-                                        'Principled BSDF'
-                                    ]
-                    for mat_node in mat_nodes:
-                        for node_to_remove in nodes_to_remove:
-                            if mat_node.name == node_to_remove:
-                                mat_nodes.remove(mat_nodes[node_to_remove])
-                                break
-
-                    # Crete material output nodes and set corresponding targets
-                    out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
-                    out_node_cy.target = 'CYCLES'
-                    out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
-                    out_node_ev.target = 'EEVEE'
-
-                    # Create shader group node and set custom shader node tree
-                    shader_node = mat_nodes.new(type='ShaderNodeGroup')
-                    if mat_type == 8:
-                        # Cornea, EyeMoisture, EyeMoisture.00, EylsMoisture
-                        shader_node.node_tree = bpy.data.node_groups[ngroup3(EWET)]
-                    elif mat_type == 7:
-                        # Pupils, Trises, Sclera
-                        shader_node.node_tree = bpy.data.node_groups[ngroup3(EDRY)]
-                    elif mat_type == 0:
-                        # Setup nodes and break for Eyelashes
-                        Versions.eevee_alpha(mat, 'BLEND', 0)
-                        mat_nodes.remove(shader_node)
-                        self.set_eyelash_mat(mat_nodes, mat_links, out_node_cy, out_node_ev)
-                        mat_slot.material = mat
+            # Nodes that need to be removed from the old material
+            nodes_to_remove = [
+                                'Material Output',
+                                'Diffuse BSDF', 
+                                'Principled BSDF'
+                            ]
+            for mat_node in mat_nodes:
+                for node_to_remove in nodes_to_remove:
+                    if mat_node.name == node_to_remove:
+                        mat_nodes.remove(mat_nodes[node_to_remove])
                         break
-                    else:
-                        shader_node.node_tree = bpy.data.node_groups[ngroup3(SKIN)]
 
-                    # Link the nodes in the material
-                    render_output = None
-                    surface_input = out_node_cy.inputs['Surface']
-                    if mat_type == 7 or mat_type == 0 or mat_new_name == 'drb_EyeSocket':
-                        render_output = shader_node.outputs['EEVEE']
-                    else:
-                        render_output = shader_node.outputs['Cycles']
-                    mat_links.new(render_output, surface_input)
+            # Crete material output nodes and set corresponding targets
+            out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
+            out_node_cy.target = 'CYCLES'
+            out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
+            out_node_ev.target = 'EEVEE'
 
-                    if mat_type > 0 and mat_type < 7:
-                        mat_links.new(
-                                    shader_node.outputs['Displacement'],
-                                    out_node_cy.inputs['Displacement']
-                                )
-                    mat_links.new(
-                                shader_node.outputs['EEVEE'], 
-                                out_node_ev.inputs['Surface']
-                            )
-                    base_color_key = mat_slot.name.lower() + "_c"
-                    base_color_value = []
-                    if base_color_key in self.dct.keys():
-                        base_color_value = self.dct[base_color_key]
+            # If Eyelashes, setup nodes and break
+            if mat_name == "Eyelashes":
+                Versions.eevee_alpha(mat, 'BLEND', 0)
+                self.set_eyelash_mat(mat_nodes, mat_links, out_node_cy, out_node_ev)
+                mat_slot.material = mat
+                break
 
-                    if len(base_color_value) == 4 and mat_type != 8:
-                        shader_node.inputs['Diffuse'].default_value = (
-                            base_color_value[0], base_color_value[1],
-                            base_color_value[2], base_color_value[3]
+            # Create shader node and set links
+            shader_node = mat_nodes.new(type='ShaderNodeGroup')
+            if mat_name in [
+                                "Cornea",
+                                "EyeMoisture",
+                                "EyeMoisture.00",
+                                "EylsMoisture"
+                            ]:
+                shader_node.node_tree = bpy.data.node_groups[ngroup3(EWET)]
+            elif mat_name in ["Pupils", "Trises", "Sclera"]:
+                shader_node.node_tree = bpy.data.node_groups[ngroup3(EDRY)]
+            else:
+                shader_node.node_tree = bpy.data.node_groups[ngroup3(SKIN)]
+
+            # Link corresponding nodes in the material
+            render_output = None
+            surface_input = out_node_cy.inputs['Surface']
+            if mat_name in [
+                            "Pupils", "Trises", "Sclera", 
+                            "Eyelashes", "EyeSocket"
+                        ]:
+                render_output = shader_node.outputs['EEVEE']
+            else:
+                render_output = shader_node.outputs['Cycles']
+            mat_links.new(render_output, surface_input)
+
+            if mat_name in [
+                            "Face", "Lips", "Ears", "EyeSocket",
+                            "Torso", "Head", "Genitalia",
+                            "Body", "Legs", "Toenails",
+                            "Arms", "Fingernails",
+                            "Teeth", "Mouth",                            
+                        ]:
+                mat_links.new(
+                            shader_node.outputs['Displacement'],
+                            out_node_cy.inputs['Displacement']
                         )
+            mat_links.new(
+                        shader_node.outputs['EEVEE'], 
+                        out_node_ev.inputs['Surface']
+                    )
+            
+            mat_property_dict = {}
+            for mat_property in mat_data["Properties"]:
+                mat_property_dict[mat_property["Name"]] = mat_property
 
-                    if mat_type == 8:
-                        Versions.eevee_alpha(mat, 'HASHED', 0)
+            if "Diffuse" in shader_node.inputs.keys():
+                color_hex = mat_property_dict["Diffuse Color"]["Value"]
+                color_hex = color_hex.lstrip('#')
+                color_rgb = [int(color_hex[i:i+2], 16) for i in (0, 2, 4)]
+                color_rgb.append(255) # alpha
+                shader_node.inputs['Diffuse'].default_value = color_rgb
 
-                    # Find and set texture image and link to shader node
-                    for f_index, ft in enumerate(ftable):
-                        if mat_new_name == 'drb_Cornea':
-                            break
-                        key = str(mat_type) + ft[0]
-                        if ft[1] not in shader_node.inputs:
-                            continue
-                        if key in self.dct.keys():
-                            tex_path = self.dct[key]
-                        else:
-                            tex_path = ""
-                        if not os.path.exists(tex_path):
-                            continue
-                        tex_image_node = mat_nodes.new(
-                                            type='ShaderNodeTexImage'
-                                        )
-                        tex_image = bpy.data.images.load(filepath=tex_path)
-                        tex_image_node.image = tex_image
-                        tex_color_output = tex_image_node.outputs['Color']
-                        if f_index != 0:
-                            Versions.to_color_space_non(tex_image_node)
-                        mat_links.new(
-                                tex_color_output,
-                                shader_node.inputs[ft[1]]
-                            )
-                        if f_index == 1 and mat_type < 7 and mat_type > 0:
-                            mat_links.new(
-                                    tex_color_output,
-                                    shader_node.inputs['Displacement']
-                                )
+            if mat_name in [
+                    "Cornea",
+                    "EyeMoisture",
+                    "EyeMoisture.00",
+                    "EylsMoisture"
+                ]:
+                Versions.eevee_alpha(mat, 'HASHED', 0)
 
-                    mat_slot.material = mat
-                    # Set displacement method
-                    if mat_type == 8 or mat_type == 7 or mat_type == 0:
-                        mat_slot.material.cycles.displacement_method = 'BUMP'
-                    else:
-                        mat_slot.material.cycles.displacement_method = 'BOTH'
+            # Find and set texture links to the shader node
+            for input_key in shader_node.inputs.keys():
+                property_key = ""
+                is_diffuse = False
+
+                if input_key == "Diffuse":
+                    property_key = "Diffuse Color"
+                    is_Diffuse = True
+                elif input_key == "Roughness":
+                    property_key = "Specular Lobe 1 Roughness"
+                elif input_key == "Normal":
+                    property_key = "Normal Map"
+                
+                if property_key != "":
+                    tex_path = mat_property_dict[property_key]["Texture"]
+                    if not os.path.exists(tex_path):
+                        continue
+
+                    tex_image_node = mat_nodes.new(
+                                        type='ShaderNodeTexImage'
+                                    )
+                    tex_image = bpy.data.images.load(filepath=tex_path)
+                    tex_image_node.image = tex_image
+                    tex_node_output = tex_image_node.outputs['Color']
+
+                    if not is_Diffuse:
+                        Versions.to_color_space_non(tex_image_node)
+
+                    mat_links.new(
+                        tex_node_output,
+                        shader_node.inputs[input_key]
+                    )
+            
+                # Set the cycles displacement method
+                if mat_name in [
+                    "Cornea", "EyeMoisture", "EyeMoisture.00", "EylsMoisture", "Pupils", "Trises", "Sclera",
+                    "Eyelashes"
+                ]:
+                    mat.cycles.displacement_method = 'BUMP'
+                else:
+                    mat.cycles.displacement_method = 'BOTH'
+            
+            mat_slot.material = mat
 
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)

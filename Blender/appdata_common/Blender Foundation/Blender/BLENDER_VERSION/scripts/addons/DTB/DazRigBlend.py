@@ -266,7 +266,7 @@ class DazRigBlend:
 
     def set_bone_head_tail(self):
         # Read bone's head, tail and a vector to calculate roll
-        input_file = open(Global.getHomeTown() + "/FIG_boneHeadTail.csv", "r")
+        input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_boneHeadTail.csv", "r")
         lines = input_file.readlines()
         input_file.close()
         bone_head_tail_dict = dict()
