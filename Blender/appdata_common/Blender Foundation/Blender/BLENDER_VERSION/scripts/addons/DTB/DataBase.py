@@ -4,7 +4,7 @@ bone_limits = []
 skeleton_data = dict()
 
 def load_bone_limits():
-    input_file = open(Global.getHomeTown() + "/FIG_boneLimits.csv", "r")
+    input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_boneLimits.csv", "r")
     lines = input_file.readlines()
     input_file.close()
 
@@ -27,7 +27,7 @@ def get_bone_limits():
     return bone_limits
 
 def load_skeleton_data():
-    input_file = open(Global.getHomeTown() + "/FIG_skeletonData.csv", "r")
+    input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_skeletonData.csv", "r")
     lines = input_file.readlines()
     input_file.close()
 
