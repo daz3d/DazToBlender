@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib
 import bpy
 
 from . import Global
@@ -490,6 +491,14 @@ class DtbShaders:
         for mat_info in mat_info_list:
             self.mat_data_dict[mat_info["Material Name"]] = mat_info
 
+    def load_shader_nodes(self):
+        file_path = "./dependencies/link_library.blend"
+        file_path = os.path.join(pathlib.Path().absolute(), file_path)
+        
+        # load node_groups from link_library.blend file
+        with bpy.data.libraries.load(file_path) as (data_from, data_to):
+            data_to.node_groups = data_from.node_groups
+
     def set_eyelash_mat(self, mat_nodes, mat_links, out_node_cy, out_node_ev):
         # Create and set BSDF Transparent node
         bsdf_trans_node = mat_nodes.new(type='ShaderNodeBsdfTransparent')
@@ -571,11 +580,11 @@ class DtbShaders:
                                 "EyeMoisture.00",
                                 "EylsMoisture"
                             ]:
-                shader_node.node_tree = bpy.data.node_groups[ngroup3(EWET)]
+                shader_node.node_tree = bpy.data.node_groups["EyeWet"]
             elif mat_name in ["Pupils", "Trises", "Sclera"]:
-                shader_node.node_tree = bpy.data.node_groups[ngroup3(EDRY)]
+                shader_node.node_tree = bpy.data.node_groups["EyeDry"]
             else:
-                shader_node.node_tree = bpy.data.node_groups[ngroup3(SKIN)]
+                shader_node.node_tree = bpy.data.node_groups["IrayUberSkin"]
 
             # Link corresponding nodes in the material
             render_output = None
