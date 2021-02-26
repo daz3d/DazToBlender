@@ -585,6 +585,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             
             # materials
             dtb_shaders.make_dct()
+            dtb_shaders.load_shader_nodes()
             DtbMaterial.McySkin()
             DtbMaterial.McyEyeWet()
             DtbMaterial.McyEyeDry()
@@ -655,6 +656,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.report({"INFO"}, "Success")
         else:
             self.show_error()
+
         wm.progress_end()
         ik_access_ban = False
 
