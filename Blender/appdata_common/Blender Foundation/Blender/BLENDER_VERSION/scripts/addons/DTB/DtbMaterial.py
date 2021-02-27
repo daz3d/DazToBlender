@@ -537,27 +537,26 @@ class DtbShaders:
     # TODO: Remove all the hardcoding
     def body_texture(self):
         for mat_slot in Global.getBody().material_slots:
-            mat_name = mat_slot.name
+            mat = mat_slot.material
+            if mat is None:
+                # Get or create a new material when slot is missing material
+                mat = bpy.data.materials.get(mat_slot.name) \
+                    or bpy.data.materials.new(name=mat_slot.name)
+                mat_slot.material = mat
+
+            # Get material data
+            mat_name = mat.name
+            if mat_name not in self.mat_data_dict.keys():
+                continue
             mat_data = self.mat_data_dict[mat_name]
-            bpy.data.materials[mat_name].use_nodes = True
-            mat_nodes = bpy.data.materials[mat_name].node_tree.nodes
-            mat_links = bpy.data.materials[mat_name].node_tree.links
+                    
+            mat.use_nodes = True
+            mat_nodes = mat.node_tree.nodes
+            mat_links = mat.node_tree.links
 
-            # Get or create new material and do required setup
-            mat = bpy.data.materials.get(mat_name) \
-                    or bpy.data.materials.new(name=mat_name)
-
-            # Nodes that need to be removed from the old material
-            nodes_to_remove = [
-                                'Material Output',
-                                'Diffuse BSDF', 
-                                'Principled BSDF'
-                            ]
+            # Remove all the nodes from the material
             for mat_node in mat_nodes:
-                for node_to_remove in nodes_to_remove:
-                    if mat_node.name == node_to_remove:
-                        mat_nodes.remove(mat_nodes[node_to_remove])
-                        break
+                mat_nodes.remove(mat_node)
 
             # Crete material output nodes and set corresponding targets
             out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
@@ -569,7 +568,6 @@ class DtbShaders:
             if mat_name == "Eyelashes":
                 Versions.eevee_alpha(mat, 'BLEND', 0)
                 self.set_eyelash_mat(mat_nodes, mat_links, out_node_cy, out_node_ev)
-                mat_slot.material = mat
                 break
 
             # Create shader node and set links
@@ -674,8 +672,6 @@ class DtbShaders:
                     mat.cycles.displacement_method = 'BUMP'
                 else:
                     mat.cycles.displacement_method = 'BOTH'
-            
-            mat_slot.material = mat
 
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
