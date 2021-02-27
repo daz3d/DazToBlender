@@ -47,6 +47,10 @@
 	
 	var s_aPoseData = [];
 	
+	// Setting variables
+	var s_nSubDivLevel;
+	var s_bIncludeAnim;
+	
 	/*********************************************************************/
 	// void : ...
 	// Note: destructive - modifies the scene contents
@@ -246,7 +250,7 @@
 			oSettings.setBoolValue( "doCameras", bIsEnv );
 			
 			// Animations
-			oSettings.setBoolValue( "doAnims", true );
+			oSettings.setBoolValue( "doAnims", s_bIncludeAnim );
 			// Morphs
 			oSettings.setBoolValue( "doMorphs", true );
 			
@@ -1139,39 +1143,49 @@
 	};
 	
 	/*********************************************************************/
-	// Number : ...
-	// Decide subdivison level Dialog.
-	function promptMeshResolution( oNode )
+	// Bool : ...
+	// Export Settings Dialog
+	function promptSettings( oNode )
 	{
-		var wDlg = new DzBasicDialog();
-		wDlg.caption = s_sToolName + ": SubD Level";
-		
-		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
-		
+		var wSettingsDialog = new DzBasicDialog();
+		wSettingsDialog.caption = s_sToolName + ": Settings";
 		if( oNode ){
-			wDlg.caption += " - " + oNode.getLabel();
+			wSettingsDialog.caption += " - " + oNode.getLabel();
 		}
 		
-		var oDlgWgt = wDlg.getWidget();
-		oDlgWgt.objectName = sKey;
+		var sKey = wSettingsDialog.caption.replace( / /g, "" ) + "Dlg";
+		wSettingsDialog.getWidget().objectName = sKey;
 		
-		var wOptBG = new DzVButtonGroup( wDlg );
-		wOptBG.columns = 1;
-		
+		// SubDivision level radio button group
+		var wSubDivGroup = new DzVButtonGroup( wSettingsDialog );
+		wSubDivGroup.columns = 1;
+		var wSubDivLbl = new DzLabel( wSubDivGroup );
+		wSubDivLbl.text = "SubDivision Level"
 		var wRadioBtn;
 		for( var i = 0; i < 3; i += 1 ){
-			wRadioBtn = new DzRadioButton( wOptBG );
-			wRadioBtn.text = "SubDivision Level " + i;
+			wRadioBtn = new DzRadioButton( wSubDivGroup );
+			wRadioBtn.text = "Level " + i;
 		}
-		wOptBG.selected = 0;
+		wSubDivGroup.selected = 0;
+		wSettingsDialog.addWidget( wSubDivGroup );
 		
-		wDlg.addWidget( wOptBG );
+		// Checkbox to include animation data
+		var wIncludeAnimationsCbx = new DzCheckBox( wSettingsDialog );
+		wIncludeAnimationsCbx.text = "Include animation data";
+		wIncludeAnimationsCbx.checked = true;
+		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 		
-		if( !wDlg.exec() ){
-			return -1;
+		// When user Cancels the dialog
+		if( !wSettingsDialog.exec() ){
+			return false;
 		}
 		
-		return wOptBG.selected;
+		// Set settings variables from the Dialog
+		s_nSubDivLevel = wSubDivGroup.selected;
+		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
+		
+		// When user Accepts the dialog
+		return true;
 	};
 	
 	/*********************************************************************/
@@ -1558,7 +1572,7 @@
 	/*********************************************************************/
 	// void : ...
 	// Apply subdivision levels to figures and genitals.
-	function setSubDivLevelAll( oBaseNode, nLevel )
+	function setSubDivLevelAll( oBaseNode )
 	{
 		var bIsBody;
 		var bIsGen;
@@ -1572,7 +1586,7 @@
 			bIsGen = !bIsBody && oNode.getNodeParent() == oBaseNode && isGenital( oNode );
 			nLev = 0;
 			if( bIsBody || bIsGen ){
-				nLev = nLevel;
+				nLev = s_nSubDivLevel;
 			}
 			
 			setSubDivLevel( oNode, nLev );
@@ -1996,7 +2010,6 @@
 			setHideRoot( false, false );
 			
 			var oFigure;
-			var nLevel;
 			for( var i = 0; i < s_aFigures.length; i += 1 ){
 				oFigure = s_aFigures[i];
 				
@@ -2004,25 +2017,26 @@
 					setVisible( s_aFigures[j], i == j );
 				}
 				
-				nLevel = promptMeshResolution( oFigure );
-				if( nLevel < 0 ){
+				if( !promptSettings( oFigure ) ){
 					continue;
 				}
-				
-				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
-				buildMorphList( oFigure );
-				writeFigureBoneData( oFigure, sFileBasename );
-				writePoseData( oFigure, sFileBasename + ".csv", true );
-				writeParentingData( oFigure, sFileBasename + ".dat" );
-				setSubDivLevelAll( oFigure, nLevel );
-	
+				setSubDivLevelAll( oFigure );
+				
+				buildMorphList( oFigure );	
 				if( !promptMorphRules( oFigure) ){
 					continue;
 				}
+				
+				// Write data
+				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+				writeFigureBoneData( oFigure, sFileBasename );
+				writePoseData( oFigure, sFileBasename + ".csv", true );
+				writeParentingData( oFigure, sFileBasename + ".dat" );
 				writeConfiguration( oFigure, sFileBasename );
+				
 				setEyelashVisibility( oFigure, false );
 				exportOBJ( oFigure, s_sFig, i );
 				setEyelashVisibility( oFigure, true );
