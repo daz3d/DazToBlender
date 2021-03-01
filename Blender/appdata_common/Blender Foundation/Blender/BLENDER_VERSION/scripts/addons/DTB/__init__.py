@@ -587,7 +587,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             dtb_shaders.load_shader_nodes()
             dtb_shaders.body_texture()
             self.pbar(35, wm)
-            dtb_shaders.prop_texture()
+            #dtb_shaders.prop_texture()
             self.pbar(40, wm)
 
             if Global.getIsGen():
