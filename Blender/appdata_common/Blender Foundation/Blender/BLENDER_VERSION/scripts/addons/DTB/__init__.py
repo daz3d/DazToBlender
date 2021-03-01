@@ -761,7 +761,7 @@ class TRANS_OT_Rigify(bpy.types.Operator):
 
 class DEFAULT_OT_material(bpy.types.Operator):
     bl_idname = "df.material"
-    bl_label = 'CLEAR MATERIAL'
+    bl_label = 'RESET MATERIAL'
     def execute(self, context):
         Util.active_object_to_current_collection()
         default_material(context)
@@ -771,10 +771,10 @@ def default_material(context):
     w_mgr = context.window_manager
     if w_mgr.is_eye:
         #DtbShaders.toEyeDryDefault(bpy.data.node_groups.get(DtbShaders.getGroupNode(DtbShaders.EDRY)))
-        DtbMaterial.toEyeDryDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.EDRY)))
-        DtbMaterial.toEyeWetDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.EWET)))
+        DtbMaterial.getGroupNodeTree("EyeDry")
+        DtbMaterial.getGroupNodeTree("EyeWet")
     else:
-        DtbMaterial.toSkinDefault(DtbMaterial.getGroupNodeTree(DtbMaterial.ngroup3(DtbMaterial.SKIN)))
+        DtbMaterial.getGroupNodeTree("IrayUberSkin")
 
 class MATCH_OT_ikfk(bpy.types.Operator):
     bl_idname = 'match.ikfk'
