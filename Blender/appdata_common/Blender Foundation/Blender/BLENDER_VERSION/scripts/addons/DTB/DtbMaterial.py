@@ -176,18 +176,22 @@ class DtbShaders:
     def __init__(self):
         pass
 
+    #TODO: Deal with Materials having same name
     def make_dct(self):
         self.dct = []
         mat_dct = MatDct.MatDct()
         mat_dct.make_dct_from_mtl()
         self.dct = mat_dct.get_dct()
-
         input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG.dtu")
         dtu_content = input_file.read()
         mat_info_list = json.loads(dtu_content)["Materials"]
         for mat_info in mat_info_list:
-            self.mat_data_dict[mat_info["Material Name"]] = mat_info
-
+            num = "001"
+            if mat_info["Material Name"] in self.mat_data_dict.keys():
+                self.mat_data_dict[mat_info["Material Name"] + num] = mat_info
+            else:
+                self.mat_data_dict[mat_info["Material Name"]] = mat_info
+        
     def load_shader_nodes(self):
         file_path = "./dependencies/link_library.blend"
         file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -199,13 +203,47 @@ class DtbShaders:
                 self.node_groups = data_from.node_groups
                 data_to.node_groups = data_from.node_groups
     
+
     def get_mat_properties(self,mat_data):
         mat_property_dict = {}
         for mat_property in mat_data["Properties"]:
             mat_property_dict[mat_property["Name"]] = mat_property
         return mat_property_dict
     
+    def get_mat_type(self,mat_data):
+        material_name = mat_data["Material Name"]
+        material_type = mat_data["Material Type"]
+        object_type = mat_data["Value"]
+        if material_type == "Iray Uber":
+            if object_type == "Actor/Character":
+                if material_name in [
+                                "Cornea",
+                                "EyeMoisture",
+                                "EyeMoisture.00",
+                                "EylsMoisture"
+                            ]:
+                    return "EyeWet"
+                elif material_name in ["Pupils", "Trises", "Sclera"]:
+                    return "EyeDry"
+                else:
+                    return "IrayUberSkin"
 
+            if "Eyelashes" in object_type:
+                if material_name in [
+                                "Cornea",
+                                "EyeMoisture",
+                                "EyeMoisture.00",
+                                "EylsMoisture"
+                            ]:
+                    return "EyeWet"
+                else:
+                    return "Eyelashes"
+            
+        if material_type == "PBRSkin":
+            return "IrayUberSkin"
+        else:
+            return "DefaultMaterial"
+            
     def set_eevee_alpha(self,mat):
         if mat.name == "Eyelashes":
                 Versions.eevee_alpha(mat, 'BLEND', 0)
@@ -256,9 +294,13 @@ class DtbShaders:
 
             # Get material data
             # To Deal With Multiple Characters
-            mat_name = mat.name.split(".0")[0]
+            if mat.name != "EyeMoisture001":
+                mat_name = mat.name.split(".0")[0]
+            else:
+                mat_name = mat.name
             if mat_name not in self.mat_data_dict.keys():
                 continue
+            
             mat_data = self.mat_data_dict[mat_name]
                     
             mat.use_nodes = True
@@ -269,7 +311,7 @@ class DtbShaders:
             for mat_node in mat_nodes:
                 mat_nodes.remove(mat_node)
 
-            # Crete material output nodes and set corresponding targets
+            # Create material output nodes and set corresponding targets
             out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
             out_node_cy.target = 'CYCLES'
             out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
@@ -277,46 +319,23 @@ class DtbShaders:
 
             # Create shader node and set links
             shader_node = mat_nodes.new(type='ShaderNodeGroup')
-            if mat_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.00",
-                                "EylsMoisture"
-                            ]:
-                shader_node.node_tree = bpy.data.node_groups["EyeWet"]
-            elif mat_name in ["Pupils", "Trises", "Sclera"]:
-                shader_node.node_tree = bpy.data.node_groups["EyeDry"]
-            elif mat_name in ["Eyelashes"]:
-                shader_node.node_tree = bpy.data.node_groups["Eyelashes"]
-            else:
-                shader_node.node_tree = bpy.data.node_groups["IrayUberSkin"]
+            node_group = self.get_mat_type(mat_data)
+            shader_node.node_tree = bpy.data.node_groups[node_group]
 
             # Link corresponding nodes in the material
             render_output = None
             surface_input = out_node_cy.inputs['Surface']
             render_output = shader_node.outputs['Cycles']
-
             mat_links.new(render_output, surface_input)
-
-            if mat_name in [
-                            "Face", "Lips", "Ears", "EyeSocket",
-                            "Torso", "Head", "Genitalia",
-                            "Body", "Legs", "Toenails",
-                            "Arms", "Fingernails",
-                            "Teeth", "Mouth",                            
-                        ]:
-                mat_links.new(
-                            shader_node.outputs['Displacement'],
-                            out_node_cy.inputs['Displacement']
-                        )
             mat_links.new(
                         shader_node.outputs['EEVEE'], 
                         out_node_ev.inputs['Surface']
                     )
-            
-            mat_property_dict = self.get_mat_properties(mat_data)
+
             self.set_eevee_alpha(mat)
+            
             # Find and Attach Node Input
+            mat_property_dict = self.get_mat_properties(mat_data)
             for input_key in shader_node.inputs.keys():
     
                 if ("Texture" in input_key) or ("Value" in input_key):
@@ -342,14 +361,18 @@ class DtbShaders:
                                                 shader_node.inputs[input_key]
                                                 )
             # Set the cycles displacement method
-            if mat_name in [
-                "Cornea", "EyeMoisture", "EyeMoisture.00", "EylsMoisture", "Pupils", "Trises", "Sclera",
-                "Eyelashes"
-            ]:
-                mat.cycles.displacement_method = 'BUMP'
-            else:
+            
+            if node_group == "IrayUberSkin":
+                mat_links.new(
+                            shader_node.outputs['Displacement'],
+                            out_node_cy.inputs['Displacement']
+                        )
                 mat.cycles.displacement_method = 'BOTH'
 
+            else:
+                mat.cycles.displacement_method = 'BUMP'
+            
+                
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
 
@@ -417,10 +440,10 @@ class DtbShaders:
                                         if norm_map_node is not None:
                                             mat_links.new(
                                                 SNTIMG.outputs['Color'], norm_map_node.inputs['Color'])
-                                    elif ft[0] == 'b':
-                                        if BUMP is not None:
-                                            mat_links.new(
-                                                SNTIMG.outputs['Color'], BUMP.inputs['Height'])
+                                    # elif ft[0] == 'b':
+                                    #     if BUMP is not None:
+                                    #         mat_links.new(
+                                    #             SNTIMG.outputs['Color'], BUMP.inputs['Height'])
                                     else:
                                         mat_links.new(
                                             SNTIMG.outputs['Color'], prin_bsdf_node.inputs[ft[1]])
