@@ -45,17 +45,6 @@ def get_dzidx():
     else:
         return "err"
 
-def clear_dzidx_material_and_nodegroup():
-    from . import DtbMaterial
-    for mat in bpy.data.materials:
-        if mat.name.startswith("drb_") and mat.name.endswith(get_dzidx()):
-            bpy.data.materials.remove(mat)
-    for ng in bpy.data.node_groups:
-        for n3 in DtbMaterial.NGROUP3:
-            if ng.name==(n3 + get_dzidx()):
-                bpy.data.node_groups.remove(ng)
-                break
-
 def cur_col_name():
     global _CURRENT_COL
     if _CURRENT_COL == "":
@@ -63,8 +52,6 @@ def cur_col_name():
         if _CURRENT_COL is None:
             _CURRENT_COL = ""
     return _CURRENT_COL
-
-
 
 
 def getCurrentCollection():

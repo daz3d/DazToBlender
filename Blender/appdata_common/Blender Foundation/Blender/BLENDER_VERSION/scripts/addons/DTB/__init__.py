@@ -546,7 +546,6 @@ class IMP_OT_FBX(bpy.types.Operator):
     def import_one(self,fbx_adr):
         Versions.active_object_none()
         Util.decideCurrentCollection('FIG')
-        Util.clear_dzidx_material_and_nodegroup()
         wm = bpy.context.window_manager
         wm.progress_begin(0, 100)
         Global.clear_variables()
