@@ -586,9 +586,6 @@ class IMP_OT_FBX(bpy.types.Operator):
             # materials
             dtb_shaders.make_dct()
             dtb_shaders.load_shader_nodes()
-            DtbMaterial.McySkin()
-            DtbMaterial.McyEyeWet()
-            DtbMaterial.McyEyeDry()
             dtb_shaders.body_texture()
             self.pbar(35, wm)
             dtb_shaders.prop_texture()
@@ -603,9 +600,9 @@ class IMP_OT_FBX(bpy.types.Operator):
 
             # Shape keys
             dsk = DtbShapeKeys.DtbShapeKeys(False)
-            dsk.deleteEyelashes()
+            #dsk.deleteEyelashes() #Removes Eyelashes but does not connect right now
             self.pbar(50, wm)
-            dsk.toshortkey()
+            #dsk.toshortkey() #Renaming does not work correctly as Alias Change in Daz 4.12
             dsk.deleteExtraSkey()
             dsk.toHeadMorphMs(db)
             wm.progress_update(55)
