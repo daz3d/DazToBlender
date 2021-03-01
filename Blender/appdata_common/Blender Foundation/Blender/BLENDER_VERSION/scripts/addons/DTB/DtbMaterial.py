@@ -509,7 +509,8 @@ class DtbShaders:
 
     def load_shader_nodes(self):
         file_path = "./dependencies/link_library.blend"
-        file_path = os.path.join(pathlib.Path().absolute(), file_path)
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        file_path = os.path.join(file_dir, file_path)
         
         # load node_groups from link_library.blend file
         with bpy.data.libraries.load(file_path) as (data_from, data_to):
