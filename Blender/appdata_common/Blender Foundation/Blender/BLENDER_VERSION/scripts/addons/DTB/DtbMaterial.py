@@ -172,6 +172,7 @@ class DtbShaders:
     dct = {}
     mat_data_dict = {}
     node_groups = []
+    is_Diffuse = False
     def __init__(self):
         pass
 
@@ -197,7 +198,51 @@ class DtbShaders:
             if len(bpy.data.node_groups) != len(data_from.node_groups):
                 self.node_groups = data_from.node_groups
                 data_to.node_groups = data_from.node_groups
+    
+    def get_mat_properties(self,mat_data):
+        mat_property_dict = {}
+        for mat_property in mat_data["Properties"]:
+            mat_property_dict[mat_property["Name"]] = mat_property
+        return mat_property_dict
+    
 
+    def set_eevee_alpha(self,mat):
+        if mat.name == "Eyelashes":
+                Versions.eevee_alpha(mat, 'BLEND', 0)
+        if mat.name in [
+                    "Cornea",
+                    "EyeMoisture",
+                    "EyeMoisture.00",
+                    "EylsMoisture"
+                ]:
+                Versions.eevee_alpha(mat, 'HASHED', 0)
+
+   
+    def find_node_property(self,input_key,mat_property_dict):
+        property_key, property_type = input_key.split(": ")
+        property_info = mat_property_dict[property_key][property_type]
+        return property_key,property_type,property_info
+        
+    #TODO: Check for all Color Maps            
+    def check_map_type(self,property_key):
+        if "Diffuse" in property_key:
+            self.is_Diffuse = True
+
+   
+    def create_texture_input(self,tex_path,tex_image_node):
+        
+        tex_image = bpy.data.images.load(filepath=tex_path)
+        tex_image_node.image = tex_image
+        if not self.is_Diffuse:
+            Versions.to_color_space_non(tex_image_node)
+   
+
+    def convert_color(self,color,shader_node):
+        color_hex = color.lstrip('#')
+        color_rgb = hex_to_col(color_hex)
+        color_rgb.append(1) # alpha
+        return color_rgb
+   
     # TODO: Remove all the hardcoding
     def body_texture(self):
         for mat_slot in Global.getBody().material_slots:
@@ -229,10 +274,6 @@ class DtbShaders:
             out_node_cy.target = 'CYCLES'
             out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
             out_node_ev.target = 'EEVEE'
-
-            
-            if mat_name == "Eyelashes":
-                Versions.eevee_alpha(mat, 'BLEND', 0)
 
             # Create shader node and set links
             shader_node = mat_nodes.new(type='ShaderNodeGroup')
@@ -273,70 +314,41 @@ class DtbShaders:
                         out_node_ev.inputs['Surface']
                     )
             
-            mat_property_dict = {}
-            for mat_property in mat_data["Properties"]:
-                mat_property_dict[mat_property["Name"]] = mat_property
+            mat_property_dict = self.get_mat_properties(mat_data)
+            self.set_eevee_alpha(mat)
+            # Find and Attach Node Input
+            for input_key in shader_node.inputs.keys():
+    
+                if ("Texture" in input_key) or ("Value" in input_key):
+                    # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
+                    if input_key.split(": ")[0] in mat_property_dict.keys():
+                        property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
+                        if property_type == "Value":
+                            # Check if Info is a Hex Color
+                            if isinstance(property_info,str):
+                                property_info = self.convert_color(property_info,shader_node)
+                            shader_node.inputs[input_key].default_value = property_info
 
+                        if property_type == "Texture":
+                            if os.path.exists(property_info): 
+                                self.check_map_type(property_key)
+                                tex_image_node = mat_nodes.new(
+                                                type='ShaderNodeTexImage'
+                                            )
+                                self.create_texture_input(property_info,tex_image_node)
+                                tex_node_output = tex_image_node.outputs['Color']
+                                mat_links.new(
+                                                tex_node_output,
+                                                shader_node.inputs[input_key]
+                                                )
+            # Set the cycles displacement method
             if mat_name in [
-                    "Cornea",
-                    "EyeMoisture",
-                    "EyeMoisture.00",
-                    "EylsMoisture"
-                ]:
-                Versions.eevee_alpha(mat, 'HASHED', 0)
-            # Find and set Color Inputs 
-            for input_key in shader_node.inputs.keys():
-                property_key = ""
-                if input_key == "Diffuse Color":
-                    property_key = "Diffuse Color"
-                if property_key != "":  
-                    color_hex = mat_property_dict[property_key]["Value"]
-                    color_hex = color_hex.lstrip('#')
-                    color_rgb = hex_to_col(color_hex)
-                    color_rgb.append(1) # alpha
-                    shader_node.inputs[input_key].default_value = color_rgb
-
-            # Find and set texture links to the shader node
-            for input_key in shader_node.inputs.keys():
-                property_key = ""
-                is_Diffuse = False
-                if input_key == "Diffuse Map":
-                    property_key = "Diffuse Color"
-                    is_Diffuse = True
-                elif input_key == "Roughness Map":
-                    property_key = "Specular Lobe 1 Roughness"
-                elif input_key == "Normal Map":
-                    property_key = "Normal Map"
-                elif input_key == "Cutout Opacity Map":
-                    property_key = "Cutout Opacity"
-                if property_key != "":  
-                    tex_path = mat_property_dict[property_key]["Texture"]
-                    if not os.path.exists(tex_path):
-                        continue
-
-                    tex_image_node = mat_nodes.new(
-                                        type='ShaderNodeTexImage'
-                                    )
-                    tex_image = bpy.data.images.load(filepath=tex_path)
-                    tex_image_node.image = tex_image
-                    tex_node_output = tex_image_node.outputs['Color']
-
-                    if not is_Diffuse:
-                        Versions.to_color_space_non(tex_image_node)
-        
-                    mat_links.new(
-                        tex_node_output,
-                        shader_node.inputs[input_key]
-                    )
-            
-                # Set the cycles displacement method
-                if mat_name in [
-                    "Cornea", "EyeMoisture", "EyeMoisture.00", "EylsMoisture", "Pupils", "Trises", "Sclera",
-                    "Eyelashes"
-                ]:
-                    mat.cycles.displacement_method = 'BUMP'
-                else:
-                    mat.cycles.displacement_method = 'BOTH'
+                "Cornea", "EyeMoisture", "EyeMoisture.00", "EylsMoisture", "Pupils", "Trises", "Sclera",
+                "Eyelashes"
+            ]:
+                mat.cycles.displacement_method = 'BUMP'
+            else:
+                mat.cycles.displacement_method = 'BOTH'
 
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
