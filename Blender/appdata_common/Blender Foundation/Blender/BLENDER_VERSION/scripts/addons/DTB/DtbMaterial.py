@@ -61,6 +61,22 @@ ftable = [
 def ngroup3(idx):
     return NGROUP3[idx] + Util.get_dzidx()
 
+def srgb_to_linear_rgb(srgb):
+    if   srgb < 0:       return 0
+    elif srgb < 0.04045: return srgb/12.92
+    else:             return ((srgb+0.055)/1.055)**2.4
+
+
+def hex_to_col(hex,normalize=True,precision=6):
+    col = []
+    it = iter(hex)
+    for char in it:
+        col.append(int(char + it.__next__(), 16))
+    if normalize:
+        col = map(lambda x: x / 255, col)
+        col = map(lambda x: round(x, precision), col)
+    return list(srgb_to_linear_rgb(c) for c in col)
+
 
 def getGroupNode(key):
     for slot in Global.getBody().material_slots:
@@ -499,44 +515,10 @@ class DtbShaders:
         with bpy.data.libraries.load(file_path) as (data_from, data_to):
             data_to.node_groups = data_from.node_groups
 
-    def set_eyelash_mat(self, mat_nodes, mat_links, out_node_cy, out_node_ev):
-        # Create and set BSDF Transparent node
-        bsdf_trans_node = mat_nodes.new(type='ShaderNodeBsdfTransparent')
-        tex_path = ""
-        if "0t" in self.dct.keys():
-            tex_path = self.dct["0t"]
-        # If texture is not found, set bsdf_trans node outputs and return
-        if not os.path.exists(tex_path):
-            mat_links.new(bsdf_trans_node.outputs['BSDF'], out_node_cy.inputs[0])
-            mat_links.new(bsdf_trans_node.outputs['BSDF'], out_node_ev.inputs[0])
-            return
-
-        # Create and set other nodes
-        tex_image_node = mat_nodes.new(type='ShaderNodeTexImage')
-        tex_image_node.image = bpy.data.images.load(filepath=tex_path)
-
-        mix_shader_node = mat_nodes.new(type='ShaderNodeMixShader')
-        invert_node = mat_nodes.new(type='ShaderNodeInvert')
-
-        bsdf_diff_node = mat_nodes.new(type='ShaderNodeBsdfDiffuse')
-        bsdf_diff_node.inputs['Color'].default_value = (0.1, 0.1, 0.1, 1)
-        bsdf_diff_node.inputs['Roughness'].default_value = 0.2
-
-        # Create node liking maps and set the links
-        node_maps = [
-            [invert_node.inputs['Color'], tex_image_node.outputs['Color']],
-            [mix_shader_node.inputs[0], invert_node.outputs['Color']],
-            [mix_shader_node.inputs[2], bsdf_trans_node.outputs['BSDF']],
-            [mix_shader_node.inputs[1], bsdf_diff_node.outputs['BSDF']],
-            [mix_shader_node.outputs[0], out_node_cy.inputs[0]],
-            [mix_shader_node.outputs[0], out_node_ev.inputs[0]]
-        ]
-        for node_map in node_maps:
-            mat_links.new(node_map[0], node_map[1])
-
     # TODO: Remove all the hardcoding
     def body_texture(self):
         for mat_slot in Global.getBody().material_slots:
+            
             mat = mat_slot.material
             if mat is None:
                 # Get or create a new material when slot is missing material
@@ -545,7 +527,8 @@ class DtbShaders:
                 mat_slot.material = mat
 
             # Get material data
-            mat_name = mat.name
+            # To Deal With Multiple Characters
+            mat_name = mat.name.split(".0")[0]
             if mat_name not in self.mat_data_dict.keys():
                 continue
             mat_data = self.mat_data_dict[mat_name]
@@ -564,11 +547,9 @@ class DtbShaders:
             out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
             out_node_ev.target = 'EEVEE'
 
-            # If Eyelashes, setup nodes and break
+            
             if mat_name == "Eyelashes":
                 Versions.eevee_alpha(mat, 'BLEND', 0)
-                self.set_eyelash_mat(mat_nodes, mat_links, out_node_cy, out_node_ev)
-                break
 
             # Create shader node and set links
             shader_node = mat_nodes.new(type='ShaderNodeGroup')
@@ -581,19 +562,16 @@ class DtbShaders:
                 shader_node.node_tree = bpy.data.node_groups["EyeWet"]
             elif mat_name in ["Pupils", "Trises", "Sclera"]:
                 shader_node.node_tree = bpy.data.node_groups["EyeDry"]
+            elif mat_name in ["Eyelashes"]:
+                shader_node.node_tree = bpy.data.node_groups["Eyelashes"]
             else:
                 shader_node.node_tree = bpy.data.node_groups["IrayUberSkin"]
 
             # Link corresponding nodes in the material
             render_output = None
             surface_input = out_node_cy.inputs['Surface']
-            if mat_name in [
-                            "Pupils", "Trises", "Sclera", 
-                            "Eyelashes", "EyeSocket"
-                        ]:
-                render_output = shader_node.outputs['EEVEE']
-            else:
-                render_output = shader_node.outputs['Cycles']
+            render_output = shader_node.outputs['Cycles']
+
             mat_links.new(render_output, surface_input)
 
             if mat_name in [
@@ -616,13 +594,6 @@ class DtbShaders:
             for mat_property in mat_data["Properties"]:
                 mat_property_dict[mat_property["Name"]] = mat_property
 
-            if "Diffuse" in shader_node.inputs.keys():
-                color_hex = mat_property_dict["Diffuse Color"]["Value"]
-                color_hex = color_hex.lstrip('#')
-                color_rgb = [int(color_hex[i:i+2], 16) for i in (0, 2, 4)]
-                color_rgb.append(255) # alpha
-                shader_node.inputs['Diffuse'].default_value = color_rgb
-
             if mat_name in [
                     "Cornea",
                     "EyeMoisture",
@@ -630,21 +601,32 @@ class DtbShaders:
                     "EylsMoisture"
                 ]:
                 Versions.eevee_alpha(mat, 'HASHED', 0)
+            # Find and set Color Inputs 
+            for input_key in shader_node.inputs.keys():
+                property_key = ""
+                if input_key == "Diffuse Color":
+                    property_key = "Diffuse Color"
+                if property_key != "":  
+                    color_hex = mat_property_dict[property_key]["Value"]
+                    color_hex = color_hex.lstrip('#')
+                    color_rgb = hex_to_col(color_hex)
+                    color_rgb.append(1) # alpha
+                    shader_node.inputs[input_key].default_value = color_rgb
 
             # Find and set texture links to the shader node
             for input_key in shader_node.inputs.keys():
                 property_key = ""
-                is_diffuse = False
-
-                if input_key == "Diffuse":
+                is_Diffuse = False
+                if input_key == "Diffuse Map":
                     property_key = "Diffuse Color"
                     is_Diffuse = True
-                elif input_key == "Roughness":
+                elif input_key == "Roughness Map":
                     property_key = "Specular Lobe 1 Roughness"
-                elif input_key == "Normal":
+                elif input_key == "Normal Map":
                     property_key = "Normal Map"
-                
-                if property_key != "":
+                elif input_key == "Cutout Opacity Map":
+                    property_key = "Cutout Opacity"
+                if property_key != "":  
                     tex_path = mat_property_dict[property_key]["Texture"]
                     if not os.path.exists(tex_path):
                         continue
@@ -658,7 +640,7 @@ class DtbShaders:
 
                     if not is_Diffuse:
                         Versions.to_color_space_non(tex_image_node)
-
+        
                     mat_links.new(
                         tex_node_output,
                         shader_node.inputs[input_key]
@@ -750,230 +732,3 @@ class DtbShaders:
 
                 NodeArrange.toNodeArrange(mat_nodes)
 
-
-class McyEyeDry:
-    shaders = []
-    mcy_eyedry = None
-
-    def __init__(self):
-        self.shaders = []
-        self.mcy_eyedry = None
-        self.make_group()
-        self.exe_eye_dry()
-
-    def make_group(self):
-        self.mcy_eyedry = bpy.data.node_groups.new(
-            type="ShaderNodeTree", name=ngroup3(EDRY))
-        nsc = 'NodeSocketColor'
-        self.mcy_eyedry.inputs.new(nsc, 'Diffuse')
-        self.mcy_eyedry.inputs.new(nsc, 'Bump')
-        self.mcy_eyedry.inputs.new(nsc, 'Normal')
-        self.mcy_eyedry.outputs.new('NodeSocketShader', 'Cycles')
-        self.mcy_eyedry.outputs.new('NodeSocketVector', 'Displacement')
-        self.mcy_eyedry.outputs.new('NodeSocketShader', 'EEVEE')
-
-    def exe_eye_dry(self):
-        generate_names = ['NodeGroupInput', 'ShaderNodeBrightContrast', 'ShaderNodeBsdfPrincipled', 'ShaderNodeNormalMap',
-                         'ShaderNodeBump', 'NodeGroupOutput', 'ShaderNodeHueSaturation']
-        con_nums = [[[0, 0], [6, 4]],  # Diffuse
-                    [[6, 0], [1, 0]],
-                    [[1, 0], [2, 0]],
-                    [[1, 0], [2, 3]],
-
-                    [[0, 2], [3, 1]],  # Normal
-                    [[3, 0], [4, "Normal"]],
-                    [[0, 1], [4, "Height"]],
-                    [[4, 0], [2, 'Normal']],
-                    [[2, 0], [5, 0]],  # Out
-                    [[2, 0], [5, 2]],
-                    ]
-        ROOT = self.mcy_eyedry.nodes
-        LINK = self.mcy_eyedry.links
-        old_gname = ""
-        for g_index, g_name in enumerate(generate_names):
-            if g_name == '':
-                g_name = old_gname
-            a = g_name.find('.')
-            sub = None
-            if a > 0:
-                sub = g_name[a + 1:]
-                g_name = g_name[:a]
-            n = ROOT.new(type=g_name)
-            n.name = g_name + "-" + str(g_index)
-            if sub is not None:
-                n.blend_type = sub
-            self.shaders.append(n)
-            old_gname = g_name
-        for cn in con_nums:
-            outp = cn[0]
-            inp = cn[1]
-            LINK.new(
-                self.shaders[outp[0]].outputs[outp[1]],
-                self.shaders[inp[0]].inputs[inp[1]]
-            )
-
-
-class McyEyeWet:
-    shaders = []
-    mcy_eyewet = None
-
-    def __init__(self):
-        self.shaders = []
-        self.mcy_eyewet = None
-        self.make_group()
-        self.exe_eye_wet()
-
-    def make_group(self):
-        self.mcy_eyewet = bpy.data.node_groups.new(
-            type="ShaderNodeTree", name=ngroup3(EWET))
-        nsc = 'NodeSocketColor'
-        self.mcy_eyewet.inputs.new(nsc, 'Bump')
-        self.mcy_eyewet.inputs.new(nsc, "Normal")
-        self.mcy_eyewet.outputs.new('NodeSocketShader', 'Cycles')
-        self.mcy_eyewet.outputs.new('NodeSocketShader', 'EEVEE')
-
-    def exe_eye_wet(self):
-        generate_names = ['NodeGroupInput', 'ShaderNodeInvert', 'ShaderNodeNormalMap', 'ShaderNodeBump',
-                         'ShaderNodeFresnel', 'ShaderNodeMixShader', 'ShaderNodeBsdfTransparent', 'ShaderNodeBsdfPrincipled',
-                         'NodeGroupOutput']
-        con_nums = [[[0, 0], [3, 'Height']],
-                    [[0, 1], [2, 'Color']],
-                    [[2, 'Normal'], [3, 'Normal']],
-                    [[3, 'Normal'], [7, 'Normal']],
-                    # shader
-                    [[4, 0], [5, 0]],  # fresnel->mix.fac
-                    [[6, 0], [5, 1]],  # trans->mix
-                    [[7, 0], [5, 2]],  # bsdfp->mix
-                    [[5, 0], [8, 0]],
-                    [[5, 0], [8, 1]],
-                    ]
-        ROOT = self.mcy_eyewet.nodes
-        LINK = self.mcy_eyewet.links
-        old_gname = ""
-        for g_index, g_name in enumerate(generate_names):
-            if g_name == '':
-                g_name = old_gname
-
-            a = g_name.find('.')
-            sub = None
-            if a > 0:
-                sub = g_name[a + 1:]
-                g_name = g_name[:a]
-            n = ROOT.new(type=g_name)
-            n.name = g_name + "-" + str(g_index)
-            if sub is not None:
-                n.blend_type = sub
-            self.shaders.append(n)
-            old_gname = g_name
-        for cn in con_nums:
-            outp = cn[0]
-            inp = cn[1]
-            LINK.new(
-                self.shaders[outp[0]].outputs[outp[1]],
-                self.shaders[inp[0]].inputs[inp[1]]
-            )
-
-
-class McySkin:
-    shaders = []
-    mcy_skin = None
-
-    def __init__(self):
-        self.shaders = []
-        self.mcy_skin = None
-        self.make_group()
-        self.exe_skin()
-
-    def make_group(self):
-        self.mcy_skin = bpy.data.node_groups.new(
-            type="ShaderNodeTree", name=ngroup3(SKIN))
-        nsc = 'NodeSocketColor'
-        self.mcy_skin.inputs.new(nsc, 'Diffuse')
-        self.mcy_skin.inputs.new(nsc, 'Specular')
-        self.mcy_skin.inputs.new(nsc, 'Roughness')
-        self.mcy_skin.inputs.new(nsc, 'Bump')
-        self.mcy_skin.inputs.new(nsc, 'Normal')
-        self.mcy_skin.inputs.new(nsc, 'Displacement')
-        self.mcy_skin.inputs.new(nsc, "SSSBlue")
-        self.mcy_skin.inputs.new(nsc, "SSSRed")
-        self.mcy_skin.inputs.new('NodeSocketFloat', 'SSSMix')
-        self.mcy_skin.outputs.new('NodeSocketShader', 'Cycles')
-        self.mcy_skin.outputs.new('NodeSocketVector', 'Displacement')
-        self.mcy_skin.outputs.new('NodeSocketShader', 'EEVEE')
-
-    def exe_skin(self):
-        generate_names = ['NodeGroupInput', 'NodeGroupOutput', 'ShaderNodeBsdfPrincipled', 'ShaderNodeMixRGB.MIX',  # 0
-                         'ShaderNodeDisplacement', 'ShaderNodeNormalMap', 'ShaderNodeBump', 'ShaderNodeFresnel',  # 4
-                         'ShaderNodeBrightContrast', '', '', 'ShaderNodeHueSaturation',  # 8
-                         'ShaderNodeBsdfGlossy', 'ShaderNodeSubsurfaceScattering', '', 'ShaderNodeInvert',  # 12
-                         'ShaderNodeMixShader', '', '']  # 16
-        con_nums = [  # Diffuse
-            [[0, 0], [8, 0]],
-            [[8, 0], [11, 4]],
-            [[11, 0], [2, 0]],
-            [[11, 0], [2, 3]],
-            [[11, 0], [13, 0]],
-            [[11, 0], [14, 0]],
-            # SSS
-            [[0, 6], [13, 2]],
-            [[0, 7], [14, 2]],
-            [[0, 8], [18, 0]],
-            # Normal
-            [[0, 4], [5, 1]],
-            [[5, 0], [6, 'Normal']],
-            [[6, 'Normal'], [2, 'Normal']],
-            # Bump/displacement
-            [[0, 3], [6, 'Height']],
-            [[0, 3], [3, 1]],
-            [[0, 5], [3, 2]],
-            [[3, 0], [4, 'Height']],
-            [[4, 0], [1, 1]],
-            [[6, 0], [7, 1]],  # Bump->Fresnel
-            [[7, 0], [16, 0]],  # Fresnel->Mix0
-            [[7, 0], [17, 0]],  # Fresnel->Mix1
-            [[16, 0], [18, 1]],  # Mix0->Mix2
-            [[17, 0], [18, 2]],  # Mix1->Mix2
-            # Specular/roughness
-            [[0, 1], [9, 0]],
-            [[9, 0], [2, 5]],
-            [[0, 2], [15, 1]],  # rougness->invert
-            [[15, 0], [10, 0]],  # invert->bright
-            [[10, 0], [2, 7]],  # bright->bsdf
-            [[10, 0], [12, 1]],  # bright_glossy
-            [[9, 0], [12, 0]],
-            [[12, 0], [16, 2]],
-            [[12, 0], [17, 2]],
-            [[13, 0], [16, 1]],  # blue
-            [[14, 0], [17, 1]],  # red
-            # out
-            [[18, 0], [1, 0]],
-            [[4, 0], [1, 1]],
-            [[2, 0], [1, 2]],
-        ]
-        ROOT = self.mcy_skin.nodes
-        LINK = self.mcy_skin.links
-        old_gname = ""
-
-        for g_index, g_name in enumerate(generate_names):
-            if g_name == '':
-                g_name = old_gname
-            a = g_name.find('.')
-            sub = None
-            if a > 0:
-                sub = g_name[a+1:]
-                g_name = g_name[:a]
-            n = ROOT.new(type=g_name)
-            n.name = g_name + "-" + str(g_index)
-            if sub is not None:
-                n.blend_type = sub
-            self.shaders.append(n)
-            old_gname = g_name
-            
-        for cidx, cn in enumerate(con_nums):
-            outp = cn[0]
-            inp = cn[1]
-            LINK.new(
-                self.shaders[outp[0]].outputs[outp[1]],
-                self.shaders[inp[0]].inputs[inp[1]]
-            )
-        NodeArrange.toNodeArrange(self.mcy_skin.nodes)

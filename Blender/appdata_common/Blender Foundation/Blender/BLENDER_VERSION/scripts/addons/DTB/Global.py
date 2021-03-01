@@ -306,15 +306,10 @@ def find_EYLS(dobj):
     global _EYLS
     global keep_EYLS
     if isRiggedObject(dobj):
-        if len(dobj.vertex_groups) == 16 and len(dobj.data.vertices) == 464:
-            miss = 0
-            for vg in dobj.vertex_groups:
-                if ('head' == vg.name.lower()) == False and ('eyelid' in vg.name.lower()) == False:
-                    miss += 1
-            if miss < 3:
-                _EYLS = dobj.name
-                keep_EYLS = deepcopy(dobj.name)
-                return True
+        if "Eyelashes" in  dobj.name:
+            _EYLS = dobj.name
+            keep_EYLS = deepcopy(dobj.name)
+            return True        
     return False
 
 def find_HAIR(dobj):
