@@ -243,7 +243,7 @@ class DtbShaders:
             return "IrayUberSkin"
         else:
             return "DefaultMaterial"
-            
+
     def set_eevee_alpha(self,mat):
         if mat.name == "Eyelashes":
                 Versions.eevee_alpha(mat, 'BLEND', 0)
@@ -254,7 +254,7 @@ class DtbShaders:
                     "EylsMoisture"
                 ]:
                 Versions.eevee_alpha(mat, 'HASHED', 0)
-
+        
    
     def find_node_property(self,input_key,mat_property_dict):
         property_key, property_type = input_key.split(": ")
@@ -268,7 +268,6 @@ class DtbShaders:
 
    
     def create_texture_input(self,tex_path,tex_image_node):
-        
         tex_image = bpy.data.images.load(filepath=tex_path)
         tex_image_node.image = tex_image
         if not self.is_Diffuse:
@@ -332,12 +331,9 @@ class DtbShaders:
                         out_node_ev.inputs['Surface']
                     )
 
-            self.set_eevee_alpha(mat)
-            
             # Find and Attach Node Input
             mat_property_dict = self.get_mat_properties(mat_data)
             for input_key in shader_node.inputs.keys():
-    
                 if ("Texture" in input_key) or ("Value" in input_key):
                     # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
                     if input_key.split(": ")[0] in mat_property_dict.keys():
@@ -360,19 +356,17 @@ class DtbShaders:
                                                 tex_node_output,
                                                 shader_node.inputs[input_key]
                                                 )
+            # Set Alpha Modes
+            self.set_eevee_alpha(mat)
             # Set the cycles displacement method
-            
             if node_group == "IrayUberSkin":
                 mat_links.new(
                             shader_node.outputs['Displacement'],
                             out_node_cy.inputs['Displacement']
                         )
                 mat.cycles.displacement_method = 'BOTH'
-
             else:
                 mat.cycles.displacement_method = 'BUMP'
-            
-                
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
 
@@ -390,63 +384,91 @@ class DtbShaders:
                 continue
 
             for mat_slot in obj.material_slots:
-                mat = bpy.data.materials[mat_slot.name]
+                mat = mat_slot.material
                 if mat is None:
+                    # Get or create a new material when slot is missing material
+                    mat = bpy.data.materials.get(mat_slot.name) \
+                        or bpy.data.materials.new(name=mat_slot.name)
+                    mat_slot.material = mat
+                
+               # Get material data
+                # To Deal With Multiple Characters
+                if mat.name != "EyeMoisture001":
+                    mat_name = mat.name.split(".0")[0]
+                else:
+                    mat_name = mat.name
+                if mat_name not in self.mat_data_dict.keys():
                     continue
                 
-                base_color_key = mat_slot.name.lower() + "_c"
-                base_color_value = []
-                if base_color_key not in self.dct.keys():
-                    continue
-                base_color_value = self.dct[base_color_key]
-                if len(base_color_value) == 4 and base_color_value[3] < 1.0:
-                    Versions.eevee_alpha(mat, 'BLEND', 0)
-
+                mat_data = self.mat_data_dict[mat_name]
+                        
+                mat.use_nodes = True
                 mat_nodes = mat.node_tree.nodes
                 mat_links = mat.node_tree.links
-                image_path = ""
-                prin_bsdf_node = None
-                norm_map_node = None
-                if len(mat_nodes) == 5 or len(mat_nodes) == 4:
-                    for node in mat_nodes:
-                        if node.name == "Image Texture":
-                            image_path = node.image.filepath
-                        elif node.name == "Principled BSDF":
-                            prin_bsdf_node = node
-                        elif node.name == "Normal Map":
-                            norm_map_node = node
+                
+                # Remove all the nodes from the material
+                for mat_node in mat_nodes:
+                    mat_nodes.remove(mat_node)
 
-                    if image_path != "":
-                        md = MatDct.MatDct()
-                        cary = md.cloth_dct_0(image_path)
-                        #pandb = insert_bump_map(mat_nodes, mat_links)
-                        #BUMP = pandb[1]
-                        #mat_nodes = pandb[0]
-                        prin_bsdf_node.inputs['Specular'].default_value = 0.3
-                        if(len(prin_bsdf_node.inputs['Alpha'].links) > 0):
-                            Versions.eevee_alpha(mat, 'BLEND', 0)
-                        for ca in cary:
-                            for ft in ftable:
-                                if ft[0] == 'd':
-                                    continue
-                                if ca[0].endswith(ft[0]):
-                                    SNTIMG = mat_nodes.new(
-                                        type='ShaderNodeTexImage')
-                                    img = bpy.data.images.load(
-                                        filepath=ca[1])
-                                    SNTIMG.image = img
-                                    Versions.to_color_space_non(SNTIMG)
-                                    if ft[0] == 'n':
-                                        if norm_map_node is not None:
-                                            mat_links.new(
-                                                SNTIMG.outputs['Color'], norm_map_node.inputs['Color'])
-                                    # elif ft[0] == 'b':
-                                    #     if BUMP is not None:
-                                    #         mat_links.new(
-                                    #             SNTIMG.outputs['Color'], BUMP.inputs['Height'])
-                                    else:
-                                        mat_links.new(
-                                            SNTIMG.outputs['Color'], prin_bsdf_node.inputs[ft[1]])
+                # Create material output nodes and set corresponding targets
+                out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
+                out_node_cy.target = 'CYCLES'
+                out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
+                out_node_ev.target = 'EEVEE'
 
-                NodeArrange.toNodeArrange(mat_nodes)
+                # Create shader node and set links
+                shader_node = mat_nodes.new(type='ShaderNodeGroup')
+                node_group = self.get_mat_type(mat_data)
+                shader_node.node_tree = bpy.data.node_groups[node_group]
+                
+                # Link corresponding nodes in the material
+                render_output = None
+                surface_input = out_node_cy.inputs['Surface']
+                render_output = shader_node.outputs['Cycles']
+                mat_links.new(render_output, surface_input)
+                mat_links.new(
+                            shader_node.outputs['EEVEE'], 
+                            out_node_ev.inputs['Surface']
+                        )
+                # Find and Attach Node Input
+                mat_property_dict = self.get_mat_properties(mat_data)
+                for input_key in shader_node.inputs.keys():
+        
+                    if ("Texture" in input_key) or ("Value" in input_key):
+                        # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
+                        if input_key.split(": ")[0] in mat_property_dict.keys():
+                            property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
+                            if property_type == "Value":
+                                # Check if Info is a Hex Color
+                                if isinstance(property_info,str):
+                                    property_info = self.convert_color(property_info,shader_node)
+                                shader_node.inputs[input_key].default_value = property_info
+
+                            if property_type == "Texture":
+                                if os.path.exists(property_info): 
+                                    self.check_map_type(property_key)
+                                    tex_image_node = mat_nodes.new(
+                                                    type='ShaderNodeTexImage'
+                                                )
+                                    self.create_texture_input(property_info,tex_image_node)
+                                    tex_node_output = tex_image_node.outputs['Color']
+                                    mat_links.new(
+                                                    tex_node_output,
+                                                    shader_node.inputs[input_key]
+                                                    )
+                # Set the cycles displacement method
+                
+                if node_group == "IrayUberSkin":
+                    mat_links.new(
+                                shader_node.outputs['Displacement'],
+                                out_node_cy.inputs['Displacement']
+                            )
+                    mat.cycles.displacement_method = 'BOTH'
+
+                else:
+                    mat.cycles.displacement_method = 'BUMP'
+                
+                    
+                if mat_nodes is not None:
+                    NodeArrange.toNodeArrange(mat_nodes)
 
