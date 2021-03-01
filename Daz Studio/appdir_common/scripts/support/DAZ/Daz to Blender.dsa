@@ -29,238 +29,11 @@
 	};
 	var s_nExportType = s_oExportTypes.None;
 	
-	var s_aMinMorphs = [
-		"pJCMShldrUp_35_R",
-		"pJCMShldrUp_35_L",
-		"pJCMCollarUp_50_L",
-		"pJCMCollarUp_50_R",
-		"pJCMShldrDown_75_L",
-		"pJCMShldrDown_75_R",
-		"pJCMShldrFwd_95_L",
-		"pJCMShldrFwd_95_R", 
-		"pJCMShldrFwdDown_75_R",
-		"pJCMShldrFwdDown_75_L ",
-		"eCTRLBrowInnerUp-Down",
-		"eCTRLBrowInnerUp-DownL",
-		"eCTRLBrowInnerUp-DownR",
-		"eCTRLBrowOuterUp-Down",
-		"eCTRLBrowOuterUp-DownL",
-		"eCTRLBrowOuterUp-DownR",
-		"eCTRLBrowSqueeze",
-		"eCTRLBrowSqueezeL",
-		"eCTRLBrowSqueezeR",
-		"eCTRLBrowUp-Down",
-		"eCTRLBrowUp-DownL",
-		"eCTRLBrowUp-DownR",
-		"eCTRLCheekCrease",
-		"eCTRLCheekEyeFlex",
-		"eCTRLCheekEyeFlexL",
-		"eCTRLCheekEyeFlexR",
-		"eCTRLCheekFlex-Slack",
-		"eCTRLCheekFlex-SlackL",
-		"eCTRLCheekFlex-SlackR",
-		"eCTRLCheeksBalloonPucker",
-		"eCTRLCheeksBalloon-SuckIn",
-		"eCTRLCheeksBalloon-SuckInL",
-		"eCTRLCheeksBalloon-SuckInR",
-		"CTRLCheeksDimpleCreaseHD",
-		"eCTRLJawOut-In",
-		"eCTRLJawSide-Side",
-		"eCTRLAfraid_HD",
-		"eCTRLAngry_HD",
-		"eCTRLMurphySignatureSmileHD",
-		"eCTRLSahelSignatureSmileHD",
-		"eCTRLFlirting_HD",
-		"eCTRLFrown_HD",
-		"eCTRLShock_HD",
-		"eCTRLSmileFullFace_HD",
-		"eCTRLSmileOpenFullFace_HD",
-		"eCTRLSurprised_HD",
-		"eCTRLEyelidsLowerUpDown",
-		"eCTRLEyelidsLowerUpDownL",
-		"eCTRLEyelidsLowerUpDownR",
-		"eCTRLEyelidsUpperUp-Down",
-		"eCTRLEyelidsUpperUp-DownL",
-		"eCTRLEyelidsUpperUp-DownR",
-		"eCTRLEyesClosed",
-		"eCTRLEyesClosedL",
-		"eCTRLEyesClosedR",
-		"eCTRLEyesCrossed",
-		"eCTRLEyesRelax",
-		"eCTRLEyesRelaxL",
-		"eCTRLEyesRelaxR",
-		"eCTRLEyesSideSide",
-		"eCTRLEyesSquint-Widen",
-		"eCTRLEyesSquint-WidenL",
-		"eCTRLEyesSquint-WidenR",
-		"eCTRLEyesUpDown",
-		"eCTRLMouthClosed",
-		"eCTRLMouthCornerForward-Back",
-		"eCTRLMouthCornerForward-BackL",
-		"eCTRLMouthCornerForward-BackR",
-		"eCTRLMouthCornerUp-Down",
-		"eCTRLMouthCornerUp-DownL",
-		"eCTRLMouthCornerUp-DownR",
-		"eCTRLMouthFrown",
-		"eCTRLMouthOpen",
-		"eCTRLMouthSide-Side",
-		"eCTRLMouthSmile",
-		"eCTRLMouthSmileOpen",
-		"eCTRLMouthSmileSimple",
-		"eCTRLMouthSmileSimpleL",
-		"eCTRLMouthSmileSimpleR",
-		"eCTRLMouthWide-Narrow",
-		"eCTRLMouthWide-NarrowL",
-		"eCTRLMouthWide-NarrowR",
-		"eCTRLLipBottomOut-In",
-		"eCTRLLipBottomOut-InL",
-		"eCTRLLipBottomOut-InR",
-		"eCTRLLipBottomUp-Down",
-		"eCTRLLipBottomUp-DownL",
-		"eCTRLLipBottomUp-DownR",
-		"eCTRLLipTopOut-In",
-		"eCTRLLipTopOut-InL",
-		"eCTRLLipTopOut-InR",
-		"eCTRLLipTopUp-Down",
-		"eCTRLLipTopUp-DownL",
-		"eCTRLLipTopUp-DownR",
-		"eCTRLLipsClosed-BareTeeth",
-		"eCTRLLipsPart",
-		"eCTRLLipsPartCenter",
-		"eCTRLLipsPuckerWide",
-		"eCTRLLipsPucker-Pressed",
-		"eCTRLTongueBendTip",
-		"eCTRLTongueCurl",
-		"eCTRLTongueIn-Out",
-		"eCTRLTongueNarrow-Wide",
-		"eCTRLTongueRaise-Lower",
-		"eCTRLTongueSide-Side",
-		"eCTRLTongueUp-Down",
-		"eCTRLNoseScrunch",
-		"eCTRLNoseWrinkle",
-		"eCTRLNostrilsFlex",
-		"eCTRLvAA",
-		"eCTRLvEE",
-		"eCTRLvEH",
-		"eCTRLvER",
-		"eCTRLvF",
-		"eCTRLvIH",
-		"eCTRLvIY",
-		"eCTRLvK",
-		"eCTRLvL",
-		"eCTRLvM",
-		"eCTRLvOW",
-		"eCTRLvS",
-		"eCTRLvSH",
-		"eCTRLvT",
-		"eCTRLvTH",
-		"eCTRLvUW",
-		"eCTRLvW",
-		"pJCMAbdomen2Fwd_40",
-		"pJCMAbdomen2Side_24_L",
-		"pJCMAbdomen2Side_24_R",
-		"pJCMAbdomenFwd_35",
-		"pJCMAbdomenLowerFwd_Navel",
-		"pJCMAbdomenUpperFwd_Navel",
-		"pJCMBigToeDown_45_L",
-		"pJCMBigToeDown_45_R",
-		"pJCMChestFwd_35",
-		"pJCMChestSide_20_L",
-		"pJCMChestSide_20_R",
-		"pJCMCollarTwist_n30_L",
-		"pJCMCollarTwist_n30_R",
-		"pJCMCollarTwist_p30_L",
-		"pJCMCollarTwist_p30_R",
-		"pJCMCollarUp_55_L",
-		"pJCMCollarUp_55_R",
-		"pJCMCollarUp_50_L",
-		"pJCMCollarUp_50_R",
-		"pJCMFootDwn_75_L",
-		"pJCMFootDwn_75_R",
-		"pJCMFootUp_40_L",
-		"pJCMFootUp_40_R",
-		"pJCMForeArmFwd_135_L",
-		"pJCMForeArmFwd_135_R",
-		"pJCMForeArmFwd_75_L",
-		"pJCMForeArmFwd_75_R",
-		"pJCMHandDwn_70_L",
-		"pJCMHandDwn_70_R",
-		"pJCMHandUp_80_L",
-		"pJCMHandUp_80_R",
-		"pJCMHeadBack_27",
-		"pJCMHeadFwd_25",
-		"pJCMIndex1Dwn_90_L",
-		"pJCMIndex1Dwn_90_R",
-		"pJCMIndex2Dwn_105_L",
-		"pJCMIndex2Dwn_105_R",
-		"pJCMIndex3Dwn_90_L",
-		"pJCMIndex3Dwn_90_R",
-		"pJCMMid1Dwn_95_L",
-		"pJCMMid1Dwn_95_R",
-		"pJCMMid2Dwn_105_L",
-		"pJCMMid2Dwn_105_R",
-		"pJCMMid3Dwn_90_L",
-		"pJCMMid3Dwn_90_R",
-		"pJCMNeckBack_27",
-		"pJCMNeckFwd_35",
-		"pJCMNeckLowerSide_40_L",
-		"pJCMNeckLowerSide_40_R",
-		"pJCMNeckTwist_22_L",
-		"pJCMNeckTwist_22_R",
-		"pJCMNeckTwist_Reverse",
-		"pJCMNeckTwist_Reverse",
-		"pJCMNeckTwist_Reverse",
-		"pJCMPelvisFwd_25",
-		"pJCMPinky1Dwn_95_L",
-		"pJCMPinky1Dwn_95_R",
-		"pJCMPinky2Dwn_105_L",
-		"pJCMPinky2Dwn_105_R",
-		"pJCMPinky3Dwn_90_L",
-		"pJCMPinky3Dwn_90_R",
-		"pJCMRing1Dwn_95_L",
-		"pJCMRing1Dwn_95_R",
-		"pJCMRing2Dwn_105_L",
-		"pJCMRing2Dwn_105_R",
-		"pJCMRing3Dwn_90_L",
-		"pJCMRing3Dwn_90_R",
-		"pJCMShinBend_155_L",
-		"pJCMShinBend_155_R",
-		"pJCMShinBend_90_L",
-		"pJCMShinBend_90_R",
-		"pJCMShldrDown_40_L",
-		"pJCMShldrDown_40_R",
-		"pJCMShldrFront_n110_Bend_n40_L",
-		"pJCMShldrFront_n110_Bend_p90_L",
-		"pJCMShldrFront_p110_Bend_n90_R",
-		"pJCMShldrFront_p110_Bend_p40_R",
-		"pJCMShldrFwd_110_L",
-		"pJCMShldrFwd_110_R",
-		"pJCMShldrUp_90_L",
-		"pJCMShldrUp_90_R",
-		"pJCMThighBack_35_L",
-		"pJCMThighBack_35_R",
-		"pJCMThighFwd_115_L",
-		"pJCMThighFwd_115_R",
-		"pJCMThighFwd_57_L",
-		"pJCMThighFwd_57_R",
-		"pJCMThighSide_85_L",
-		"pJCMThighSide_85_R",
-		"pJCMThumb1Bend_50_L",
-		"pJCMThumb1Bend_50_R",
-		"pJCMThumb1Up_20_L",
-		"pJCMThumb1Up_20_R",
-		"pJCMThumb2Bend_65_L",
-		"pJCMThumb2Bend_65_R",
-		"pJCMThumb3Bend_90_L",
-		"pJCMThumb3Bend_90_R",
-		"pJCMToesUp_60_L",
-		"pJCMToesUp_60_R"
-	];
-	var s_sMorphRules = "head\n1\npJCM\n1\n";
+	var s_sMorphRules = "";
 	
 	var s_sRootPath = "";
 	
-	var s_aMorphs = [];
+	var s_aMorphs = {};
 	var s_aSearch = [];
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
@@ -279,7 +52,14 @@
 	// Note: destructive - modifies the scene contents
 	function buildMorphList( oNode )
 	{
-		var aProperties = getElementProperties( oNode, true, true );
+		if( oNode.inherits( "DzFigure" ) ){
+            oNode = oNode.getSkeleton();
+			var aProperties = getElementProperties( oNode, true, true );
+        }
+        
+		else{
+			var aProperties = getElementProperties( oNode, true, true );
+		}
 		var nAlfIdx = 0;
 		var aTops = [ "Morphs", "Hidden", "Pose" ];
 		
@@ -294,16 +74,9 @@
 		for( var i = 0; i < aProperties.length; i += 1 ){
 			oProp = aProperties[ i ];
 			oOwner = oProp.getOwner();
-			if( !oOwner.inherits( "DzMorph" ) ){
-				continue;
-			}
-			
 			sPath = oProp.getPath();
 			sHead = "";
-			if( sPath.indexOf( "/Hidden/Correctives/Base" ) == 0 ){
-				continue;
-			}
-			
+
 			for( var j = 0; j < aTops.length; j += 1 ){
 				oTop = aTops[j];
 				if( sPath.indexOf( "/" + oTop ) == 0 ){
@@ -316,9 +89,6 @@
 				continue;
 			}
 			
-			while( sHead.length < 12 ){
-				sHead = sHead + " ";
-			}
 			
 			sLabel = oProp.getLabel();
 			if( (sLabel.length + 2 + s_nMaxName) > s_nMaxAll ){
@@ -329,19 +99,10 @@
 				nAlfIdx = nAlfIdx % 36;
 			}
 			
-			sLabel = oProp.getLabel();
-			s_aMorphs.push( sHead + ":" + s_s3Spaces + sLabel );
-			s_aSearch.push( sLabel );
-		}
-		
-		for( var i = 0; i < s_aMorphs.length - 1; i += 1 ){
-			for( var j = i + 1; j < s_aMorphs.length; j += 1 ){
-				if( s_aMorphs[i] > s_aMorphs[j] ){
-					sTmp = s_aMorphs[i];
-					s_aMorphs[i] = s_aMorphs[j];
-					s_aMorphs[j] = sTmp;
-				}
-			}
+			sName = oProp.getName()
+			// To do sort all the data for Morphs to create more cleaner UI
+			s_aMorphs[sLabel] = {'sMorphHead': sHead, "sMorphName" : sName, "sMorphPath" : sPath};
+
 		}
 	};
 	
@@ -743,15 +504,63 @@
 	// Array<String> : ...
 	function getMinimalMorphRules()
 	{
-		var sResult = "head\n0\n";
-		for( var i = 0; i < s_aMinMorphs.length; i += 1 ){
-			sResult += s_aMinMorphs[i] + "\n1\n";
+		
+		var sResult 
+		for(sMorphLabel in s_aMorphs){
+			if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Head') > 0)
+			{
+				sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+			}
 		}
 		
 		return sResult;
 	};
 	
 	/*********************************************************************/
+	// Array<String> : ...
+	function getMorphPresets(sPreset)
+	{
+		
+		var sResult 
+		for(sMorphLabel in s_aMorphs){
+			if (sPreset == "All Body Morphs"){
+				if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Arms') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Hip') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Torso') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Neck') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Legs') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Hands') > 0
+					||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Feet') > 0){
+				sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+				}		
+			}
+			else{
+				if (s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('/Head') > 0){
+					if (sPreset == "Face Controls"){
+						if(!(s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Expressions') > 0 
+							||s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Visemes') > 0 )){
+							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+						}
+					}
+					if (sPreset == "Expressions"){
+						if( s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Expressions') > 0){
+							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+						}
+					}
+					if (sPreset == "Visemes"){
+						if	( s_aMorphs[sMorphLabel]['sMorphPath'].indexOf('Visemes') > 0 ){
+							sResult += s_aMorphs[sMorphLabel]['sMorphName'] + "\n1\n";
+						}
+					}		
+				}
+			}
+		}
+		
+		return sResult;
+	};
+	
+	/*********************************************************************/
+	
 	// void : ...
 	function addBanner( wDlg, sImagePath )
 	{
@@ -765,11 +574,12 @@
 	
 	/*********************************************************************/
 	// Boolean : ...
-	function promptMorphRules( oNode )
-	{
+	function promptMorphRules( oNode)
+	{	
+		
 		var wDlg = new DzBasicDialog();
 		wDlg.caption = s_sToolName + ": Morph Names";
-		
+	
 		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
 		
 		if( oNode ){
@@ -801,19 +611,43 @@
 		wDlg.addWidget( wLbl );
 		
 		var wValidMorphNamesLbl = new DzLabel( wDlg );
-		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names:\n[double-click to copy above]" );
+		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names and Presets:\n[double-click to copy above]" );
 		wDlg.addWidget( wValidMorphNamesLbl );
-		
+		// TODO Replace a listbox for a more functional option
+		var sMorphList = []
 		var wValidMorphNamesLBox = new DzListBox( wDlg );
-		for( var i = 0; i < s_aMorphs.length; i += 1 ){
-			wValidMorphNamesLBox.insertItem( s_aMorphs[i] );
+		for(var s_aMorphLabel in s_aMorphs) {
+			if(s_aMorphs[s_aMorphLabel]["sMorphHead"] != "Hidden"){
+				var sMorphHeaders = s_aMorphs[s_aMorphLabel]['sMorphPath'].split("/") 
+				sMorphList.push(sMorphHeaders[sMorphHeaders.length -2] + " "+ 
+											sMorphHeaders[sMorphHeaders.length -1] + " "+
+											":" + s_s3Spaces + s_aMorphLabel);
+			}
+	
+		}
+		// Organize the Visible Morphs
+		sMorphList.sort()
+		for(var s_aMorphLabel in s_aMorphs){
+			if(s_aMorphs[s_aMorphLabel]["sMorphHead"] == "Hidden"){
+				sMorphList.push(s_aMorphs[s_aMorphLabel]["sMorphHead"] + 
+								":" + s_s3Spaces + s_aMorphLabel);
+			}
+		}
+		// Add a few temporary presets for ease of use.	
+		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Face Controls");
+		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Expressions");
+		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"Visemes");	
+		wValidMorphNamesLBox.insertItem("Presets:" + s_s3Spaces +"All Body Morphs");
+		for( var i = 0; i < sMorphList.length; i += 1 ){
+		
+			wValidMorphNamesLBox.insertItem(sMorphList[i]);
 		}
 		wDlg.addWidget( wValidMorphNamesLBox );
 		
 		function addValidMorphName()
 		{
 			var sCurText = wValidMorphNamesLBox.currentText;
-			sCurText = sCurText.substr( 16 );
+			sCurText = sCurText.split(":"+s_s3Spaces)[1];
 			wMorphNamesTEdit.append( sCurText );
 		};
 		wValidMorphNamesLBox.doubleClicked.connect( wValidMorphNamesLBox, addValidMorphName );
@@ -831,20 +665,44 @@
 			s_sMorphRules = getMinimalMorphRules();
 		}
 		
+		createMorphRules(wMorphNamesTEdit.text.split("\n"));
+	
+		return true;
+	};
+	/*********************************************************************/
+	// Take List of Morph Labels and Convert to Format for FBX Exporter
+	// void : ...
+	function createMorphRules(aMorphLabels)
+	{	
 		var sMorphName;
-		var aMorphNames = wMorphNamesTEdit.text.split( /\r\n|\r|\n/ );
-		for( var i = 0; i < aMorphNames.length; i += 1 ){
-			sMorphName = aMorphNames[i];
-			if( sMorphName.indexOf( "head" ) < 0
-			&& sMorphName != "Anything"
-			&& sMorphName.indexOf( "pJCM" ) < 0
-			&& sMorphName.length > 2 ){
+		var s_aMorphLabel;
+		
+		// To do find a better way to stop if nothing is chosen
+		if (aMorphLabels !==undefined){
+			
+			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
+				
+				s_aMorphLabel = aMorphLabels[i];
+				if (s_aMorphs[s_aMorphLabel] !== undefined){
+
+					if (s_aMorphs[s_aMorphLabel]["sMorphHead"] == 'Pose'){
+					sMorphName = s_aMorphs[s_aMorphLabel]["sMorphName"];
+					}
+					else{
+						sMorphName = s_aMorphLabel
+					}
+				}
+				else{
+					s_sMorphRules += getMorphPresets(s_aMorphLabel);
+					}
 				s_sMorphRules += sMorphName + "\n1\n";
 			}
 		}
-		s_sMorphRules += "Anything\n0";
 		
+		s_sMorphRules += "Anything\n0";
+
 		return true;
+
 	};
 	
 	/*********************************************************************/
