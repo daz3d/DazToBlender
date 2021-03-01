@@ -491,7 +491,7 @@ def insert_bump_map(nodes, links):
 class DtbShaders:
     dct = {}
     mat_data_dict = {}
-
+    node_groups = []
     def __init__(self):
         pass
 
@@ -513,7 +513,9 @@ class DtbShaders:
         
         # load node_groups from link_library.blend file
         with bpy.data.libraries.load(file_path) as (data_from, data_to):
-            data_to.node_groups = data_from.node_groups
+            if len(bpy.data.node_groups) != len(data_from.node_groups):
+                self.node_groups = data_from.node_groups
+                data_to.node_groups = data_from.node_groups
 
     # TODO: Remove all the hardcoding
     def body_texture(self):
