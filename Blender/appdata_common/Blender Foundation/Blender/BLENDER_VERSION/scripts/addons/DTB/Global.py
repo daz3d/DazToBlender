@@ -12,8 +12,10 @@ _AMTR = ""
 _BODY = ""
 _EYLS = ""
 _HAIR = ""
+_TEAR = ""
 _RGFY = ""
 keep_EYLS = ""
+keep_TEAR = ""
 db = DataBase.DB()
 bone_limit_memory = []
 
@@ -170,7 +172,11 @@ def get_Eyls_name():
         return _EYLS
     else:
         return ""
-
+def get_Tear_name():
+    if _TEAR != "" and (_TEAR in Util.allobjs()):
+        return _TEAR
+    else:
+        return ""
 def get_Hair_name():
     if _HAIR != "" and (_HAIR in Util.allobjs()):
         return _HAIR
@@ -179,6 +185,9 @@ def get_Hair_name():
 
 def get_KeepEyls_name():
     return keep_EYLS
+
+def get_KeepTear_name():
+    return keep_TEAR
 
 def get_Rgfy_name():
     if _RGFY != "" and (_RGFY in Util.allobjs()):
@@ -195,12 +204,19 @@ def getIsGen():
 def getIsEyls():
     return _EYLS != ""
 
+def getIsTEAR():
+    return _TEAR != ""
+
 def getIsHair():
     return _HAIR != ""
 
 def setEylsIsJoined():
     global _EYLS
     _EYLS = ""
+
+def setTearIsJoined():
+    global _TEAR
+    _TEAR = ""
 
 def find_RGFY_all():
     for d in Util.myccobjs():
@@ -301,7 +317,7 @@ def find_Both(obj):
     return False
 
 
-
+#TODO: Fix Logic of Combination of Tear and
 def find_EYLS(dobj):
     global _EYLS
     global keep_EYLS
@@ -309,9 +325,16 @@ def find_EYLS(dobj):
         if "Eyelashes" in  dobj.name:
             _EYLS = dobj.name
             keep_EYLS = deepcopy(dobj.name)
-            return True        
+            return True
     return False
-
+def find_TEAR(dobj):
+    global _TEAR
+    global keep_TEAR 
+    if "Tear" in dobj.name:
+        _TEAR = dobj.name
+        keep_TEAR = deepcopy(dobj.name)
+        return True
+    return False
 def find_HAIR(dobj):
     global _HAIR
     if isRiggedObject(dobj):
@@ -374,6 +397,7 @@ def decide_HERO():
     global _RGFY
     global _BODY
     global _EYLS
+    global _TEAR
     global _HAIR
     global isMan
     global isGen
@@ -397,7 +421,7 @@ def decide_HERO():
     if _AMTR == "" and _RGFY == "":
         return
     mf = 0
-    bool_body = [False, False, False]
+    bool_body = [False, False, False,False]
 
     for z in range(2):
         for dobj in Util.myccobjs():
@@ -425,12 +449,16 @@ def decide_HERO():
                 bool_body[1] = True
             elif z>0 and bool_body[2]==False and find_HAIR(dobj):
                 bool_body[2] = True
+            elif z>0 and bool_body[3]==False and find_TEAR(dobj):
+                bool_body[3] = True
     if bool_body[0] == False:
         _BODY = ""
     if bool_body[1] == False:
         _EYLS = ""
     if bool_body[2] == False:
         _HAIR = ""
+    if bool_body[3] == False:
+        _TEAR = ""
     if _BODY == "":
         return
     if mf == 0:
@@ -637,6 +665,12 @@ def getBody():
 def getEyls():
     for dobj in Util.allobjs():
         if dobj.type == 'MESH' and dobj.name == _EYLS:
+            return dobj
+    return None
+
+def getTear():
+    for dobj in Util.allobjs():
+        if dobj.type == 'MESH' and dobj.name == _TEAR:
             return dobj
     return None
 

@@ -179,7 +179,17 @@ class DazRigBlend:
         Versions.active_object(obj1)
         Versions.active_object(obj2)
         bpy.ops.object.join()
-
+        
+    def integrationTear(self):
+        Global.setOpsMode('OBJECT')
+        obj1 = Global.getTear()
+        obj2 = Global.getBody()
+        Versions.select(obj1,True)
+        Versions.select(obj2,True)
+        Versions.active_object(obj1)
+        Versions.active_object(obj2)
+        bpy.ops.object.join()
+    
     def unwrapuv(self):
         Global.setOpsMode('OBJECT')
         if Global.getIsEyls():

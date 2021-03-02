@@ -216,7 +216,8 @@ class DtbShaders:
                                 "Cornea",
                                 "EyeMoisture",
                                 "EyeMoisture.00",
-                                "EylsMoisture"
+                                "EylsMoisture",
+                                "Tear"
                             ]:
                     return "EyeWet"
                 elif material_name in ["Pupils", "Trises", "Sclera"]:
@@ -228,15 +229,31 @@ class DtbShaders:
                 if material_name in [
                                 "Cornea",
                                 "EyeMoisture",
-                                "EyeMoisture.00",
-                                "EylsMoisture"
+                                "EyeMoisture.001",
+                                "EylsMoisture",
+                                "Tear"
                             ]:
                     return "EyeWet"
                 else:
                     return "Eyelashes"
-            
-        if material_type == "PBRSkin":
+            if "Tear" in object_type:
+                if material_name in [
+                                "Cornea",
+                                "EyeMoisture",
+                                "EyeMoisture.001",
+                                "EylsMoisture",
+                                "Tear"
+                            ]:
+                    return "EyeWet"
+                
+            else:
+                return "IrayUber"
+        elif material_type == "omUberSurface":
+            return "omUberSurface"
+        elif material_type == "PBRSkin":
             return "IrayUberSkin"
+        elif ("Hair" in material_type) or ("Hair" in object_type):
+            return "IrayUber" 
         else:
             return "DefaultMaterial"
 
@@ -246,8 +263,9 @@ class DtbShaders:
         if mat.name in [
                     "Cornea",
                     "EyeMoisture",
-                    "EyeMoisture.00",
-                    "EylsMoisture"
+                    "EyeMoisture.001",
+                    "EylsMoisture",
+                    "Tear"
                 ]:
                 Versions.eevee_alpha(mat, 'HASHED', 0)
         
@@ -261,7 +279,8 @@ class DtbShaders:
     def check_map_type(self,property_key):
         if "Diffuse" in property_key:
             self.is_Diffuse = True
-
+        else:
+            self.is_Diffuse = False
    
     def create_texture_input(self,tex_path,tex_image_node):
         tex_image = bpy.data.images.load(filepath=tex_path)
@@ -431,7 +450,7 @@ class DtbShaders:
                 for input_key in shader_node.inputs.keys():
         
                     if ("Texture" in input_key) or ("Value" in input_key):
-                        # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
+                        # To deal with Gen 8.1 Not Sharing the Same info as Gen 8 "temp"
                         if input_key.split(": ")[0] in mat_property_dict.keys():
                             property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
                             if property_type == "Value":
