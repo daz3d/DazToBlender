@@ -581,7 +581,10 @@ class IMP_OT_FBX(bpy.types.Operator):
             if Global.getIsEyls():
                 drb.integrationEyelashes()
                 Global.deselect()
-            
+            if Global.getIsTEAR():
+                drb.integrationTear()
+                Global.deselect()
+
             # materials
             dtb_shaders.make_dct()
             dtb_shaders.load_shader_nodes()
