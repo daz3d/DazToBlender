@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2, 1, 0),
+    "version": (2, 2, 0),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -498,6 +498,7 @@ class DTB_PT_Main(bpy.types.Panel):
                     row.operator('to.sculpt', icon="MONKEY")
                     if obj_exsported != "":
                         l.label(text=obj_exsported)
+                    
                 l.separator()
             row = l.row(align=True)
             row.alignment = 'EXPAND'
@@ -509,6 +510,9 @@ class DTB_PT_Main(bpy.types.Panel):
         else:
             l.prop(w_mgr, "search_prop")
         l.operator('remove.alldaz', icon='BOIDS')
+        l.operator('df.optimize', icon="MATERIAL")
+        
+                    
 
 
 class IMP_OT_FBX(bpy.types.Operator):
@@ -767,6 +771,13 @@ class DEFAULT_OT_material(bpy.types.Operator):
     def execute(self, context):
         Util.active_object_to_current_collection()
         default_material(context)
+        return {'FINISHED'}
+
+class OPTIMIZE_OT_material(bpy.types.Operator):
+    bl_idname = "df.optimize"
+    bl_label = 'Optimize Materials(WIP)'
+    def execute(self, context):
+        DtbMaterial.optimize_materials()
         return {'FINISHED'}
 
 def default_material(context):
@@ -1392,6 +1403,7 @@ classes = (
     MATERIAL_OT_up,
     MATERIAL_OT_down,
     DEFAULT_OT_material,
+    OPTIMIZE_OT_material,
     SEARCH_OT_morph,
     TRANS_OT_Rigify,
     MATCH_OT_ikfk,
