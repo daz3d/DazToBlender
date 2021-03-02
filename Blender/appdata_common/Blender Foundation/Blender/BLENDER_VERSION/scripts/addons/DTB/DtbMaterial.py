@@ -88,6 +88,8 @@ def forbitMinus():
                                 if node_input.default_value < 0:
                                     node_input.default_value = 0.0
 
+def optimize_materials():
+    print("To Clean Up Dupes")     
 
 def adjust_material(kind, inc_value, isEye):
     skincombi = [
@@ -556,4 +558,5 @@ class DtbShaders:
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
     
+     
 
