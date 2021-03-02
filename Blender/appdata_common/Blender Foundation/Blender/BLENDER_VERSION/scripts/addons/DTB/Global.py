@@ -719,9 +719,10 @@ def getRig_id():
             return d.data['rig_id']
             
 def bone_limit_modify():
-    bone_limits = DataBase.get_bone_limits()
+    bone_limits = DataBase.get_bone_limits_dict()
 
-    for bone_limit in bone_limits:
+    for bone_limit_key in bone_limits:
+        bone_limit = bone_limits[bone_limit_key]
         name = bone_limit[0]
         order = bone_limit[1]
 

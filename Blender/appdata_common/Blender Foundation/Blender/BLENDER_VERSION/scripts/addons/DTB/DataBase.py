@@ -1,6 +1,6 @@
 from . import Global
 
-bone_limits = []
+bone_limits_dict = dict()
 skeleton_data = dict()
 
 def load_bone_limits():
@@ -19,12 +19,12 @@ def load_bone_limits():
         bone_limit.append(float(line_split[5]))
         bone_limit.append(float(line_split[6]))
         bone_limit.append(float(line_split[7]))
-        bone_limits.append(bone_limit)
+        bone_limits_dict[bone_limit[0]] = bone_limit
 
-def get_bone_limits():
-    if len(bone_limits) == 0:
+def get_bone_limits_dict():
+    if len(bone_limits_dict.keys()) == 0:
         load_bone_limits()
-    return bone_limits
+    return bone_limits_dict
 
 def load_skeleton_data():
     input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_skeletonData.csv", "r")
@@ -424,12 +424,14 @@ class DB:
 
     def mix_range(self,arg):
         ans = [0,0,0,0,0,0]
-        for l in  get_bone_limits():
-            if l[0].startswith(arg):
+        bone_limits = get_bone_limits_dict()
+        for bone_limit_key in bone_limits:
+            bone_limit = bone_limits[bone_limit_key]
+            if bone_limit[0].startswith(arg):
                 for i in range(6):
-                    v = l[i+2]
+                    v = bone_limit[i+2]
                     if v!=0:
-                        ans[i] = l[i+2]
+                        ans[i] = bone_limit[i+2]
         return ans
 
     tbl_blimit_rgfy = [

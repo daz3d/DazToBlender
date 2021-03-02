@@ -1,7 +1,8 @@
-import bpy
 import os
 import math
+import bpy
 import mathutils
+
 from . import Global
 from . import Versions
 from . import DataBase
@@ -200,58 +201,47 @@ class DazRigBlend:
     def bone_limit_modify(self):
         if len(Global.get_bone_limit()) == 0:
             Global.bone_limit_modify()
-        for row in DataBase.get_bone_limits():
-            dobj = Global.getAmtr()
-            pbs = dobj.pose.bones
-            for pb in pbs:
-                if pb.name.endswith("_IK"):
-                    continue
-                if pb.name == 'hip':
-                    pb.rotation_mode = 'ZXY'  # YXZ
-                if pb.name == row[0]:
-                    yzx3 = ['Shin', 'ThighBend', 'ShldrBend','Foot','Tnumb1','Toe']
-                    hit = False
-                    for yzx in yzx3:
-                        if yzx  == pb.name[1:]:
-                            hit = True
-                            break
-                    if hit:
-                        pb.rotation_mode = 'YZX'
-                    elif pb.name == 'hip':
-                        pb.rotation_mode = 'ZXY'  # YXZ
-                    else:
-                        pb.rotation_mode = 'XYZ'
-                    pb.constraints.new('LIMIT_ROTATION')
-                    lr = pb.constraints['Limit Rotation']
-                    lr.owner_space = 'LOCAL'
-                    lr.use_limit_x = True
-                    lr.min_x = math.radians(row[2])
-                    lr.max_x = math.radians(row[3])
-                    lr.use_limit_y = True
-                    lr.use_limit_z = True
-                    lr.use_transform_limit = True
-                    lr.min_y = math.radians(row[4])
-                    lr.max_y = math.radians(row[5])
-                    lr.min_z = math.radians(row[6])
-                    lr.max_z = math.radians(row[7])
-                    pb.use_ik_limit_x = True
-                    pb.use_ik_limit_y = True
-                    pb.use_ik_limit_z = True
-                    if 'shin' in pb.name.lower():
-                        pb.ik_min_x = math.radians(1)
-                        pb.use_ik_limit_x = False
-                    else:
-                        pb.ik_min_x = math.radians(row[2])
-                    pb.ik_max_x = math.radians(row[3])
-                    pb.ik_min_y = math.radians(row[4])
-                    pb.ik_max_y = math.radians(row[5])
-                    pb.ik_min_z = math.radians(row[6])
-                    pb.ik_max_z = math.radians(row[7])
-                    if pb.name[1:] == 'Shin' or 'Thigh' in pb.name:
-                        pb.ik_stiffness_y = 0.99
-                        pb.ik_stiffness_z = 0.99
-                        if 'ThighTwist' in pb.name:
-                            pb.ik_stiffness_x = 0.99
+
+        bone_limits = DataBase.get_bone_limits_dict()
+        for bone in Global.getAmtr().pose.bones:
+            if bone.name.endswith("_IK") or bone.name not in bone_limits.keys():
+                continue
+
+            bone_limit = bone_limits[bone.name]
+
+            bone.constraints.new('LIMIT_ROTATION')
+            rot_limit = bone.constraints['Limit Rotation']
+            rot_limit.owner_space = 'LOCAL'
+            rot_limit.use_transform_limit = True
+            rot_limit.use_limit_x = True
+            rot_limit.min_x = math.radians(bone_limit[2])
+            rot_limit.max_x = math.radians(bone_limit[3])
+            rot_limit.use_limit_y = True
+            rot_limit.min_y = math.radians(bone_limit[4])
+            rot_limit.max_y = math.radians(bone_limit[5])
+            rot_limit.use_limit_z = True
+            rot_limit.min_z = math.radians(bone_limit[6])
+            rot_limit.max_z = math.radians(bone_limit[7])
+
+            bone.use_ik_limit_x = True
+            bone.use_ik_limit_y = True
+            bone.use_ik_limit_z = True
+            if 'shin' in bone.name.lower():
+                bone.ik_min_x = math.radians(1)
+                bone.use_ik_limit_x = False
+            else:
+                bone.ik_min_x = math.radians(bone_limit[2])
+            bone.ik_max_x = math.radians(bone_limit[3])
+            bone.ik_min_y = math.radians(bone_limit[4])
+            bone.ik_max_y = math.radians(bone_limit[5])
+            bone.ik_min_z = math.radians(bone_limit[6])
+            bone.ik_max_z = math.radians(bone_limit[7])
+
+            if bone.name[1:] == 'Shin' or 'Thigh' in bone.name:
+                bone.ik_stiffness_y = 0.99
+                bone.ik_stiffness_z = 0.99
+                if 'ThighTwist' in bone.name:
+                    bone.ik_stiffness_x = 0.99
 
     def ifitsman(self, bname, roll):
         if Global.getIsMan():
@@ -307,19 +297,20 @@ class DazRigBlend:
                 bone.align_roll(align_axis_vec)
 
     def makeBRotationCut(self,db):
-        for pb in Global.getAmtr().pose.bones:
-            for tb2 in DataBase.get_bone_limits():
-                if pb.name==tb2[0]:
-                    for i in range(3):
-                        if tb2[2+i*2]==0 and tb2[2+i*2+1]==0:
-                            pb.lock_rotation[i] = True
-                            if i==0:
-                                pb.lock_ik_x = True
-                            elif i==1:
-                                pb.lock_ik_y = True
-                            elif i==2:
-                                pb.lock_ik_z = True
-                    break
+        bone_limits = DataBase.get_bone_limits_dict()
+        for bone in Global.getAmtr().pose.bones:
+            if bone.name not in bone_limits.keys():
+                continue
+            bone_limit = bone_limits[bone.name]
+            for i in range(3):
+                if bone_limit[2+i*2]==0 and bone_limit[2+i*2+1]==0:
+                    bone.lock_rotation[i] = True
+                    if i==0:
+                        bone.lock_ik_x = True
+                    elif i==1:
+                        bone.lock_ik_y = True
+                    elif i==2:
+                        bone.lock_ik_z = True
 
     def makeRoot(self):
         dobj = Global.getAmtr()

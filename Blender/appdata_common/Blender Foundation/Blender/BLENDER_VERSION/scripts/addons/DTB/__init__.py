@@ -1014,10 +1014,12 @@ def manageKeyFrame(index, flg_to_ik, switch):
             if switch > 0 and fcu.mute:
                 fcu.mute = False
             else:
-                name = fcu.data_path.split(sep='"', maxsplit=2)[1]
-                if name in  mute_bones:
-                    if switch < 0:
-                        fcu.mute = True
+                names = fcu.data_path.split(sep='"', maxsplit=2)
+                if len(names) < 2:
+                    continue
+                name = names[1]
+                if name in  mute_bones and switch < 0:
+                    fcu.mute = True
     if switch==1:
         mute_bones = []
 
