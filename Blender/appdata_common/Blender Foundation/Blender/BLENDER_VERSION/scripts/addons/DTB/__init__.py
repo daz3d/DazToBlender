@@ -587,7 +587,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             dtb_shaders.load_shader_nodes()
             dtb_shaders.body_texture()
             self.pbar(35, wm)
-            dtb_shaders.prop_texture()
+            dtb_shaders.wardrobe_texture()
             self.pbar(40, wm)
 
             if Global.getIsGen():
@@ -855,7 +855,6 @@ class IMP_OT_ENV(bpy.types.Operator):
     bl_idname = "import.env"
     bl_label = "Import New Env/Prop"
     bl_options = {'REGISTER', 'UNDO'}
-
     def invoke(self, context, event):
         if bpy.data.is_dirty:
             return context.window_manager.invoke_confirm(self, event)

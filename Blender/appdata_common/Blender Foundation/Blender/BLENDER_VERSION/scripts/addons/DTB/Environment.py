@@ -35,7 +35,10 @@ class EnvProp:
         one = 100/max
         for i in range(max):
             Global.clear_variables()
-            Global.setHomeTown("ENV" + str(i))
+            Global.setHomeTown(
+                                Global.getRootPath() + Global.getFileSp() + "ENV" + 
+                                Global.getFileSp() + "ENV" + str(i)
+                                )
             Util.decideCurrentCollection('ENV')
             pbar(int(one * i)+5)
             ReadFbx(self.env_root + 'ENV' + str(i) + Global.getFileSp(), i,one)
@@ -413,80 +416,12 @@ class ReadFbx:
         return rtn
 
     def setMaterial(self):
+        dtb_shaders = DtbMaterial.DtbShaders()
+        dtb_shaders.make_dct()
+        dtb_shaders.load_shader_nodes()
         for mesh in self.my_meshs:
-            for slot in mesh.material_slots:
-                if slot.name in bpy.data.materials:
-                    mat = bpy.data.materials[slot.name]
-                    normal = None
-                    ROOT = mat.node_tree.nodes
-                    LINK = mat.node_tree.links
-                    for node in ROOT:
-                        if node.name=='Normal Map':
-                            normal = node
-                            break
-                    for mainNode in ROOT:
-                        if mainNode.name=='Principled BSDF':
-                            mainNode.inputs['Metallic'].default_value = 0.0
-                            mainNode.inputs['Specular'].default_value = 0.2
-                            mainNode.inputs['Roughness'].default_value = 0.5
-                            root_bump = DtbMaterial.insert_bump_map(ROOT, LINK)
-                            ROOT = root_bump[0]
-                            bumpNode = root_bump[1]
-                            bcolor_by_asc = ""
-                            for asc in self.asc_ary:
-                                if  (asc[1] == mat.name or mat.name.startswith(asc[1]+".00")):
-                                    if asc[0] == 'M':
-                                        kind = asc[2]
-                                        if len(asc)==9:
-                                            if kind.startswith('Diffuse'):
-                                                mainNode.inputs['Base Color'].default_value =(float(asc[6]),float(asc[7]),float(asc[8]),1)
-                                            elif kind=='TransparentColor':
-                                                mainNode.inputs['Alpha'].default_value = float(asc[6])
-                                        elif len(asc)==7:
-                                            if kind=='Specular':
-                                                mainNode.inputs['Specular'].default_value = float(asc[6])
-                                    elif asc[0]=='T':
-                                        bcolor_by_asc = asc[2]
-                            if mainNode.inputs.get('Base Color') is not None:
-                                lnks = mainNode.inputs['Base Color'].links
-                                for lnk in lnks:
-                                    node = lnk.from_node
-                                    if node.name.startswith('Image Texture'):
-                                        bcolor_by_asc = node.image.filepath
-                                        break
-                            if bcolor_by_asc !="":
-                                from . import MatDct
-                                mm = MatDct.MatDct()
-                                ts = mm.cloth_dct_0(bcolor_by_asc)
-                                for t in ts:
-                                    SNTIMG = ROOT.new(type='ShaderNodeTexImage')
-                                    img = bpy.data.images.load(filepath=t[1])
-                                    SNTIMG.image = img
-                                    Versions.to_color_space_non(SNTIMG)
-
-                                    if t[0].endswith("-n"):
-                                        if normal is not None:
-                                            LINK.new(SNTIMG.outputs['Color'],normal.inputs['Color'])
-                                        else:
-                                            normal = ROOT.new(type='ShaderNodeNormalMap')
-                                            LINK.new(SNTIMG.outputs['Color'], normal.inputs['Color'])
-                                            LINK.new(mainNode.inputs['Normal'], normal.outputs['Normal'])
-                                    elif t[0].endswith("-d"):
-                                        if mainNode.inputs['Base Color'].links ==0:
-                                            LINK.new(mainNode.inputs['Base Color'], SNTIMG.outputs['Color'])
-                                    elif t[0].endswith("-r"):
-                                        LINK.new(mainNode.inputs['Roughness'],SNTIMG.outputs['Color'])
-                                    elif t[0].endswith("-s"):
-                                        LINK.new(mainNode.inputs['Specular'],SNTIMG.outputs['Color'])
-                                    elif t[0].endswith("-b"):
-                                        if bumpNode is not None:
-                                            LINK.new(SNTIMG.outputs['Color'],bumpNode.inputs['Height'])
-                                    elif t[0].endswith("-t"):
-                                        if len(t[0])>5:
-                                            if mainNode.inputs['Alpha'].links == 0:
-                                                LINK.new(mainNode.inputs['Alpha'],SNTIMG.outputs['Color'])
-                    NodeArrange.toNodeArrange(ROOT)
-
+            dtb_shaders.env_textures(mesh)
+            
 
     def before_edit_prop(self):
         BV = 2.83
