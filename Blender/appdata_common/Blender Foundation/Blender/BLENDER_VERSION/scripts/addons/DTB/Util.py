@@ -331,14 +331,15 @@ class Posing:
         return newv3ary
 
     def make_pose(self, v3ary):
-        cur = DataBase.get_bone_limits()
+        bone_limits = DataBase.get_bone_limits_dict()
         pbs = Global.getAmtr().pose.bones
-        cur.append(['hip', 'ZYX'])#YXZ#'ZXY'#YXZ
-        cur.append(['root', 'ZZZ'])
+        # cur.append(['hip', 'ZYX'])#YXZ#'ZXY'#YXZ
+        # cur.append(['root', 'ZZZ'])
         v3ary = self.order_v3ary(v3ary)
-        for rows in cur:
-            odr = rows[1]
-            bname = rows[0]
+        for bone_limit_key in bone_limits:
+            bone_limit = bone_limits[bone_limit_key]
+            order = bone_limit[1]
+            bname = bone_limit[0]
             for v3 in v3ary:
                 if v3[0].startswith("-"):
                     v3[0] = v3[0][1:]
@@ -350,7 +351,7 @@ class Posing:
                     if zi == v3[0]:
                         flg_zi = True
                         break
-                if (odr == 'YZX' or odr == 'XYZ' or odr == 'ZYX') and flg_zi == False:
+                if (order == 'YZX' or order == 'XYZ' or order == 'ZYX') and flg_zi == False:
                     if v3[1] == 2:
                         v3[2] = 0 - v3[2]
                 xy_invert = ['rCollar', 'rShldrBend', 'rForearmBend', 'rForearmTwist', 'rShldrTwist', 'rThumb2',
@@ -360,12 +361,12 @@ class Posing:
                     if bname == xyi:
                         if v3[1] != 2:
                             v3[2] = 0 - v3[2]
-                if odr == 'XZY' or odr == 'XYZ':
+                if order == 'XZY' or order == 'XYZ':
                     if v3[1] == 0:
                         v3[1] = 1
                     elif v3[1] == 1:
                         v3[1] = 0
-                if odr == 'ZYX':  # YZ switch
+                if order == 'ZYX':  # YZ switch
                     if v3[1] == 1:
                         v3[1] = 2
                     elif v3[1] == 2:
@@ -420,8 +421,6 @@ class Posing:
                             pbs[v3[0]].location[v3[1] - 7] = v3[2]
                     else:
                         pbs[v3[0]].rotation_euler[v3[1]] = math.radians(v3[2])
-        cur.pop(len(cur) - 1)
-        cur.pop(len(cur) - 1)
 
     def setpose(self):
         v3ary = []
