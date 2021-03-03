@@ -260,7 +260,11 @@ class DtbShaders:
             return "DefaultMaterial"
 
     def set_eevee_alpha(self,mat):
-        if mat.name == "Eyelashes":
+        if mat.name in [
+                    "Eyelashes",
+                    "Hair"
+                ]:
+         
                 Versions.eevee_alpha(mat, 'BLEND', 0)
         if mat.name in [
                     "Cornea",
@@ -473,8 +477,10 @@ class DtbShaders:
                                                     tex_node_output,
                                                     shader_node.inputs[input_key]
                                                     )
-                # Set the cycles displacement method
+                 # Set Alpha Modes
+                self.set_eevee_alpha(mat)
                 
+                # Set the cycles displacement method
                 if node_group == "IrayUberSkin":
                     mat_links.new(
                                 shader_node.outputs['Displacement'],
@@ -551,6 +557,10 @@ class DtbShaders:
                                                 tex_node_output,
                                                 shader_node.inputs[input_key]
                                                 )
+            # Set Alpha Modes
+            self.set_eevee_alpha(mat)
+           
+           
             # Set the cycles displacement method
             mat.cycles.displacement_method = 'BUMP'
             
