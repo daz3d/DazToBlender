@@ -314,7 +314,7 @@ def clean_animations():
                         fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
 
                     index += 2
-
+                
                 # Convert rotation animation data for all the non root bones
                 if property_name == "rotation_euler":
                     fcurve_x = action.fcurves[index + 0]

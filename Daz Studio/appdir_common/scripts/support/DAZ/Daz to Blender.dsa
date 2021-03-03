@@ -738,49 +738,6 @@
 	};
 
 	/*********************************************************************/
-	// void : ...
-	function writeBoneData( oBaseNode, sFilename )
-	{
-		var oNode;
-		var vecOrigin;
-		var vecEnd;
-		
-		var aChildren = oBaseNode.getNodeChildren( true );
-		var nChildren = aChildren.length;
-		
-		var aData = new Array( nChildren );
-		
-		for( var i = 0; i < nChildren; i += 1 ){
-			oNode = aChildren[i];
-			if( !oNode.inherits( "DzBone" ) ){
-				continue;
-			}
-			
-			vecOrigin = oNode.getOrigin( true );
-			vecEnd = oNode.getEndPoint( true );
-			
-			aData[i] = [
-				oNode.name,
-				vecOrigin.x,
-				vecOrigin.y,
-				vecOrigin.z,
-				vecEnd.x,
-				vecEnd.y,
-				vecEnd.z
-				]
-				.concat( getBoneTransformValues( oNode ) )
-				.join( "," );
-		}
-		
-		aData = aData.filter( Boolean );
-		if( aData.length < 1 ){
-			return;
-		}
-
-		writeDataFile( aData, sFilename );
-	};
-	
-	/*********************************************************************/
 	// Array<Number> : ...
 	// TODO : refactor - efficiency
 	function getBoneTransformValues( oNode )
@@ -841,7 +798,7 @@
 		var aChildren = oBaseNode.getNodeChildren( true );
 		for( var i = 0; i < aChildren.length; i += 1 ){
 			oNode = aChildren[i];
-			if( getKigo( oNode ) == "B" ){
+			if( getObjectType( oNode ) == "BONE" ){
 				oNode.setLocalPos( s_vecDef );
 				oNode.setLocalRot( s_quatDef );
 				oNode.setLocalScale( s_mtxDef );
@@ -897,14 +854,14 @@
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
-			sKigo = getKigo( oNode );
+			sKigo = getObjectType( oNode );
 			vecPos = oNode.getLocalPos();
 			quatRot = oNode.getLocalRot();
 			mtxScale = oNode.getLocalScale();
 			
 			s_aPoseData.push( [ oNode.name, sKigo, vecPos, quatRot, mtxScale ] );
 			
-			aData[i] = [
+			oData[i] = [
 				oNode.getLabel(),
 				oNode.name,
 				sKigo,
@@ -982,7 +939,7 @@
 		
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			if( getKigo( oNode ) == 'B' ){
+			if( getObjectType( oNode ) == 'B' ){
 				continue;
 			}
 			
@@ -1010,36 +967,36 @@
 	/*********************************************************************/
 	// String : ...
 	// TODO : rename
-	function getKigo( oNode )
+	function getObjectType( oNode )
 	{
 		if( oNode.inherits( "DzBone" ) ){
-			return "B";
+			return "BONE";
 		}
 		
 		if( oNode.inherits( "DzLight" ) ){
-			return "L";
+			return "LIGHT";
 		}
 		
 		if( oNode.inherits( "DzCamera" ) ){
-			return "C";
+			return "CAMERA";
 		}
 		
 		var oObject = oNode.getObject();
 		if( !oObject ){
-			return "E";
+			return "EMPTY";
 		}
 		
 		var oShape = oObject.getCurrentShape();
 		if( !oShape ){
-			return "E";
+			return "EMPTY";
 		}
 		
 		var oMesh = oShape.getGeometry();
 		if( !oMesh ){
-			return "E";
+			return "EMPTY";
 		}
 		
-		return "M";
+		return "MESH";
 	};
 	
 	/*********************************************************************/
@@ -1827,7 +1784,9 @@
 				vecSecondAxis.x,
 				vecSecondAxis.y,
 				vecSecondAxis.z
-				].join(",");
+				]
+				.concat( getBoneTransformValues( oNode ) )
+				.join(",");
 		}
 		
 		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
@@ -2086,7 +2045,7 @@
 
 				writeConfiguration( oNode, sFileBasename );
 				if( bIsBone ){
-					writeBoneData( oNode, sBoneFilename );
+					writeFigureBoneData( oNode, sFileBasename );
 				} else {
 					writePoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );

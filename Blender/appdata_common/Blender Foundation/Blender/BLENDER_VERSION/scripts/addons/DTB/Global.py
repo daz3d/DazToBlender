@@ -383,13 +383,13 @@ def find_ENVROOT(dobj):
                 frombtm.append(obj)
     if (len(fromtop) == 1 and len(frombtm) == 1) == False:
         return
-    if fromtop[0]!=frombtm[0]:
+    if fromtop[0] != frombtm[0]:
         return
-    if fromtop[0].type=='ARMATURE' or fromtop[0].type=='EMPTY':
+    if fromtop[0].type == 'ARMATURE' or fromtop[0].type == 'EMPTY':
         _ENVROOT = fromtop[0].name
 
 def getEnvRoot():
-    if _ENVROOT !="" and (_ENVROOT in Util.allobjs()):
+    if _ENVROOT != "" and (_ENVROOT in Util.allobjs()):
         return Util.allobjs().get(_ENVROOT)
 
 def decide_HERO():

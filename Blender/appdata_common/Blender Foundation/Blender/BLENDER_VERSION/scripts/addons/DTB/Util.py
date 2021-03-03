@@ -87,7 +87,7 @@ def getUsersCollection(object):
 
 def getUsersCollectionName(object):
     rtn = getUsersCollection(object)
-    if rtn !=None:
+    if rtn != None:
         return rtn.name
     else:
         return ""
@@ -442,8 +442,8 @@ class Posing:
             ss = l.split(",")
             if ss[1].startswith('Genesis'):
                 ss[1] = 'root'
-                ss[2] = 'B'
-            if ss[2]!='B':
+                ss[2] = 'BONE'
+            if ss[2]!='BONE':
                 continue
             for pb in Global.getAmtr().pose.bones:
                 if ss[1] == pb.name:
