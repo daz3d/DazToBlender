@@ -809,7 +809,48 @@
 		oBaseNode.setLocalRot( s_quatDef );
 		oBaseNode.setLocalScale( s_mtxDef );
 	};
-	
+
+	/*********************************************************************/
+	// Destructive Changes the names of the Assets in Daz
+	// void : ...
+	function updateName( oBaseNode, sFilename, bIsFigure )
+	{
+		s_aPoseData = [];
+		
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		if( aTopNodes.length == 0 && !bIsFigure ){
+			aTopNodes.push( oBaseNode );
+		}
+		
+		var oTopNode;
+		
+		var aNodes = [];
+		
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( bIsFigure && oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			if( i == 0 ){
+				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
+			} else {
+				aNodes = aNodes.concat( oTopNode, oTopNode.getNodeChildren( true ) );
+			}
+		}
+		
+		var nNodes = aNodes.length;
+		if( nNodes < 1 ){
+			return;
+		}
+
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			sLabel =oNode.getLabel();
+			oNode.setName( sLabel )
+		};
+	};
+
 	/*********************************************************************/
 	// void : ...
 	function writePoseData( oBaseNode, sFilename, bIsFigure )
@@ -844,40 +885,51 @@
 		}
 		
 		var oNode;
-		var sKigo;
+		var sObjectType;
 		var vecPos;
 		var quatRot;
 		var mtxScale;
 		var sLine;
 		
-		var aData = new Array( nNodes );
-		
+		var oData = {};
+
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
-			sKigo = getObjectType( oNode );
+			sObjectType = getObjectType( oNode );
 			vecPos = oNode.getLocalPos();
 			quatRot = oNode.getLocalRot();
 			mtxScale = oNode.getLocalScale();
 			
-			s_aPoseData.push( [ oNode.name, sKigo, vecPos, quatRot, mtxScale ] );
-			
-			oData[i] = [
-				oNode.getLabel(),
-				oNode.name,
-				sKigo,
+			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
+			sLabel =oNode.getLabel();			
+			oLabel = oData[sLabel] = {};
+			oLabel["Name"] = oNode.name;
+			oLabel["Label"] = sLabel;
+			oLabel["Object Type"] = sObjectType;
+			if(sObjectType == "MESH"){
+				oLabel["Object"] = oNode.getObject().name; 
+			}
+			else{
+				oLabel["Object"] = "EMPTY"
+			};
+			oLabel["Position"] = [
 				vecPos.x,
 				vecPos.y,
-				vecPos.z,
+				vecPos.z
+			];
+			oLabel["Rotation"] = [
 				oNode.getXRotControl().getLocalValue(),
 				oNode.getYRotControl().getLocalValue(),
 				oNode.getZRotControl().getLocalValue(),
+				];
+			oLabel["Scale"] = [
 				mtxScale.m11,
 				mtxScale.m22,
 				mtxScale.m33
-				].join( "," );
+			];	
 		}
-		
-		writeDataFile( aData, sFilename );
+		sData = JSON.stringify( oData, undefined, 4 )
+		writeDataFile( sData, sFilename );
 	};
 	
 	/*********************************************************************/
@@ -939,7 +991,7 @@
 		
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
-			if( getObjectType( oNode ) == 'B' ){
+			if( getObjectType( oNode ) == 'BONE' ){
 				continue;
 			}
 			
@@ -1355,10 +1407,15 @@
 			
 			return;
 		}
-		
-		for( var i = 0; i < aData.length; i += 1 ){
-			oFile.writeLine( aData[i] );
+		if (aData.constructor === Array){
+			for( var i = 0; i < aData.length; i += 1 ){
+				oFile.writeLine( aData[i] );
+			}
+		}	
+		else{
+			oFile.write( aData )
 		}
+			
 		
 		oFile.close();
 	};
@@ -1992,7 +2049,7 @@
 				// Write data
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				writeFigureBoneData( oFigure, sFileBasename );
-				writePoseData( oFigure, sFileBasename + ".csv", true );
+				writePoseData( oFigure, sFileBasename + ".transforms", true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
 				writeConfiguration( oFigure, sFileBasename );
 				
@@ -2037,12 +2094,13 @@
 					applyDefaultTransforms( oNode );
 				}
 				
+				updateName( oNode );
 				exportFBX( oNode, s_sEnv, i, bDebugFBX );
 				
 				sFileBasename = sEnvPath + s_sEnv;
-				sPoseFilename = sFileBasename + ".csv";
+				sPoseFilename = sFileBasename + ".transforms";
 				sBoneFilename = sFileBasename + ".bon";
-
+				
 				writeConfiguration( oNode, sFileBasename );
 				if( bIsBone ){
 					writeFigureBoneData( oNode, sFileBasename );
@@ -2050,7 +2108,9 @@
 					writePoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
+
 				
+
 				setLock( oNode, false, false );
 			}
 		}

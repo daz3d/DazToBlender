@@ -1009,7 +1009,7 @@ def judgeSize():
         _SIZE= 100
 
 def want_real():
-    return bpy.context.window_manager.size_100==False
+    return bpy.context.window_manager.size_100 == False
 
 def getSize():
     if _SIZE==0:
@@ -1060,7 +1060,7 @@ def normal_and_bump_to_size():
 
 def changeSize(size, mub_ary):
     global _SIZE
-    if _SIZE==0:
+    if _SIZE == 0:
         getSize()
     flg_env = False
     if getAmtr() is not None and (get_Amtr_name() in Util.myacobjs()):

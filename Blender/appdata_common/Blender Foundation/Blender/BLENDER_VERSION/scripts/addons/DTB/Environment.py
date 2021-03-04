@@ -1,5 +1,6 @@
 import bpy
 import os
+import json
 import math
 import mathutils
 from . import Versions
@@ -9,7 +10,17 @@ from . import DtbMaterial
 from . import NodeArrange
 import re
 
-
+def set_transform(obj,data,type):
+    if type == "scale":
+        transform = obj.scale
+    if type == "rotate":
+        transform = obj.rotation_euler
+        for i in range(len(data)):
+            data[i] = math.radians(data[i])
+    if type == "translate":
+        transform = obj.location
+    for i in range(3):
+        transform[i] = float(data[i])    
 def progress_bar(percent):
     bpy.context.window_manager.progress_update(percent)
 
@@ -61,23 +72,18 @@ class EnvProp:
 class ReadFbx:
     adr = ""
     index = 0
-    _pose_ary = None
     bone_head_tail_dict = None
-    ss_ary = []
-    asc_ary = []
+    pose_data = {}
     my_meshs = []
 
     def __init__(self,dir,i,int_progress):
         self.adr = dir
         self.my_meshs = []
         self.index = i
-        self.ss_ary = []
-        self._pose_ary = None
+        self.pose_data = {}
         self.bone_head_tail_dict = None
-        self.asc_ary = []
         if self.read_fbx():
             progress_bar(int(i*int_progress)+int(int_progress/2))
-            self.readAsc()
             self.setMaterial()
         Global.scale_environment()
 
@@ -105,6 +111,7 @@ class ReadFbx:
         Global.deselect()
         if root.type == 'ARMATURE':
             self.import_as_armature(objs, root)
+        #TODO: Remove Groups with no MESH   
         elif root.type == 'EMPTY':
             no_empty = False
             for o in objs:
@@ -152,7 +159,6 @@ class ReadFbx:
         return rtn
     
     #TODO: combine shared code with figure import
-    #Currently not setting bones as expected.
     def import_as_armature(self, objs, amtr):
         Global.deselect()
         self.create_controller()
@@ -202,32 +208,25 @@ class ReadFbx:
                 if self.is_child_bone(amtr, bone, vertex_group_names) == False:
                     hides.append(bone.name)
                     continue
-
+            
             # set head
-            # bone.head[0] = float(binfo[1])
-            # bone.head[1] = -float(binfo[3])
-            # bone.head[2] = float(binfo[2])
+            bone.head[0] = float(binfo[1])
+            bone.head[1] = -float(binfo[3])
+            bone.head[2] = float(binfo[2])
             
             # set tail
-            # bone.tail[0] = float(binfo[4])
-            # bone.tail[1] = -float(binfo[6])
-            # bone.tail[2] = float(binfo[5])
+            bone.tail[0] = float(binfo[4])
+            bone.tail[1] = -float(binfo[6])
+            bone.tail[2] = float(binfo[5])
 
             # calculate roll aligning bone towards a vector
-            # align_axis_vec = mathutils.Vector((
-            #                     float(binfo[7]),
-            #                     -float(binfo[9]),
-            #                     float(binfo[8])
-            #                     ))
-            # bone.align_roll(align_axis_vec)
+            align_axis_vec = mathutils.Vector((
+                                float(binfo[7]),
+                                -float(binfo[9]),
+                                float(binfo[8])
+                                ))
+            bone.align_roll(align_axis_vec)
             
-        # Freeze Transforms
-        Global.setOpsMode('OBJECT')
-        Versions.select(amtr, True)
-        Versions.active_object(amtr)
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        Global.deselect()
-
         for obj in objs:
             Versions.select(obj, True)
             Versions.active_object(obj)
@@ -239,7 +238,7 @@ class ReadFbx:
         Global.setOpsMode("POSE")
         amtr.show_in_front = True
 
-        #Apply Custom Shape and Limits
+        #Apply Custom Shape
         for pb in amtr.pose.bones:
             binfo = self.get_bone_info(pb.name)
             if binfo is None:
@@ -250,7 +249,8 @@ class ReadFbx:
                     pb.custom_shape = ob
                     pb.custom_shape_scale = 0.04
                     amtr.data.bones.get(pb.name).show_wire = True
-
+            #Apply Limits 
+            #TODO: Clean up to be more readible
             lrs = [False, False, False]
             for i in range(3):
                 for j in range(3):
@@ -362,42 +362,34 @@ class ReadFbx:
         return rtn
     
     def import_empty(self, objs, root):
-
-        for i in range(3):
-            root.scale[i] = 1
+        # Load an instance of the pose info
+        self.load_pose_data()
+        set_transform(root,[1,1,1],"scale")
         Global.deselect()
         
         root_pose = self.get_pose(root)
-
+        #Organize List
+        objs = sorted(objs, key = lambda obj: obj.name)
         for obj in objs:
-            if obj is None or obj==root:
+            if obj is None or obj == root:
                 continue
             Versions.select(obj, True)
             Versions.active_object(obj)
             pose = self.get_pose(obj)
-            for i in range(3):
-                obj.scale[i] = 1
-
-            if obj.type == 'EMPTY':
-                for i in range(3):
-                    obj.scale[i] = float(pose[i+9])
-                    obj.rotation_euler[i] = 0
-
-            elif obj.type == 'LIGHT' or obj.type == 'CAMERA':
-                for i in range(3):
-                    print(obj.name, obj.type, "#####", pose[i+3])
-                    obj.lock_location[i] = False
-                    obj.location[i] = float(pose[i+3]) + float(root_pose[i+3])
-                    self.before_edit_prop()
-                    obj.rotation_euler[i] = math.radians(float(pose[i+6]))
-                    obj.scale[i] = 1
-
-            for i in range(3):
-                obj.lock_location[i] = True
-                obj.lock_rotation[i] = True
-                obj.lock_scale[i] = True
-
-            Global.deselect()
+            if pose != {}:
+                if obj.type == pose["Object Type"]:
+                    # Set Position of Shape
+                    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+                    set_transform(obj, [0, obj.location[1], 0], "translate")
+                    # Delete data to speed up next object
+                    del self.pose_data[pose['Label']]
+                # for i in range(3):
+                    # obj.lock_location[i] = True
+                    # obj.lock_rotation[i] = True
+                    # obj.lock_scale[i] = True
+                Global.deselect()
+            else:
+                print(obj.name)
         Versions.select(root, True)
         Versions.active_object(root)
 
@@ -408,88 +400,28 @@ class ReadFbx:
         Global.setOpsMode('OBJECT')
 
 
-    #TODO: SET UP DICTIONARY ON EXPORT
+    def load_pose_data(self):
+        with open(self.adr+"ENV.transforms") as f:
+            self.pose_data = json.load(f)
+    
+ 
     def get_pose(self,obj):
-        obj_name = obj.name.split(".00")[0]
-        a = obj_name.find(".Shape")
-        if a > 0:
-            obj_name = obj_name[0:a]
-        if self.ss_ary == []:
-            if self._pose_ary is None:
-                with open(self.adr+"ENV.csv") as f:
-                    self._pose_ary = f.readlines()
-            if self._pose_ary is None:
-                return None
-            num = 2
-            for p in self._pose_ary:
-                if p.endswith("\n"):
-                    p = p[0:len(p)-1]
-                ss = p.split(',')
-                #manage [_dup_] files
-                if ss[0] != ss[1]:
-                    ss[0] = ss[1] + "_dup_" + str(num)
-                    num += 1
-                self.ss_ary.append(ss)
-        for ss in self.ss_ary:
-            if ss[1] == obj_name:
-                if ss[2] == obj.type:
-                    return ss
-        return [obj_name,obj_name,"?",0,0,0,0,0,0,1,1,1]
+        obj_name = obj.name.replace(".Shape", "")
+        if obj_name in self.pose_data:
+            return self.pose_data[obj_name]
 
-
-    def readAsc(self):
-        adr = self.adr + "A_ENV.fbx"
-        if os.path.exists(adr) == False:
-            return
-        with open(adr) as f:
-            ls= f.readlines()
-        max = len(ls)
-        args = ['Material','Texture','Model']#,'Pose']
-        for idx,l in enumerate(ls):
-            l = l.replace('"','')
-            if l.endswith("\n"):
-                l = l[0:len(l)-1]
-            for pidx,arg in enumerate(args):
-                pt = "^\s+" + arg + ":\s\d+,\s" + arg + "::[\w\s]+,[\w\s]+\{"
-                rep = re.compile(pt)
-                result = rep.search(l)
-                if result:
-                    a = l.rfind("::")
-                    b = l.rfind(',')
-                    if b<a:
-                        continue
-                    title = l[a+2:b]
-                    hani = [30,15,30]
-                    for i in range(hani[pidx]):
-                        if (i+idx)>=max:
-                            break
-                        getp = ls[idx+i].strip()
-                        if pidx==0 and ("}" in getp):
-                            break
-                        yoko = []
-                        if pidx==1:
-                            if getp.startswith("FileName: "):
-                                getp = getp[10:]
-                                getp = getp.replace('"', '')
-                                yoko = [getp]
-                        else:
-                            if getp.startswith("P: "):
-                                getp = getp[3:]
-                                getp = getp.replace('"",','"-",')
-                                getp = getp.replace('"','')
-                                getp = getp.replace(" ","")
-                                yoko = getp.split(",")
-                        if len(yoko)>0:
-                            yoko.insert(0,title)
-                            if pidx==2:
-                                yoko.insert(0, "B")
-                            else:
-                                yoko.insert(0, arg[0:1])
-                            self.asc_ary.append(yoko)
-                            if pidx>0:
-                                break
-        #for aa in self.asc_ary:
-        #    print(aa)
+        for key in self.pose_data:
+            if obj_name == key:
+                return self.pose_data[obj_name]
+            elif obj_name.replace("_dup_", " ") == key:
+                return self.pose_data[key]
+            elif len(obj_name.split(".00")) > 1:
+                temp_name = obj_name.split(".00")[0] + " " + str(int(obj_name.split(".00")[1]) + 1)
+                if temp_name == key:
+                    return self.pose_data[key] 
+            elif self.pose_data[key]["Name"] == obj_name:
+                return self.pose_data[key]
+        return {}
 
     def setMaterial(self):
         dtb_shaders = DtbMaterial.DtbShaders()
@@ -499,28 +431,5 @@ class ReadFbx:
             dtb_shaders.env_textures(mesh)
             
 
-    def before_edit_prop(self):
-        BV = 2.83
-        if BV < 2.80:
-            for space in bpy.context.area.spaces:
-                if space.type == 'VIEW_3D':
-                    space.pivot_point = 'BOUNDING_BOX_CENTER'
-                    space.cursor_location = (0.0, 0.0, 0.0)
-            bpy.context.space_data.transform_orientation = 'GLOBAL'
-            bpy.context.space_data.transform_manipulators = {'TRANSLATE', 'ROTATE'}
-        else:
-            bpy.context.scene.tool_settings.transform_pivot_point = 'BOUNDING_BOX_CENTER'
-            bpy.ops.view3d.snap_cursor_to_center()
-            for s in bpy.context.scene.transform_orientation_slots:
-                s.type = 'GLOBAL'
-
-    def import_one(self,single):
-        for i in range(3):
-            single.scale[i] = 1
-        if single.type=='LIGHT':
-            pose = self.get_pose(single)
-            single.location[0] = float(pose[0 + 3])
-            single.location[1] = 0-float(pose[2 + 3])
-            single.location[2] = float(pose[1 + 3])
 
     
