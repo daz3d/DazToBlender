@@ -127,7 +127,7 @@ class ReadFbx:
         if Global.want_real():
             Global.changeSize(1,[])
         return True
-
+            
     
     def convert_file(self, filepath):
         Global.store_ary(False) #Gets all objects before.
@@ -379,8 +379,8 @@ class ReadFbx:
             if pose != {}:
                 if obj.type == pose["Object Type"]:
                     # Set Position of Shape
-                    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
-                    set_transform(obj, [0, obj.location[1], 0], "translate")
+                    #bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+                    #set_transform(obj, [0, obj.location[1], 0], "translate")
                     # Delete data to speed up next object
                     del self.pose_data[pose['Label']]
                 # for i in range(3):

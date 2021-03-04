@@ -46,7 +46,8 @@
 	var s_mtxDef = new DzMatrix3( s_quatDef );
 	
 	var s_aPoseData = [];
-	
+	var s_oOrgName = {};
+
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
@@ -843,13 +844,21 @@
 		if( nNodes < 1 ){
 			return;
 		}
-
+		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sLabel =oNode.getLabel();
-			oNode.setName( sLabel )
+			sName = oNode.name;
+			if( sLabel in s_oOrgName ){
+				oNode.setName(s_oOrgName[sLabel])
+			}
+			else{
+				s_oOrgName[sLabel] = sName
+				oNode.setName( sLabel )
+			}
+			
 		};
-	};
+	};	
 
 	/*********************************************************************/
 	// void : ...
@@ -2095,6 +2104,7 @@
 				}
 				
 				updateName( oNode );
+				
 				exportFBX( oNode, s_sEnv, i, bDebugFBX );
 				
 				sFileBasename = sEnvPath + s_sEnv;
@@ -2109,6 +2119,7 @@
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
 
+				updateName( oNode );
 				
 
 				setLock( oNode, false, false );
