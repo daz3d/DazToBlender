@@ -314,7 +314,7 @@ def clean_animations():
                         fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
 
                     index += 2
-                
+
                 # Convert rotation animation data for all the non root bones
                 if property_name == "rotation_euler":
                     fcurve_x = action.fcurves[index + 0]
@@ -582,20 +582,33 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(30, wm)
             drb.unwrapuv()
             Global.deselect()
+
+            # materials
+            dtb_shaders.make_dct()
+            dtb_shaders.load_shader_nodes()
+            body = Global.getBody()
+            dtb_shaders.setup_materials(body)
+            self.pbar(35, wm)
+
+            fig_objs_names = [
+                Global.get_Body_name()
+            ]
+            for obj in Util.myacobjs():
+                # Skip for any of the following cases
+                case1 = not Global.isRiggedObject(obj)
+                case2 = obj.name in fig_objs_names
+                if case1 or case2:
+                    continue
+                dtb_shaders.setup_materials(obj)
+        
+            self.pbar(40, wm)
+
             if Global.getIsEyls():
                 drb.integrationEyelashes()
                 Global.deselect()
             if Global.getIsTEAR():
                 drb.integrationTear()
                 Global.deselect()
-
-            # materials
-            dtb_shaders.make_dct()
-            dtb_shaders.load_shader_nodes()
-            dtb_shaders.body_texture()
-            self.pbar(35, wm)
-            dtb_shaders.wardrobe_texture()
-            self.pbar(40, wm)
 
             if Global.getIsGen():
                 drb.fixGeniWeight(db)
@@ -651,7 +664,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.setOpsMode("OBJECT")
             drb.finishjob()
             Global.setOpsMode("OBJECT")
-            Util.Posing().setpose()
+            #Util.Posing().setpose()
             bone_disp(-1, True)
             set_scene_settings()
             self.pbar(100,wm)
@@ -915,6 +928,9 @@ class REMOVE_DAZ_OT_button(bpy.types.Operator):
                 for obj in c.objects:
                     bpy.data.objects.remove(obj)
                 bpy.data.collections.remove(c)
+            for material in bpy.data.materials:
+                material.user_clear()
+                bpy.data.materials.remove(material)
         return {'FINISHED'}
 
 class LIMB_OT_redraw(bpy.types.Operator):

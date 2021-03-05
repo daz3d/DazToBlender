@@ -2,6 +2,7 @@
 import bpy
 import os
 import math
+import json
 from . import DataBase
 from . import Versions
 from . import Global
@@ -433,11 +434,11 @@ class Posing:
         #     idx = int(hometown[3:])
         # if idx<0:
         #     return
-        padr = hometown+ "/FIG.csv"
+        padr = hometown+ "/FIG.transforms"
         if os.path.exists(padr) == False:
             return
         with open(padr, errors='ignore', encoding='utf-8') as f:
-            ls = f.readlines()
+            data = json.load(f)
         for l in ls:
             ss = l.split(",")
             if ss[1].startswith('Genesis'):

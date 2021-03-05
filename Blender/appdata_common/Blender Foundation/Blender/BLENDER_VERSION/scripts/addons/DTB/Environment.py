@@ -127,7 +127,7 @@ class ReadFbx:
         if Global.want_real():
             Global.changeSize(1,[])
         return True
-            
+        
     
     def convert_file(self, filepath):
         Global.store_ary(False) #Gets all objects before.
@@ -250,7 +250,7 @@ class ReadFbx:
                     pb.custom_shape_scale = 0.04
                     amtr.data.bones.get(pb.name).show_wire = True
             #Apply Limits 
-            #TODO: Clean up to be more readible
+            #TODO: Check What limits are needed
             lrs = [False, False, False]
             for i in range(3):
                 for j in range(3):
@@ -267,14 +267,14 @@ class ReadFbx:
                             lrs[i] = True
                             lim = pb.constraints.new(type='LIMIT_SCALE')
                             lim.owner_space = 'LOCAL'
-                        if j == 0:
+                        if j == 1:
                             if i == 1:
                                 lim.use_limit_x = True
                                 lim.use_limit_x = True
                             else:
                                 lim.use_min_x = True
                                 lim.use_max_x = True
-                        elif j == 1:
+                        elif j == 0:
                             if i == 1:
                                 lim.use_limit_y = True
                                 lim.use_limit_y = True
@@ -428,7 +428,7 @@ class ReadFbx:
         dtb_shaders.make_dct()
         dtb_shaders.load_shader_nodes()
         for mesh in self.my_meshs:
-            dtb_shaders.env_textures(mesh)
+            dtb_shaders.setup_materials(mesh)
             
 
 

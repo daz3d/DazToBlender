@@ -93,7 +93,7 @@
 			if( sHead.isEmpty() ){
 				continue;
 			}
-				
+			
 			sLabel = oProp.getLabel();
 			if( ( sLabel.length + 2 + s_nMaxName ) > s_nMaxAll ){
 				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
@@ -1923,7 +1923,8 @@
 					var aProperties = [];
 					var oMat = oShape.getMaterial( k );
 					if( oMat ){	
-						oMaterialInfo["Asset Name"] = oNode.getLabel();
+						oMaterialInfo["Asset Name"] = oNode.name;
+						oMaterialInfo["Asset Label"] = oNode.getLabel();
 						oMaterialInfo["Material Name"] = oMat.getName();
 						oMaterialInfo["Material Type"] = oMat.getMaterialName();
 						
