@@ -146,6 +146,8 @@ class ReadFbx:
                     ignore_leaf_bones = False,
                     force_connect_children = False,
                     automatic_bone_orientation = False,
+                    primary_bone_axis = 'Y',
+                    secondary_bone_axis = 'X',
                     use_prepost_rot = False
                     )
         Global.store_ary(True) #Gets all objects after.
