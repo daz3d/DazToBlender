@@ -98,17 +98,21 @@
 			if( ( sLabel.length + 2 + s_nMaxName ) > s_nMaxAll ){
 				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
 				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
-				oOwner.name = sLabel;
 				nAlfIdx += 1;
 				nAlfIdx = nAlfIdx % 36;
 			}
 			
 			sName = oProp.getName()
+			// To deal with Hidden Morphs
+			if (sHead.indexOf("Hidden") > 0){
+				sName = sLabel
+			};
 			s_oMorphs[sLabel] = {
 									"sMorphHead": sHead,
 									"sMorphName" : sName,
 									"sMorphPath" : sPath
 								};
+			
 		}
 	};
 	
@@ -516,16 +520,23 @@
 		for( sMorphLabel in s_oMorphs ){
 			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
 			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
+			var sMorphHead = s_oMorphs[sMorphLabel]['sMorphHead']
+			
+
 			if( sMorphPath.indexOf( '/Head' ) > 0 ){
 				if( sMorphPath.endsWith( 'Expressions' ) ){
 					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( sMorphName );
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 				}
 				if( sMorphPath.indexOf( '/Expressions' ) < 0 ){
 					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( sMorphName );
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 				}
 			}
+			if ( sMorphPath.indexOf( 'Corrective' ) > 0 ){
+					sResult += sMorphName + "\n1\n";
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
+				}
 		}
 		
 		return sResult;
@@ -541,6 +552,7 @@
 		for( sMorphLabel in s_oMorphs ){
 			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
 			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
+			var sMorphHead = s_oMorphs[sMorphLabel]['sMorphHead']
 			if ( sPreset == "All Body Morphs" ){
 				if ( sMorphPath.indexOf( '/Arms' ) > 0
 					|| sMorphPath.indexOf( '/Hip' ) > 0
@@ -549,29 +561,36 @@
 					|| sMorphPath.indexOf( '/Legs' ) > 0
 					|| sMorphPath.indexOf( '/Hands' ) > 0
 					|| sMorphPath.indexOf( '/Feet' ) > 0 ){
-				sResult += sMorphName + "\n1\n";
-				s_aMorphExported.push(sMorphName );
+					sResult += sMorphName + "\n1\n";
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 				}		
 			}
+			if ( sPreset == "All Joint Corrective Morphs" ){
+				if ( sMorphPath.indexOf( 'Corrective' ) > 0 ){
+					sResult += sMorphName + "\n1\n";
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
+				}
+			}
+				
 			else{
 				if ( sMorphPath.indexOf( '/Head' ) > 0 ){
 					if ( sPreset == "Face Controls" ){
 						if(!( sMorphPath.indexOf( 'Expressions' ) > 0 
 							|| sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
 							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( sMorphName );
+							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 						}
 					}
 					if ( sPreset == "Expressions" ){
 						if( sMorphPath.indexOf( 'Expressions' ) > 0 ){
 							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( sMorphName );
+							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 						}
 					}
 					if ( sPreset == "Visemes" ){
 						if	( sMorphPath.indexOf( 'Visemes' ) > 0 ){
 							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( sMorphName );
+							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 						}
 					}		
 				}
@@ -615,7 +634,7 @@
 		//addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
 		
 		var wMinimalMorphsCbx = new DzCheckBox( wDlg );
-		wMinimalMorphsCbx.text = qsTr( "Include Minimal Morphs" );
+		wMinimalMorphsCbx.text = qsTr( "Include All Default Head and Joint Corrective Morphs" );
 		wMinimalMorphsCbx.checked = true;
 		wDlg.addWidget( wMinimalMorphsCbx );
 		
@@ -670,7 +689,8 @@
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Expressions" );
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Visemes" );	
 		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Body Morphs" );
-
+		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Joint Corrective Morphs" );
+		
 		for( var i = 0; i < aMorphList.length; i += 1 ){
 			wValidMorphNamesLBox.insertItem( aMorphList[i] );
 		}
@@ -724,7 +744,7 @@
 						//Hidden Morphs do not have labels
 						sMorphName = sMorphLabel;
 					}
-					s_aMorphExported.push( sMorphName );
+					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
 				}
 				else{
 					s_sMorphRules += getMorphPresets( sMorphLabel );
