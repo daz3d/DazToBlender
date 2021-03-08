@@ -1125,7 +1125,7 @@
 		var sDelPath;
 		var oDelDir = new DzDir( "" );
 		
-		var aSubs = [ "Documents", "DTB", s_sEnv, s_sFig ];
+		var aSubs = [ "Documents","DAZ 3D", "Bridges", "Daz To Blender", s_sEnv, s_sFig ];
 		for( var i = 0; i < aSubs.length; i += 1 ){
 			sPath = s_sRootPath + aSubs[i] + "/";
 			oDir.setPath( sPath );
@@ -1133,11 +1133,11 @@
 				oDir.mkdir( sPath );
 			}
 			
-			if( i < 2 ){
+			if( i < 4 ){
 				s_sRootPath = sPath;
 			} else {
-				if( (i == 3 && nType == s_oExportTypes.EnvProp)
-				|| (i == 2 && nType == s_oExportTypes.Figure) ){
+				if( (i == 5 && nType == s_oExportTypes.EnvProp)
+				|| (i == 4 && nType == s_oExportTypes.Figure) ){
 					continue;
 				}
 				

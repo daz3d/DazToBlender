@@ -567,13 +567,7 @@ def getRootPath():
             hdir = os.path.expanduser('~')
         else:
             hdir = os.environ['HOME']
-        fname = "DTB"
-        hdir += getFileSp() + "Documents" + getFileSp() + "DTB" + getFileSp()
-        if os.path.exists(hdir)==False or os.path.isdir(hdir) == False:
-            if os.name == 'nt':
-                hdir = "C:\\Documents\\DTB\\"
-            else:
-                hdir = "/Documents/DTB/"
+        hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender") + getFileSp()
         if os.path.exists(hdir):
             root = hdir
         else:

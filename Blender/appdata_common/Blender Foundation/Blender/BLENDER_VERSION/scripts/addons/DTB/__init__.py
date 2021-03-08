@@ -399,13 +399,13 @@ def clean_animations():
     convert_rotation_orders()
 
 class DTB_PT_Main(bpy.types.Panel):
-    bl_label = "DazToBlender"
+    bl_label = "Daz To Blender"
     bl_space_type = 'VIEW_3D'
     bl_region_type = region
     if BV <2.80:
         bl_category = "Tools"
     else:
-        bl_category = "DazToBlender"
+        bl_category = "Daz To Blender"
     t_non = None
     def draw(self, context):
         l = self.layout
