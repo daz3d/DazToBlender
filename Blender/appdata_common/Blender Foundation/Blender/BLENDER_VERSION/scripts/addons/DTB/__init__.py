@@ -28,6 +28,7 @@ from . import Versions
 from . import DtbDazMorph
 from . import DtbMaterial
 from . import CustomBones
+from . import Poses
 from . import Util
 from . import WCmd
 from bpy.props import EnumProperty
@@ -201,7 +202,7 @@ def convert_quaternion_to_euler(action, obj):
         data_path = bone_prefix + "rotation_quaternion"
         frames = frames_matching(action, data_path)
         group = fcurves_group(action, data_path)
-
+        
         for fr in frames:
             # Get quaternion keyframe value
             quat = bone.rotation_quaternion.copy()
@@ -664,7 +665,8 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.setOpsMode("OBJECT")
             drb.finishjob()
             Global.setOpsMode("OBJECT")
-            #Util.Posing().setpose()
+            #TODO: Only run if no animation
+            Poses.Posing().restore_pose()
             bone_disp(-1, True)
             set_scene_settings()
             self.pbar(100,wm)

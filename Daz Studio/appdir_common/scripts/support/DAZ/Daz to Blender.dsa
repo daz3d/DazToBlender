@@ -930,28 +930,29 @@
 			mtxScale = oNode.getLocalScale();
 			
 			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
-			sLabel =oNode.getLabel();			
-			oLabel = oData[sLabel] = {};
-			oLabel["Name"] = oNode.name;
-			oLabel["Label"] = sLabel;
-			oLabel["Object Type"] = sObjectType;
+			sLabel = oNode.getLabel();	
+			sName = oNode.name;		
+			oName = oData[sName] = {};
+			oName["Name"] = sName;
+			oName["Label"] = sLabel;
+			oName["Object Type"] = sObjectType;
 			if(sObjectType == "MESH"){
-				oLabel["Object"] = oNode.getObject().name; 
+				oName["Object"] = oNode.getObject().name; 
 			}
 			else{
-				oLabel["Object"] = "EMPTY"
+				oName["Object"] = "EMPTY"
 			};
-			oLabel["Position"] = [
+			oName["Position"] = [
 				vecPos.x,
 				vecPos.y,
 				vecPos.z
 			];
-			oLabel["Rotation"] = [
+			oName["Rotation"] = [
 				oNode.getXRotControl().getLocalValue(),
 				oNode.getYRotControl().getLocalValue(),
 				oNode.getZRotControl().getLocalValue(),
 				];
-			oLabel["Scale"] = [
+			oName["Scale"] = [
 				mtxScale.m11,
 				mtxScale.m22,
 				mtxScale.m33
