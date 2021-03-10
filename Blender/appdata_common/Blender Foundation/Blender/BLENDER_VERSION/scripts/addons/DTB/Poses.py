@@ -150,16 +150,15 @@ class Posing:
                     pbs[bname].rotation_mode = order
                     for i in range(len(rotation)):      
                         pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
-                    pbs[bname].keyframe_insert("rotation_euler", frame=1)
-                    pbs[bname].keyframe_insert(data_path='location', frame=1)
+                    pbs[bname].keyframe_insert("rotation_euler", frame=0)
+                    pbs[bname].keyframe_insert(data_path='location', frame=0)
                     pbs[bname].rotation_mode = new_order
                     bpy.ops.pose.select_all(action="TOGGLE")
-                    bpy.ops.poselib.pose_add(frame=1, name=str("Pose At Import"))
+                    bpy.ops.poselib.pose_add(frame=0, name=str("Pose At Import"))
                     bpy.ops.pose.select_all(action="DESELECT")
 
 
     def restore_pose(self):
-        v3ary = []
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode("POSE")
         hometown = Global.getHomeTown()

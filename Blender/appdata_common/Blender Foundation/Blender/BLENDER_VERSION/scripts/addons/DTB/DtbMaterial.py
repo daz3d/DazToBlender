@@ -163,6 +163,7 @@ class DtbShaders:
         self.mat_data_dict = {}
         self.node_groups = []
         self.is_Diffuse = False
+        self.is_Alpha = False
 
     #TODO: Deal with Materials having same name
     def make_dct(self):
@@ -192,77 +193,67 @@ class DtbShaders:
 
     def get_mat_properties(self,mat_data):
         mat_property_dict = {}
+        #To deal with material names sometimes being undescriptive.
         for mat_property in mat_data["Properties"]:
             mat_property_dict[mat_property["Name"]] = mat_property
+            mat_property_dict[mat_property["Label"]] = mat_property
         return mat_property_dict
     
     def get_mat_type(self,mat_data):
         material_name = mat_data["Material Name"]
         material_type = mat_data["Material Type"]
         object_type = mat_data["Value"]
-        if material_type == "Iray Uber":
-            if object_type == "Actor/Character":
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.00",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                elif material_name in ["Pupils", "Trises", "Sclera"]:
-                    return "EyeDry"
-                else:
-                    return "IrayUberSkin"
+        if material_name in [
+                            "Cornea",
+                            "EyeMoisture",
+                            "EyeMoisture.00",
+                            "EylsMoisture",
+                            "Tear"
+                        ]:
+                return "EyeWet"
 
-            if "Eyelashes" in object_type:
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.001",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                else:
-                    return "Eyelashes"
-            if "Tear" in object_type:
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.001",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                
+        elif material_name in ["Pupils", "Trises", "Sclera"]:
+            return "EyeDry"
+
+        elif "Eyelashes" in object_type:
+                return "Eyelashes"
+        
+        elif material_type == "Iray Uber":
+            if object_type == "Actor/Character":
+                return "IrayUberSkin"
             else:
                 return "IrayUber"
+
+        elif material_type == "AoA_Subsurface":
+            return "AoA_Subsurface"
+
         elif material_type == "omUberSurface":
             return "omUberSurface"
+
         elif material_type == "PBRSkin":
             return "IrayUberSkin"
+
         elif ("Hair" in material_type) or ("Hair" in object_type):
             return "IrayUber" 
+
         else:
             return "DefaultMaterial"
 
-    def set_eevee_alpha(self,mat,mat_data):
-        mat_name = mat.name.split(".")[0]
-        if mat_name in [
-                    "Eyelashes",             
-                ]:
-                Versions.eevee_alpha(mat, 'BLEND', 0)
-        if mat_name in [
+    def set_eevee_alpha(self,mat):
+        if self.is_Alpha:
+             Versions.eevee_alpha(mat, 'HASHED', 0)
+        else:
+            mat_name = mat.name.split(".")[0]
+            if mat_name in [
                     "Cornea",
                     "EyeMoisture",
                     "EylsMoisture",
-                    "Tear"
+                    "Tear",
+                    "Eyelashes"
                 ]:
                 Versions.eevee_alpha(mat, 'HASHED', 0)
-        if "Hair" in mat_data["Value"]:
-            Versions.eevee_alpha(mat, 'HASHED', 0)
-   
+            
+
     def find_node_property(self,input_key,mat_property_dict):
         property_key, property_type = input_key.split(": ")
         property_info = mat_property_dict[property_key][property_type]
@@ -274,7 +265,11 @@ class DtbShaders:
             self.is_Diffuse = True
         else:
             self.is_Diffuse = False
-   
+        if "Opacity" in property_key:
+            self.is_Alpha = True
+        else:
+            self.is_Alpha = False
+
     def create_texture_input(self,tex_path,tex_image_node):
         tex_image = bpy.data.images.load(filepath=tex_path)
         tex_image_node.image = tex_image
@@ -359,8 +354,9 @@ class DtbShaders:
                                                 tex_node_output,
                                                 shader_node.inputs[input_key]
                                                 )
+                                
             # Set Alpha Modes
-            self.set_eevee_alpha(mat, mat_data)
+            self.set_eevee_alpha(mat)
                       
             # Set the cycles displacement method
             if node_group == "IrayUberSkin":
