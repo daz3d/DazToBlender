@@ -142,17 +142,26 @@ class Posing:
                 if bname in pbs:
                     position = transform_data[bname]["Position"]
                     rotation = transform_data[bname]["Rotation"]
-                    fixed_rotation = self.reorder_rotation(order,rotation,bname)
+                    
+                    # Position
                     for i in range(len(position)):
                         if Global.getSize() == 1:
                             position[i] = position[i]/100.0
-                        pbs[bname].location[i] = float(position[i])
+                    pbs[bname].location[0] = float(position[0])
+                    # Y invert (-Y)
+                    pbs[bname].location[1] = -float(position[1])
+                    # Y invert (-z)
+                    pbs[bname].location[2] = -float(position[2])
+                    
+                    
+                    # Rotation
+                    fixed_rotation = self.reorder_rotation(order,rotation,bname)
                     pbs[bname].rotation_mode = order
                     for i in range(len(rotation)):      
                         pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
-                    pbs[bname].keyframe_insert("rotation_euler", frame=0)
-                    pbs[bname].keyframe_insert(data_path='location', frame=0)
                     pbs[bname].rotation_mode = new_order
+                    
+                    #Add Pose to Libary
                     bpy.ops.pose.select_all(action="TOGGLE")
                     bpy.ops.poselib.pose_add(frame=0, name=str("Pose At Import"))
                     bpy.ops.pose.select_all(action="DESELECT")

@@ -600,6 +600,7 @@ def clear_variables():
     global _AMTR
     global _BODY
     global _EYLS
+    global _TEAR
     global _HAIR
     global _RGFY
     global keep_EYLS

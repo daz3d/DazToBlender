@@ -331,7 +331,7 @@ class DtbShaders:
             # Find and Attach Node Input
             mat_property_dict = self.get_mat_properties(mat_data)
             for input_key in shader_node.inputs.keys():
-    
+                
                 if ("Texture" in input_key) or ("Value" in input_key):
                     # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
                     if input_key.split(": ")[0] in mat_property_dict.keys():
