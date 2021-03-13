@@ -142,6 +142,7 @@ class DTB_PT_Main(bpy.types.Panel):
         row = box.row(align=True)
         row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
         row.prop(w_mgr, "size_100", text="Size * 100", toggle=False)
+        box.prop(w_mgr, "scene_scale", text = "")
         box.operator('import.fbx', icon='POSE_HLT')
         box.operator('import.env', icon='WORLD')
         if context.object and context.active_object:
@@ -239,13 +240,12 @@ class DTB_PT_Main(bpy.types.Panel):
             l.prop(w_mgr, "search_prop")
         l.operator('remove.alldaz', icon='BOIDS')
         l.operator('df.optimize', icon="MATERIAL")
-        
-                    
 
 
 class IMP_OT_FBX(bpy.types.Operator):
+    """Supports Genesis 3, 8, and 8.1"""
     bl_idname = "import.fbx"
-    bl_label = "Import New Genesis 3/8"
+    bl_label = "Import New Genesis Figure"
     bl_options = {'REGISTER', 'UNDO'}
     root = Global.getRootPath()
 
@@ -282,25 +282,27 @@ class IMP_OT_FBX(bpy.types.Operator):
         wm.progress_begin(0, 100)
         Global.clear_variables()
         ik_access_ban = True
+
+        # Instant of classes
         drb = DazRigBlend.DazRigBlend()
         dtb_shaders = DtbMaterial.DtbShaders()
         anim = Animations.Animations()
-        anim.reset_total_key_count()
         pose = Poses.Posing()
+        db = DataBase.DB()
         self.pbar(5,wm)
+        anim.reset_total_key_count()
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
-        db = DataBase.DB()
         Global.decide_HERO()
         self.pbar(15, wm)
 
         if Global.getAmtr() is not None and Global.getBody() is not None:
             Global.deselect() # deselect all the objects
-            drb.clear_pose() # Select Armature and clear transform
+            pose.clear_pose() # Select Armature and clear transform
             drb.mub_ary_A() # Find and read FIG.dat file
             drb.orthopedy_empty() # On "EMPTY" type objects
             self.pbar(18, wm)
-            drb.orthopedy_everything() # clear transform, clear and reapply parent
+            drb.orthopedy_everything() # clear transform, clear and reapply parent, CMs -> METERS
             Global.deselect()
             self.pbar(20, wm)
             drb.set_bone_head_tail() # Sets head and tail positions for all the bones
@@ -613,6 +615,7 @@ class FK2IK_OT_button(bpy.types.Operator):
 class IMP_OT_ENV(bpy.types.Operator):
     bl_idname = "import.env"
     bl_label = "Import New Env/Prop"
+    bl_description = ""
     bl_options = {'REGISTER', 'UNDO'}
     def invoke(self, context, event):
         if bpy.data.is_dirty:
@@ -648,6 +651,7 @@ class IK2FK_OT_button(bpy.types.Operator):
 class REMOVE_DAZ_OT_button(bpy.types.Operator):
     bl_idname = "remove.alldaz"
     bl_label = "Remove All Daz"
+    bl_description = "Clears out all imported assets\nCurrently deletes all Materials"
     bl_options = {'REGISTER', 'UNDO'}
 
     def invoke(self,context,event):
@@ -1138,6 +1142,16 @@ def init_props():
     w_mgr.new_morph = BoolProperty(name="_new_morph",default=False)
     w_mgr.skip_isk = BoolProperty(name = "_skip_isk",default = False)
     w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
+    w_mgr.scene_scale = EnumProperty(
+        name = "Scene Scale",
+        description = "Used to Readjust objects you choice of scale",
+        items = [
+            ('0.01', 'Real Scale (Centimeters)', 'Daz Scale'),
+            ('0.1', 'x10', '10 x Daz Scale'),
+            ('1', 'x100 (Meters)', '100 x Daz Scale')
+        ],
+        default = '0.01'
+    )
     w_mgr.size_100 = BoolProperty(name="size_100", default=False)
 
 

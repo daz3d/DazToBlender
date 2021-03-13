@@ -1,4 +1,3 @@
-
 import bpy
 import os
 import math
@@ -11,6 +10,14 @@ import re
 
 class Posing:
     #TODO Refactor and update to Reenable
+    def clear_pose(self):
+        Versions.select(Global.getAmtr(), True)
+        Versions.active_object(Global.getAmtr())
+        Versions.show_x_ray(Global.getAmtr())
+        Global.setOpsMode('POSE')
+        bpy.ops.pose.transforms_clear()
+        Global.setOpsMode('OBJECT')
+
     def pose_copy(self,dur):
         if os.path.exists(dur) == False:
             return
@@ -129,7 +136,7 @@ class Posing:
         elif order == 'ZYX':
             return 'YZX'
 
-
+    
     def make_pose(self, transform_data):
         bone_limits = DataBase.get_bone_limits_dict()
         pbs = Global.getAmtr().pose.bones
@@ -144,9 +151,9 @@ class Posing:
                     rotation = transform_data[bname]["Rotation"]
                     
                     # Position
-                    for i in range(len(position)):
-                        if Global.getSize() == 1:
-                            position[i] = position[i]/100.0
+                    for i in range(len(position)):   
+                        position[i] = position[i] * Global.get_size()
+
                     pbs[bname].location[0] = float(position[0])
                     # Y invert (-Y)
                     pbs[bname].location[1] = -float(position[1])

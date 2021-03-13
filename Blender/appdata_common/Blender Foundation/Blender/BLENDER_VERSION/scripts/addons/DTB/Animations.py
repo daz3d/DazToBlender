@@ -131,55 +131,39 @@ class Animations:
     def clean_animations(self):
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
-        for action in bpy.data.actions:
+        scene_size = Global.get_size()
 
-            # Convert rotation animation data from quaternion to euler angles
-            self.convert_quaternion_to_euler(action, Global.getAmtr())
+        #Choose Action
+        armature = Global.getAmtr()
+        action = armature.animation_data.action
+        action.name = "Imported Animation for {0}".format(Global.get_Body_name())
+            
+        # Convert rotation animation data from quaternion to euler angles
+        self.convert_quaternion_to_euler(action, Global.getAmtr())
 
-            # Convert animation data from Studio to Blender
-            curve_count = len(action.fcurves)
-            index = 0
-            while index < curve_count:
-                fcurve = action.fcurves[index]
-                start_index = fcurve.data_path.find('[')
-                end_index = fcurve.data_path.find(']')
-                if (start_index == -1 or end_index == -1):
-                    # Convert Figure root bone animation data
-                    if "Genesis" in action.name:
-                        if fcurve.data_path == "rotation_euler":
-                            for point in fcurve.keyframe_points:
-                                point.co[1] = 0
-                        if fcurve.data_path == "scale":
-                            for point in fcurve.keyframe_points:
-                                point.co[1] = 1.0
-                    # Convert non Figure root bone animation data
-                    else:
-                        if fcurve.data_path == "location":
-                            fcurve_x = action.fcurves[index + 0]
-                            fcurve_y = action.fcurves[index + 1]
-                            fcurve_z = action.fcurves[index + 2]
-                            point_count = len(fcurve_x.keyframe_points)
-
-                            for i in range(point_count):
-                                # Y invert (-Y)
-                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                # Z invert (-Z)
-                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-                            
-                            index += 2
+        # Convert animation data from Studio to Blender
+        curve_count = len(action.fcurves)
+        index = 0
+        while index < curve_count:
+            fcurve = action.fcurves[index]
+            start_index = fcurve.data_path.find('[')
+            end_index = fcurve.data_path.find(']')
+            if (start_index == -1 or end_index == -1):
+                # Convert Figure root bone animation data
+                if "Genesis" in action.name:
+                    if fcurve.data_path == "rotation_euler":
+                        for point in fcurve.keyframe_points:
+                            point.co[1] = 0
+                    if fcurve.data_path == "scale":
+                        for point in fcurve.keyframe_points:
+                            point.co[1] = 1.0
+                # Convert non Figure root bone animation data
                 else:
-                    node_name = fcurve.data_path[start_index + 2 : end_index - 1]
-                    property_name = fcurve.data_path[end_index + 2 :]
-                    rotation_order = self.get_rotation_order(node_name)
-
-                    # Convert location animation data for all the non root bones
-                    if property_name == "location":
+                    if fcurve.data_path == "location":
                         fcurve_x = action.fcurves[index + 0]
                         fcurve_y = action.fcurves[index + 1]
                         fcurve_z = action.fcurves[index + 2]
                         point_count = len(fcurve_x.keyframe_points)
-                        self.update_total_key_count(point_count)
 
                         for i in range(point_count):
                             # Y invert (-Y)
@@ -187,97 +171,118 @@ class Animations:
 
                             # Z invert (-Z)
                             fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                        # Get skeleton scale and set to location animation data
-                        skeleton_data = DataBase.get_skeleton_data()
-                        skeleton_scale = skeleton_data["skeletonScale"]
-                        skeleton_scale *= 0.01 # To match armature scale
-                        for i in range(point_count):
-                            fcurve_x.keyframe_points[i].co[1] *= skeleton_scale
-                            fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
-                            fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
-
-                        index += 2
-
-                    # Convert rotation animation data for all the non root bones
-                    if property_name == "rotation_euler":
-                        fcurve_x = action.fcurves[index + 0]
-                        fcurve_y = action.fcurves[index + 1]
-                        fcurve_z = action.fcurves[index + 2]
-                        point_count = len(fcurve_x.keyframe_points)
-                        self.update_total_key_count(point_count)
-
-                        if rotation_order == 'XYZ':
-                            for i in range(point_count):
-                                # YZ switch (Y <-> Z)
-                                temp = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                                fcurve_z.keyframe_points[i].co[1] = temp
-
-                                # XY switch (X <-> Y)
-                                temp = fcurve_x.keyframe_points[i].co[1]
-                                fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = temp
-
-                                if(node_name.startswith("r")):
-                                    # Y invert (-Y)
-                                    fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                    # Z invert (-Z)
-                                    fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                        elif rotation_order == 'XZY':
-                            for i in range(point_count):
-                                # XY switch (X <-> Y)
-                                temp = fcurve_x.keyframe_points[i].co[1]
-                                fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = temp
-
-                                # X invert (-X)
-                                fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
-
-                                if(node_name.startswith("r")):
-                                    # Y invert (-Y)
-                                    fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                    # Z invert (-Z)
-                                    fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                        elif rotation_order == "YZX":
-                            # Bones that are pointed down with YZX order
-                            # TODO: remove hardcoding
-                            if node_name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
-                                for i in range(point_count):
-                                    # Y invert (-Y)
-                                    fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                    # Z invert (-Z)
-                                    fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                        elif rotation_order == "ZXY":
-                            for i in range(point_count):
-                                # XY switch (X <-> Y)
-                                temp = fcurve_x.keyframe_points[i].co[1]
-                                fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = temp
-
-                                # YZ switch (Y <-> Z)
-                                temp = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                                fcurve_z.keyframe_points[i].co[1] = temp
-
-                        elif rotation_order == "ZYX":
-                            for i in range(point_count):
-                                # YZ switch (Y <-> Z)
-                                temp = fcurve_y.keyframe_points[i].co[1]
-                                fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                                fcurve_z.keyframe_points[i].co[1] = temp
-
-                                # X invert (-X)
-                                fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
                         
                         index += 2
+            else:
+                node_name = fcurve.data_path[start_index + 2 : end_index - 1]
+                property_name = fcurve.data_path[end_index + 2 :]
+                rotation_order = self.get_rotation_order(node_name)
 
-                index += 1
+                # Convert location animation data for all the non root bones
+                if property_name == "location":
+                    fcurve_x = action.fcurves[index + 0]
+                    fcurve_y = action.fcurves[index + 1]
+                    fcurve_z = action.fcurves[index + 2]
+                    point_count = len(fcurve_x.keyframe_points)
+                    self.update_total_key_count(point_count)
+
+                    for i in range(point_count):
+                        # Y invert (-Y)
+                        fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
+
+                        # Z invert (-Z)
+                        fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
+
+                    # Get skeleton scale and set to location animation data
+                    skeleton_data = DataBase.get_skeleton_data()
+                    skeleton_scale = skeleton_data["skeletonScale"]
+                    skeleton_scale *= scene_size # To match armature scale
+                    for i in range(point_count):
+                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
+
+                    index += 2
+
+                # Convert rotation animation data for all the non root bones
+                if property_name == "rotation_euler":
+                    fcurve_x = action.fcurves[index + 0]
+                    fcurve_y = action.fcurves[index + 1]
+                    fcurve_z = action.fcurves[index + 2]
+                    point_count = len(fcurve_x.keyframe_points)
+                    self.update_total_key_count(point_count)
+
+                    if rotation_order == 'XYZ':
+                        for i in range(point_count):
+                            # YZ switch (Y <-> Z)
+                            temp = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
+                            fcurve_z.keyframe_points[i].co[1] = temp
+
+                            # XY switch (X <-> Y)
+                            temp = fcurve_x.keyframe_points[i].co[1]
+                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = temp
+
+                            if(node_name.startswith("r")):
+                                # Y invert (-Y)
+                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
+
+                                # Z invert (-Z)
+                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
+
+                    elif rotation_order == 'XZY':
+                        for i in range(point_count):
+                            # XY switch (X <-> Y)
+                            temp = fcurve_x.keyframe_points[i].co[1]
+                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = temp
+
+                            # X invert (-X)
+                            fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
+
+                            if(node_name.startswith("r")):
+                                # Y invert (-Y)
+                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
+
+                                # Z invert (-Z)
+                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
+
+                    elif rotation_order == "YZX":
+                        # Bones that are pointed down with YZX order
+                        # TODO: remove hardcoding
+                        if node_name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
+                            for i in range(point_count):
+                                # Y invert (-Y)
+                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
+
+                                # Z invert (-Z)
+                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
+
+                    elif rotation_order == "ZXY":
+                        for i in range(point_count):
+                            # XY switch (X <-> Y)
+                            temp = fcurve_x.keyframe_points[i].co[1]
+                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = temp
+
+                            # YZ switch (Y <-> Z)
+                            temp = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
+                            fcurve_z.keyframe_points[i].co[1] = temp
+
+                    elif rotation_order == "ZYX":
+                        for i in range(point_count):
+                            # YZ switch (Y <-> Z)
+                            temp = fcurve_y.keyframe_points[i].co[1]
+                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
+                            fcurve_z.keyframe_points[i].co[1] = temp
+
+                            # X invert (-X)
+                            fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
+                    
+                    index += 2
+
+            index += 1
 
         self.convert_rotation_orders()

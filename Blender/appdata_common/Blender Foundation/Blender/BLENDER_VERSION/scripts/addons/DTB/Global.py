@@ -980,7 +980,39 @@ def ifNeedToSnapKnee(r_l):
     k = iks[r_l].head[2] + iks[r_l].location[2]
     return iks[r_l].head[2] > poles[r_l].head[2]
 
-
+def get_size():
+    return float(bpy.context.window_manager.scene_scale)
+   
+def change_size():
+    if getAmtr() is not None and (get_Amtr_name() in Util.myacobjs()):
+        armature = getAmtr()
+    if get_size() < 1:
+        # Scale Imported Figure
+        for i in range(3):
+            og_scale = armature.scale[i]
+            armature.scale[i] = og_scale * get_size()
+        setOpsMode("OBJECT")
+        Versions.active_object(armature)
+        Versions.select(armature, True)
+        bpy.ops.object.transform_apply(scale=True)
+        deselect()
+        for obj in Util.myacobjs():
+            if obj.type == 'MESH':
+                if obj.parent == armature:
+                    Versions.select(obj, True)
+                    Versions.active_object(obj)
+                    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                    deselect()
+       
+        # Scale Daz_Pub
+        for d in Util.colobjs('DP'):
+            if d.type=='CAMERA' or d.type=='LIGHT':
+                for i in range(3):
+                    og_scale = d.scale[i]
+                    d.scale[i] = og_scale * get_size()
+            
+                    
+        
 def judgeSize():
     max = 0
     for z in range(2):
@@ -994,7 +1026,7 @@ def judgeSize():
                 else:
                     if obj.location[i] > max:
                         max = obj.location[i]
-    if max==0:
+    if max == 0:
         if bpy.context.window_manager.size_100:
             max = 71
     global _SIZE
@@ -1007,7 +1039,7 @@ def want_real():
     return bpy.context.window_manager.size_100 == False
 
 def getSize():
-    if _SIZE==0:
+    if _SIZE == 0:
         judgeSize()
     return _SIZE
 
@@ -1016,7 +1048,7 @@ def scale_environment():
         scene.tool_settings.use_keyframe_insert_auto = False
         scene.unit_settings.system = 'METRIC'
         scene.unit_settings.scale_length = 1.0/getSize()
-    lens = [0.01*getSize(),1000*getSize(),50.0+math.floor(0.3*getSize())]
+    lens = [0.01 * getSize(), 1000 * getSize(), 50.0 + math.floor(0.3 * getSize())]
     bpy.context.space_data.clip_start = lens[0]
     bpy.context.space_data.clip_end = lens[1]
     bpy.context.space_data.lens = lens[2]
@@ -1032,7 +1064,7 @@ def scale_environment():
                 rv3d.view_distance = size_1_100[idx][2]
                 rv3d.view_camera_zoom = 0
     bpy.context.preferences.inputs.use_mouse_depth_navigate = True
-    normal_and_bump_to_size()
+   
 
 def normal_and_bump_to_size():
     objs = Util.myacobjs()
@@ -1073,7 +1105,7 @@ def changeSize(size, mub_ary):
         if armature.scale[i] != change_size:
             armature.scale[i] = change_size
     deselect()
-    if mub_ary !=[]:
+    if mub_ary != []:
         for obj in Util.myacobjs():
             if obj.name in mub_ary:
                 Versions.active_object(obj)
