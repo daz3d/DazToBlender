@@ -46,11 +46,10 @@ class EnvProp:
         int_progress = 100/len(env_dirs)
         for i in range(len(env_dirs)):
             Global.clear_variables()
-            Global.setHomeTown(
-                                os.path.join(
+            Global.setHomeTown(os.path.join(
                                 Global.getRootPath(), "ENV", "ENV" + str(i)
-                                )
-                                )
+                                ))
+            Global.load_asset_name()
             Util.decideCurrentCollection('ENV')
             progress_bar(int(int_progress * i) + 5)
             ReadFbx(os.path.join(self.env_root, 'ENV' + str(i)), i, int_progress)

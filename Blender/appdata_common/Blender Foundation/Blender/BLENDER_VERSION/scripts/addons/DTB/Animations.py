@@ -136,7 +136,6 @@ class Animations:
         #Choose Action
         armature = Global.getAmtr()
         action = armature.animation_data.action
-        action.name = "Imported Animation for {0}".format(Global.get_Body_name())
             
         # Convert rotation animation data from quaternion to euler angles
         self.convert_quaternion_to_euler(action, Global.getAmtr())
@@ -286,3 +285,6 @@ class Animations:
             index += 1
 
         self.convert_rotation_orders()
+
+        # Update Name
+        action.name = "{0} Animation".format(Global.get_asset_name())

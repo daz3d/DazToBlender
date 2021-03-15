@@ -287,7 +287,9 @@ class DtbShaders:
         for mat_slot in obj.material_slots:
             mat = mat_slot.material
             mat_name = mat.name
+            # To Deal with duplications
             obj_name = obj.name.replace(".Shape","")
+            obj_name = obj_name.split(".")[0]
             if mat is None:
                 # Get or create a new material when slot is missing material
                 mat = bpy.data.materials.get(mat_slot.name) \

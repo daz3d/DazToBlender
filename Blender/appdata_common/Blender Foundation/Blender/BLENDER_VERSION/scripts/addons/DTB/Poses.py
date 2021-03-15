@@ -170,7 +170,10 @@ class Posing:
                     
                     #Add Pose to Libary
                     bpy.ops.pose.select_all(action="TOGGLE")
-                    bpy.ops.poselib.pose_add(frame=0, name=str("Pose At Import"))
+                    bpy.ops.poselib.pose_add(frame=0, name=str(Global.get_asset_name() + " Pose"))
+                    for action in bpy.data.actions:
+                        if action.name == "PoseLib":
+                            action.name = Global.get_asset_name() + " Pose Library"
                     bpy.ops.pose.select_all(action="DESELECT")
 
 

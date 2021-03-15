@@ -1,10 +1,12 @@
 import bpy
 import os
 import math
+import json
 from copy import deepcopy
 from . import DataBase
 from . import Versions
 from . import Util
+
 isMan = False
 root = ""
 isGen = False
@@ -27,6 +29,7 @@ _SIZE = 0
 root =""
 _ISG3 = 0
 _HOMETOWN = ""
+_ASSETNAME = ""
 already_use_newmtl = []
 _ENVROOT = ""
 
@@ -77,7 +80,6 @@ def getSubdivLevel():
         return 1
     else:
         return 0
-
 
 
 def get_root():
@@ -574,6 +576,19 @@ def getRootPath():
             root = ""
     return root
 
+def load_asset_name():
+    global _ASSETNAME
+    for file in os.listdir(getHomeTown()):
+        if file.endswith(".dtu"):
+            dtu = os.path.join(getHomeTown(), file)
+            break
+    with open(dtu, "r") as file:
+        _ASSETNAME = json.load(file)["Asset Name"]
+
+def get_asset_name():
+    return _ASSETNAME
+
+
 def clear_already_use_newmtl():
     global already_use_newmtl
     already_use_newmtl = []
@@ -1015,9 +1030,9 @@ def change_size(root):
         # Scale Daz_Pub
         for d in Util.colobjs('DP'):
             if d.type=='CAMERA' or d.type=='LIGHT':
+                og_location = (140, 100, 150)
                 for i in range(3):
-                    og_scale = d.scale[i]
-                    d.scale[i] = og_scale * get_size()
+                    d.location[i] = og_location[i] * get_size()
                 Versions.select(obj, True)
                 Versions.active_object(obj)
                 bpy.ops.object.transform_apply(scale=True)
@@ -1059,12 +1074,11 @@ def scale_settings():
             rv3d.update()
             bpy.context.scene.camera.matrix_world = rv3d.view_matrix
             bpy.context.scene.camera.matrix_world.invert()
-        
-    
-    bpy.context.scene.camera.data.sensor_width=64
+          
+    # Set Camera Clipping
+    bpy.context.scene.camera.data.sensor_width = 64
     bpy.context.scene.camera.data.clip_start = bpy.context.space_data.clip_start
     bpy.context.scene.camera.data.clip_end = bpy.context.space_data.clip_end
-
     bpy.context.preferences.inputs.use_mouse_depth_navigate = True
         
 

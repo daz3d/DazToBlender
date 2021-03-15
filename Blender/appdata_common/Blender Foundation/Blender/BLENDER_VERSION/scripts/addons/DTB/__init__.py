@@ -421,6 +421,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             if os.path.exists(fbx_adr)==False:
                 break
             Global.setHomeTown(os.path.join(self.root, "FIG/FIG" + str(i)))
+            Global.load_asset_name()
             self.import_one(fbx_adr)
         self.finish_obj()
         return {'FINISHED'}
@@ -1143,7 +1144,7 @@ def init_props():
     w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
     w_mgr.scene_scale = EnumProperty(
         name = "Scene Scale",
-        description = "Used to Readjust objects you choice of scale",
+        description = "Used to change scale of imported object and scale settings",
         items = [
             ('0.01', 'Real Scale (Centimeters)', 'Daz Scale'),
             ('0.1', 'x10', '10 x Daz Scale'),
