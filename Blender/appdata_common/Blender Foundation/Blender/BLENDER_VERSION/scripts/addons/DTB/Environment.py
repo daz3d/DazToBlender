@@ -26,7 +26,7 @@ def progress_bar(percent):
 
 
 class EnvProp:
-    env_root = Global.getRootPath() + "ENV" + Global.getFileSp()
+    env_root = os.path.join(Global.getRootPath(), "ENV")
 
     def __init__(self):
         Util.deleteEmptyDazCollection() # Remove Empty Collections
@@ -47,12 +47,13 @@ class EnvProp:
         for i in range(len(env_dirs)):
             Global.clear_variables()
             Global.setHomeTown(
-                                Global.getRootPath() + Global.getFileSp() + "ENV" + 
-                                Global.getFileSp() + "ENV" + str(i)
+                                os.path.join(
+                                Global.getRootPath(), "ENV", "ENV" + str(i)
+                                )
                                 )
             Util.decideCurrentCollection('ENV')
             progress_bar(int(int_progress * i) + 5)
-            ReadFbx(self.env_root + 'ENV' + str(i) + Global.getFileSp(), i, int_progress)
+            ReadFbx(os.path.join(self.env_root, 'ENV' + str(i)), i, int_progress)
             Versions.active_object_none()
         progress_bar(100)
         Global.setOpsMode("OBJECT")
@@ -83,13 +84,13 @@ class ReadFbx:
         self.pose_data = {}
         self.bone_head_tail_dict = None
         if self.read_fbx():
-            progress_bar(int(i*int_progress)+int(int_progress/2))
+            progress_bar(int(i * int_progress)+int(int_progress / 2))
             self.setMaterial()
-        Global.scale_environment()
+        Global.scale_settings()
 
     def read_fbx(self):
         self.my_meshs = []
-        adr = self.adr + "B_ENV.fbx"
+        adr = os.path.join(self.adr, "B_ENV.fbx")
         if os.path.exists(adr) == False:
             return
         objs = self.convert_file(adr)
@@ -124,8 +125,8 @@ class ReadFbx:
                 return False
             else:
                 self.import_empty(objs, Global.getEnvRoot())
-        if Global.want_real():
-            Global.changeSize(1,[])
+        Global.change_size(Global.getEnvRoot())
+        
         return True
         
     
@@ -338,7 +339,7 @@ class ReadFbx:
 
     
     def get_bone_head_tail_data(self):
-        input_file = open(self.adr + "ENV_boneHeadTail.csv", "r")
+        input_file = open(os.path.join(self.adr, "ENV_boneHeadTail.csv"), "r")
         lines = input_file.readlines()
         input_file.close()
         self.bone_head_tail_dict = dict()
@@ -403,7 +404,7 @@ class ReadFbx:
 
 
     def load_pose_data(self):
-        with open(self.adr+"ENV.transforms") as f:
+        with open(os.path.join(self.adr, "ENV.transforms")) as f:
             self.pose_data = json.load(f)
     
  

@@ -878,7 +878,41 @@
 			}
 			
 		};
-	};	
+	};
+
+	/*********************************************************************/	
+	// DzVec3 : ...
+	function calcOrigin( oNode )
+	{
+		if( !oNode.getSkeleton() ){
+			return DzVec3( 0, 0, 0 );
+		}
+		
+		vecOrigin = oNode.getWSPos();
+		if( oNode.getNodeParent() == 0 ){
+			return DzVec3( 0, 0, 0 );
+		}
+		return vecOrigin;
+	}
+
+	/*********************************************************************/	
+	// DzVec3 : ...
+	function calcParentOrigin( oNode )
+	{
+		if( !oNode.getSkeleton() ){
+			return DzVec3( 0, 0, 0 );
+		}
+		oNode = oNode.getNodeParent();
+		if( oNode ){
+			if( oNode.getNodeParent() == 0 ){
+				return DzVec3( 0, 0, 0 )
+			}
+			return oNode.getWSPos();
+		}
+		else{
+			return DzVec3( 0, 0, 0 );
+		}
+	}
 
 	/*********************************************************************/
 	// void : ...
@@ -919,16 +953,31 @@
 		var quatRot;
 		var mtxScale;
 		var sLine;
-		
+		var vecOrigin;
+		var vecNewPos;
 		var oData = {};
-
+		var oParent;
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sObjectType = getObjectType( oNode );
 			vecPos = oNode.getLocalPos();
 			quatRot = oNode.getLocalRot();
 			mtxScale = oNode.getLocalScale();
-			
+			oParent = oNode.getNodeParent();
+			vecOrigin = calcOrigin( oNode )
+			vecNewPos = DzVec3(0,0,0)
+			if( oParent ){
+				vecOrigin = vecOrigin.subtract( calcOrigin( oParent ) )
+			};
+			if( oNode.inherits( "DzSkeleton" )
+			|| oNode.inherits( "DzBone") ){
+				vecNewPos.x = vecOrigin.x;
+				vecNewPos.y = vecOrigin.y;
+				vecNewPos.z = vecOrigin.z;
+			}
+			else{
+				vecNewPos.x = vecPos.subtract( vecOrigin );
+			}
 			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			sLabel = oNode.getLabel();	
 			sName = oNode.name;		
@@ -1965,6 +2014,7 @@
 							var oPropertyInfo = {};
 							
 							oPropertyInfo["Name"] = oProperty.getName();
+							oPropertyInfo["Label"] = oProperty.getLabel();
 							
 							var bImageProperty = oProperty.inherits( "DzImageProperty" );
 							var bColorProperty = oProperty.inherits( "DzColorProperty" );

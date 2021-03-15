@@ -169,7 +169,7 @@ class DtbShaders:
     def make_dct(self):
         for file in os.listdir(Global.getHomeTown()):
             if file.endswith(".dtu"):
-                input_file = open(Global.getHomeTown() + Global.getFileSp() + file)
+                input_file = open(os.path.join(Global.getHomeTown(), file))
         dtu_content = input_file.read()
         mat_info_list = json.loads(dtu_content)["Materials"]
         for mat_info in mat_info_list:

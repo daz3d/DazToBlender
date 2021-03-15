@@ -87,7 +87,7 @@ class DtbDazMorph():
         objname = dobj.name
         if objname.endswith(".Shape"):
             objname =objname[0:len(objname)-6]
-        path = Global.getRootPath() + self.KWORD + Global.getFileSp() + objname + "_" + self.get_moment()
+        path = os.path.join(Global.getRootPath(), self.KWORD, objname + "_" + self.get_moment())
         root = Global.getRootPath() + self.KWORD
         if (os.path.exists(path) and os.path.isdir(path))==False:
             os.makedirs(path)
@@ -125,7 +125,7 @@ class DtbDazMorph():
         flg_executed = False
         for kidx, kb in enumerate(mesh.shape_keys.key_blocks):
             if (kb.name.startswith(self.KWORD)):
-                path_w = path + Global.getFileSp() + kb.name + ".obj"
+                path_w = os.path.join(path, kb.name + ".obj")
                 with open(path_w, mode='w') as f:
                     for idx, v in enumerate(kb.data):
                         if self.flg_human and idx >= self.human_max:
@@ -138,7 +138,7 @@ class DtbDazMorph():
                         f.write(l)
                     flg_executed = True
         if flg_executed == False and self.flg_human:
-            path_w = path + Global.getFileSp() + "Basic.obj"
+            path_w = os.path.join(path, "Basic.obj")
             with open(path_w, mode='w') as f:
                 for v in mesh.vertices:
                     if v.index >= self.human_max:

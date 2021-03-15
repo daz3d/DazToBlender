@@ -110,7 +110,7 @@ def set_translation(matrix, loc):
 #TODO: Get intergate the setting into the import setup
 def set_scene_settings(key_count):
     scene = bpy.context.scene
-    scene.unit_settings.length_unit = 'CENTIMETERS'
+    
 
     # Set start and end playable range for the animations.
     scene.frame_start = 0
@@ -141,7 +141,6 @@ class DTB_PT_Main(bpy.types.Panel):
         w_mgr = context.window_manager
         row = box.row(align=True)
         row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
-        row.prop(w_mgr, "size_100", text="Size * 100", toggle=False)
         box.prop(w_mgr, "scene_scale", text = "")
         box.operator('import.fbx', icon='POSE_HLT')
         box.operator('import.env', icon='WORLD')
@@ -418,10 +417,10 @@ class IMP_OT_FBX(bpy.types.Operator):
             return {'FINISHED'}
         self.layGround()
         for i in range(10):
-            fbx_adr = self.root + "FIG/FIG" + str(i) + "/B_FIG.fbx"
+            fbx_adr = os.path.join(self.root, "FIG", "FIG" + str(i), "B_FIG.fbx")
             if os.path.exists(fbx_adr)==False:
                 break
-            Global.setHomeTown(self.root+"FIG/FIG" + str(i))
+            Global.setHomeTown(os.path.join(self.root, "FIG/FIG" + str(i)))
             self.import_one(fbx_adr)
         self.finish_obj()
         return {'FINISHED'}
@@ -430,7 +429,7 @@ class IMP_OT_FBX(bpy.types.Operator):
         Global.setOpsMode("OBJECT")
         for b in Util.myacobjs():
             bpy.data.objects.remove(b)
-        filepath = os.path.dirname(__file__) + Global.getFileSp()+"img" + Global.getFileSp() + "Error.fbx"
+        filepath = os.path.join(os.path.dirname(__file__), "img", "Error.fbx")
         if os.path.exists(filepath):
             bpy.ops.import_scene.fbx(filepath=filepath)
             bpy.context.space_data.shading.type = 'SOLID'
@@ -1152,7 +1151,7 @@ def init_props():
         ],
         default = '0.01'
     )
-    w_mgr.size_100 = BoolProperty(name="size_100", default=False)
+   
 
 
 

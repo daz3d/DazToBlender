@@ -72,15 +72,15 @@ def make_sun():
         return
     if BV < 2.80:
         bpy.ops.object.lamp_add(type='SUN', radius=6.0, location=(
-            -0.55*Global.getSize(),
-            -0.6*Global.getSize(),
-            2.3*Global.getSize()
+            5000 * Global.get_size(),
+            6000 * Global.get_size(),
+            2300 * Global.get_size()
         ), rotation=(0.77, -0.401, -0.244))
     else:
         bpy.ops.object.light_add(type='SUN', radius=6.0, location=(
-            -0.55 * Global.getSize(),
-            -0.6 * Global.getSize(),
-            2.3 * Global.getSize()
+            125 * Global.get_size(),
+            255 * Global.get_size(),
+            262 * Global.get_size()
         ), rotation=(0.77, -0.401, -0.244))
     sun = bpy.context.object
     sun.name = 'daz_sun'

@@ -179,7 +179,7 @@ class Posing:
         Global.setOpsMode("POSE")
         hometown = Global.getHomeTown()
 
-        padr = hometown+ "/FIG.transforms"
+        padr = os.path.join(hometown, "FIG.transforms")
         if os.path.exists(padr) == False:
             return
         with open(padr, errors='ignore', encoding='utf-8') as f:

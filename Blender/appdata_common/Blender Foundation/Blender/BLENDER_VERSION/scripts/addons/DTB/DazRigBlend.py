@@ -268,7 +268,7 @@ class DazRigBlend:
 
     def set_bone_head_tail(self):
         # Read bone's head, tail and a vector to calculate roll
-        input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_boneHeadTail.csv", "r")
+        input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneHeadTail.csv"), "r")
         lines = input_file.readlines()
         input_file.close()
         bone_head_tail_dict = dict()
@@ -471,10 +471,8 @@ class DazRigBlend:
             self.foot_finger_forg3()
             Global.deselect()
         Versions.active_object_none()
-        Global.change_size()
-        # if Global.want_real():
-        #     Global.changeSize(1, [b[1] for b in self.mub_ary])
-        #Global.scale_environment()
+        Global.change_size(Global.getAmtr())
+        Global.scale_settings()
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
@@ -507,7 +505,7 @@ class DazRigBlend:
                     obj.location[i] = 0
 
     def mub_ary_A(self):
-        adr = Global.getHomeTown() + Global.getFileSp()+"FIG.dat"
+        adr = os.path.join(Global.getHomeTown(), "FIG.dat")
         if os.path.exists(adr):
             with open(adr) as f:
                 ls = f.readlines()
