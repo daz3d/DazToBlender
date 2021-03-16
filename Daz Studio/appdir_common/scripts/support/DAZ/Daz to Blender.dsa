@@ -51,6 +51,8 @@
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
 	
+	var s_oMorphLinks = {};
+	
 	/*********************************************************************/
 	// void : ...
 	// Note: destructive - modifies the scene contents
@@ -97,9 +99,10 @@
 			if( ( sLabel.length + 2 + s_nMaxName ) > s_nMaxAll ){
 				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
 				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
-				oOwner.name = sLabel;
 				nAlfIdx += 1;
-				nAlfIdx = nAlfIdx % 36;
+				if( nAlfIdx >= 36 ){ 
+					nAlfIdx = nAlfIdx % 36 - 1;
+				}
 			}
 			
 			sName = oProp.getName()
@@ -187,7 +190,7 @@
 		// Return the properties for the element
 		return getGroupProperties( oPropertyGroup, bTraverse, bRecurse );
 	};
-	
+
 // --- END node_properties ----
 	
 	
@@ -692,7 +695,8 @@
 		}
 		
 		if( wMinimalMorphsCbx.checked ){
-			s_sMorphRules = getMinimalMorphRules();
+			// Temporarily skip minimal morphs, export only linked morphs
+			//s_sMorphRules = getMinimalMorphRules();
 		}
 		
 		createMorphRules( wMorphNamesTEdit.text.split( "\n" ) );
@@ -708,30 +712,34 @@
 	{	
 		var sMorphName;
 		var sMorphLabel;
-		
-		// To do find a better way to stop if nothing is chosen
-		if ( aMorphLabels !==undefined ){
-			for( var i = 0; i < aMorphLabels.length; i += 1 ){	
-				sMorphLabel = aMorphLabels[i];
-				
-				if ( s_oMorphs[sMorphLabel] !== undefined ){
 
-					if (s_oMorphs[sMorphLabel]["sMorphHead"] == 'Pose' ){
+		// Temporarily export only linked morphs and return
+		for(var morph in s_oMorphLinks) {
+			s_sMorphRules += morph + "\n1\n";
+		}
+		s_sMorphRules += "Anything\n0";
+		return true;
+		
+		for( var i = 0; i < aMorphLabels.length; i += 1 ){
+			sMorphLabel = aMorphLabels[i];
+			
+			if( s_oMorphs[sMorphLabel] !== undefined ){
+				if( s_oMorphs[sMorphLabel]["sMorphHead"] == 'Pose' ){
 					sMorphName = s_oMorphs[sMorphLabel]["sMorphName"];
-					}
-					else{
-						//Hidden Morphs do not have labels
-						sMorphName = sMorphLabel;
-					}
-					s_aMorphExported.push( sMorphName );
 				}
 				else{
-					s_sMorphRules += getMorphPresets( sMorphLabel );
-					}
-				s_sMorphRules += sMorphName + "\n1\n";
-				
+					//Hidden Morphs do not have labels
+					sMorphName = sMorphLabel;
+				}
+				s_aMorphExported.push( sMorphName );
 			}
+			else{
+				s_sMorphRules += getMorphPresets( sMorphLabel );
+			}
+			s_sMorphRules += sMorphName + "\n1\n";
+			
 		}
+		
 		s_sMorphRules += "Anything\n0";
 
 		return true;
@@ -1851,6 +1859,8 @@
 		aFigureMats = writeMaterials( oNode );
 		oDtuJson["Materials"].push( aFigureMats );
 		oDtuJson['Morphs'] = s_aMorphExported;
+		oDtuJson["MorphLinks"] = s_oMorphLinks;
+		
 		if (nChildren > 0){
 			for ( var i = 0; i < nChildren; i++ ){
 				var oChild = aChildren[ i ]; 
@@ -1966,6 +1976,43 @@
 			return false
 		}
 	};
+	
+	/*********************************************************************/
+	// Void : Load morph links that are directly controlled by skeleton bones
+	function loadMorphLinks( oNode )
+	{
+		var oSkeleton = oNode.getSkeleton( oNode );
+		var aSkelProperties = getElementProperties( oSkeleton, true, true );
+		
+		for( var i = 0; i < aSkelProperties.length; i += 1 ){
+			var oProperty = aSkelProperties[i];
+			nControllerCount = oProperty.getNumControllers();
+			var aLinks = []
+			for( var k = 0; k < nControllerCount; k += 1 ){
+				var oErcLink = new DzERCLink();
+				oErcLink = oProperty.getController(k);
+				oLinkOwner = oErcLink.getProperty().getOwner()
+				if( oLinkOwner.inherits( "DzBone" ) ){
+					
+					var oLink = {
+							"Bone": oLinkOwner.name,
+							"Property": oErcLink.getProperty().name,
+							"Type": oErcLink.type,
+							"Scalar": oErcLink.scalar,
+							"Addend": oErcLink.addend
+						};
+					
+					aLinks.push( oLink );
+				}
+			}
+			
+			if( aLinks.length > 0 ){
+				s_oMorphLinks[oProperty.getLabel()] = aLinks;
+			}
+		}
+		
+		return;
+	};
 
 	/*********************************************************************/
 	// void : ...
@@ -2025,6 +2072,7 @@
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
 				
+				loadMorphLinks( oFigure );
 				buildMorphList( oFigure );	
 				if( !promptMorphRules( oFigure) ){
 					continue;
