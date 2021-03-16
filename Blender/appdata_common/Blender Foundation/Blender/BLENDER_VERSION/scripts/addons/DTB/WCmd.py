@@ -8,6 +8,7 @@ from . import MatDct
 from . import DtbMaterial
 from . import Util
 from . import Global
+from . import Poses
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty
 from bpy.types import Operator
@@ -99,7 +100,7 @@ class IMP_OT_dazG8_pose(Operator, ImportHelper):
         dirname = os.path.dirname(self.filepath)
         for i, f in enumerate(self.files, 1):
             durPath = (os.path.join(dirname, f.name))
-            up = Util.Posing()
+            up = Poses.Posing()
             up.pose_copy(durPath)
         return {'FINISHED'}
 

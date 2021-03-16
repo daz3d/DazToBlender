@@ -275,7 +275,7 @@ class CBones:
                 pb.use_custom_shape_bone_size = True
                 if pb.custom_shape_scale == 1.0:
                     pb.custom_shape_scale = 0.3
-
+            pb.custom_shape_transform = pb
     def find_bone_roop(self,bone_group,rootbone):
         for b in bone_group:
             if len(b.children) > 0:

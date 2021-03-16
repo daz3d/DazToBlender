@@ -9,20 +9,8 @@ from . import Versions
 from . import MatDct
 from . import Util
 
-ftable = [
-    ["d", "Diffuse"],
-    ["b", "Bump"],
-    ["s", "Specular"],
-    ["r", "Roughness"],
-    ["z", "Subsurface"],
-    ["n", "Normal"]
-]
 
 # region top-level methods
-
-def ngroup3(idx):
-    return NGROUP3[idx] + Util.get_dzidx()
-
 def srgb_to_linear_rgb(srgb):
     if   srgb < 0:       return 0
     elif srgb < 0.04045: return srgb/12.92
@@ -175,21 +163,22 @@ class DtbShaders:
         self.mat_data_dict = {}
         self.node_groups = []
         self.is_Diffuse = False
+        self.is_Alpha = False
 
     #TODO: Deal with Materials having same name
     def make_dct(self):
         for file in os.listdir(Global.getHomeTown()):
             if file.endswith(".dtu"):
-                input_file = open(Global.getHomeTown() + Global.getFileSp() + file)
+                input_file = open(os.path.join(Global.getHomeTown(), file))
         dtu_content = input_file.read()
         mat_info_list = json.loads(dtu_content)["Materials"]
         for mat_info in mat_info_list:
-            num = "001"
-            if mat_info["Material Name"] in self.mat_data_dict.keys():
-                self.mat_data_dict[mat_info["Material Name"] + num] = mat_info
+            if mat_info["Asset Name"] in self.mat_data_dict.keys():
+                self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
             else:
-                self.mat_data_dict[mat_info["Material Name"]] = mat_info
-      
+                self.mat_data_dict[mat_info["Asset Name"]] = {}
+                self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+        
     def load_shader_nodes(self):
         file_path = "./dependencies/link_library.blend"
         file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -204,74 +193,67 @@ class DtbShaders:
 
     def get_mat_properties(self,mat_data):
         mat_property_dict = {}
+        #To deal with material names sometimes being undescriptive.
         for mat_property in mat_data["Properties"]:
             mat_property_dict[mat_property["Name"]] = mat_property
+            mat_property_dict[mat_property["Label"]] = mat_property
         return mat_property_dict
     
     def get_mat_type(self,mat_data):
         material_name = mat_data["Material Name"]
         material_type = mat_data["Material Type"]
         object_type = mat_data["Value"]
-        if material_type == "Iray Uber":
-            if object_type == "Actor/Character":
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.00",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                elif material_name in ["Pupils", "Trises", "Sclera"]:
-                    return "EyeDry"
-                else:
-                    return "IrayUberSkin"
+        if material_name in [
+                            "Cornea",
+                            "EyeMoisture",
+                            "EyeMoisture.00",
+                            "EylsMoisture",
+                            "Tear"
+                        ]:
+                return "EyeWet"
 
-            if "Eyelashes" in object_type:
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.001",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                else:
-                    return "Eyelashes"
-            if "Tear" in object_type:
-                if material_name in [
-                                "Cornea",
-                                "EyeMoisture",
-                                "EyeMoisture.001",
-                                "EylsMoisture",
-                                "Tear"
-                            ]:
-                    return "EyeWet"
-                
+        elif material_name in ["Pupils", "Trises", "Sclera"]:
+            return "EyeDry"
+
+        elif "Eyelashes" in object_type:
+                return "Eyelashes"
+        
+        elif material_type == "Iray Uber":
+            if object_type == "Actor/Character":
+                return "IrayUberSkin"
             else:
                 return "IrayUber"
+
+        elif material_type == "AoA_Subsurface":
+            return "AoA_Subsurface"
+
         elif material_type == "omUberSurface":
             return "omUberSurface"
+
         elif material_type == "PBRSkin":
             return "IrayUberSkin"
+
         elif ("Hair" in material_type) or ("Hair" in object_type):
             return "IrayUber" 
+
         else:
             return "DefaultMaterial"
 
     def set_eevee_alpha(self,mat):
-        if mat.name == "Eyelashes":
-                Versions.eevee_alpha(mat, 'BLEND', 0)
-        if mat.name in [
+        if self.is_Alpha:
+             Versions.eevee_alpha(mat, 'HASHED', 0)
+        else:
+            mat_name = mat.name.split(".")[0]
+            if mat_name in [
                     "Cornea",
                     "EyeMoisture",
-                    "EyeMoisture.001",
                     "EylsMoisture",
-                    "Tear"
+                    "Tear",
+                    "Eyelashes"
                 ]:
                 Versions.eevee_alpha(mat, 'HASHED', 0)
-        
-   
+            
+
     def find_node_property(self,input_key,mat_property_dict):
         property_key, property_type = input_key.split(": ")
         property_info = mat_property_dict[property_key][property_type]
@@ -283,7 +265,11 @@ class DtbShaders:
             self.is_Diffuse = True
         else:
             self.is_Diffuse = False
-   
+        if "Opacity" in property_key:
+            self.is_Alpha = True
+        else:
+            self.is_Alpha = False
+
     def create_texture_input(self,tex_path,tex_image_node):
         tex_image = bpy.data.images.load(filepath=tex_path)
         tex_image_node.image = tex_image
@@ -297,28 +283,25 @@ class DtbShaders:
         color_rgb.append(1) # alpha
         return color_rgb
    
-    # TODO: Remove all the hardcoding
-    def body_texture(self):
-        for mat_slot in Global.getBody().material_slots:
-            
+    def setup_materials(self,obj):
+        for mat_slot in obj.material_slots:
             mat = mat_slot.material
+            mat_name = mat.name
+            # To Deal with duplications
+            obj_name = obj.name.replace(".Shape","")
+            obj_name = obj_name.split(".")[0]
             if mat is None:
                 # Get or create a new material when slot is missing material
                 mat = bpy.data.materials.get(mat_slot.name) \
                     or bpy.data.materials.new(name=mat_slot.name)
                 mat_slot.material = mat
-
-            # Get material data
-            # To Deal With Multiple Characters
-            if mat.name != "EyeMoisture001":
-                mat_name = mat.name.split(".0")[0]
-            else:
-                mat_name = mat.name
-            if mat_name not in self.mat_data_dict.keys():
+            if obj_name not in self.mat_data_dict.keys():
                 continue
-            
-            mat_data = self.mat_data_dict[mat_name]
-                    
+            if mat_name not in self.mat_data_dict[obj_name].keys():
+                mat_name = mat.name.split(".")[0]
+                if mat_name not in self.mat_data_dict[obj_name].keys():
+                    continue
+            mat_data = self.mat_data_dict[obj_name][mat_name]
             mat.use_nodes = True
             mat_nodes = mat.node_tree.nodes
             mat_links = mat.node_tree.links
@@ -337,7 +320,7 @@ class DtbShaders:
             shader_node = mat_nodes.new(type='ShaderNodeGroup')
             node_group = self.get_mat_type(mat_data)
             shader_node.node_tree = bpy.data.node_groups[node_group]
-
+            
             # Link corresponding nodes in the material
             render_output = None
             surface_input = out_node_cy.inputs['Surface']
@@ -347,10 +330,10 @@ class DtbShaders:
                         shader_node.outputs['EEVEE'], 
                         out_node_ev.inputs['Surface']
                     )
-
             # Find and Attach Node Input
             mat_property_dict = self.get_mat_properties(mat_data)
             for input_key in shader_node.inputs.keys():
+                
                 if ("Texture" in input_key) or ("Value" in input_key):
                     # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
                     if input_key.split(": ")[0] in mat_property_dict.keys():
@@ -373,8 +356,10 @@ class DtbShaders:
                                                 tex_node_output,
                                                 shader_node.inputs[input_key]
                                                 )
+                                
             # Set Alpha Modes
             self.set_eevee_alpha(mat)
+                      
             # Set the cycles displacement method
             if node_group == "IrayUberSkin":
                 mat_links.new(
@@ -384,177 +369,7 @@ class DtbShaders:
                 mat.cycles.displacement_method = 'BOTH'
             else:
                 mat.cycles.displacement_method = 'BUMP'
-            if mat_nodes is not None:
-                NodeArrange.toNodeArrange(mat_nodes)
 
-    def wardrobe_texture(self):
-        fig_objs_names = [
-                Global.get_Body_name(),
-                Global.get_Hair_name() + "OK",
-                Global.get_Eyls_name()
-            ]
-        for obj in Util.myacobjs():
-            # Skip for any of the following cases
-            case1 = not Global.isRiggedObject(obj)
-            case2 = obj.name in fig_objs_names
-            if case1 or case2:
-                continue
-
-            for mat_slot in obj.material_slots:
-                mat = mat_slot.material
-                if mat is None:
-                    # Get or create a new material when slot is missing material
-                    mat = bpy.data.materials.get(mat_slot.name) \
-                        or bpy.data.materials.new(name=mat_slot.name)
-                    mat_slot.material = mat
-                
-               # Get material data
-                # To Deal With Multiple Characters
-                if mat.name != "EyeMoisture001":
-                    mat_name = mat.name.split(".0")[0]
-                else:
-                    mat_name = mat.name
-                if mat_name not in self.mat_data_dict.keys():
-                    continue
-                
-                mat_data = self.mat_data_dict[mat_name]
-                        
-                mat.use_nodes = True
-                mat_nodes = mat.node_tree.nodes
-                mat_links = mat.node_tree.links
-                
-                # Remove all the nodes from the material
-                for mat_node in mat_nodes:
-                    mat_nodes.remove(mat_node)
-
-                # Create material output nodes and set corresponding targets
-                out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
-                out_node_cy.target = 'CYCLES'
-                out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
-                out_node_ev.target = 'EEVEE'
-
-                # Create shader node and set links
-                shader_node = mat_nodes.new(type='ShaderNodeGroup')
-                node_group = self.get_mat_type(mat_data)
-                shader_node.node_tree = bpy.data.node_groups[node_group]
-                
-                # Link corresponding nodes in the material
-                render_output = None
-                surface_input = out_node_cy.inputs['Surface']
-                render_output = shader_node.outputs['Cycles']
-                mat_links.new(render_output, surface_input)
-                mat_links.new(
-                            shader_node.outputs['EEVEE'], 
-                            out_node_ev.inputs['Surface']
-                        )
-                # Find and Attach Node Input
-                mat_property_dict = self.get_mat_properties(mat_data)
-                for input_key in shader_node.inputs.keys():
-        
-                    if ("Texture" in input_key) or ("Value" in input_key):
-                        # To deal with Gen 8.1 Not Sharing the Same info as Gen 8 "temp"
-                        if input_key.split(": ")[0] in mat_property_dict.keys():
-                            property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
-                            if property_type == "Value":
-                                # Check if Info is a Hex Color
-                                if isinstance(property_info,str):
-                                    property_info = self.convert_color(property_info,shader_node)
-                                shader_node.inputs[input_key].default_value = property_info
-
-                            if property_type == "Texture":
-                                if os.path.exists(property_info): 
-                                    self.check_map_type(property_key)
-                                    tex_image_node = mat_nodes.new(
-                                                    type='ShaderNodeTexImage'
-                                                )
-                                    self.create_texture_input(property_info,tex_image_node)
-                                    tex_node_output = tex_image_node.outputs['Color']
-                                    mat_links.new(
-                                                    tex_node_output,
-                                                    shader_node.inputs[input_key]
-                                                    )
-                # Set the cycles displacement method
-                
-                if node_group == "IrayUberSkin":
-                    mat_links.new(
-                                shader_node.outputs['Displacement'],
-                                out_node_cy.inputs['Displacement']
-                            )
-                    mat.cycles.displacement_method = 'BOTH'
-                else:
-                    mat.cycles.displacement_method = 'BUMP'
-                
-                if mat_nodes is not None:
-                    NodeArrange.toNodeArrange(mat_nodes)
-
-    def env_textures(self,obj):
-        for mat_slot in obj.material_slots:
-            mat = mat_slot.material
-            if mat is None:
-                # Get or create a new material when slot is missing material
-                mat = bpy.data.materials.get(mat_slot.name) \
-                    or bpy.data.materials.new(name=mat_slot.name)
-                mat_slot.material = mat
-            mat_name = mat.name.split(".0")[0]
-            if mat_name not in self.mat_data_dict.keys():
-                continue
-            mat_data = self.mat_data_dict[mat_name]
-            mat.use_nodes = True
-            mat_nodes = mat.node_tree.nodes
-            mat_links = mat.node_tree.links
-            # Remove all the nodes from the material
-            for mat_node in mat_nodes:
-                mat_nodes.remove(mat_node)
-            # Create material output nodes and set corresponding targets
-            out_node_cy = mat_nodes.new(type="ShaderNodeOutputMaterial")
-            out_node_cy.target = 'CYCLES'
-            out_node_ev = mat_nodes.new(type="ShaderNodeOutputMaterial")
-            out_node_ev.target = 'EEVEE'
-
-            # Create shader node and set links
-            shader_node = mat_nodes.new(type='ShaderNodeGroup')
-            node_group = self.get_mat_type(mat_data)
-            shader_node.node_tree = bpy.data.node_groups[node_group]
-            
-            # Link corresponding nodes in the material
-            render_output = None
-            surface_input = out_node_cy.inputs['Surface']
-            render_output = shader_node.outputs['Cycles']
-            mat_links.new(render_output, surface_input)
-            mat_links.new(
-                        shader_node.outputs['EEVEE'], 
-                        out_node_ev.inputs['Surface']
-                    )
-            # Find and Attach Node Input
-            mat_property_dict = self.get_mat_properties(mat_data)
-            for input_key in shader_node.inputs.keys():
-    
-                if ("Texture" in input_key) or ("Value" in input_key):
-                    # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
-                    if input_key.split(": ")[0] in mat_property_dict.keys():
-                        property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
-                        if property_type == "Value":
-                            # Check if Info is a Hex Color
-                            if isinstance(property_info,str):
-                                property_info = self.convert_color(property_info,shader_node)
-                            shader_node.inputs[input_key].default_value = property_info
-
-                        if property_type == "Texture":
-                            if os.path.exists(property_info): 
-                                self.check_map_type(property_key)
-                                tex_image_node = mat_nodes.new(
-                                                type='ShaderNodeTexImage'
-                                            )
-                                self.create_texture_input(property_info,tex_image_node)
-                                tex_node_output = tex_image_node.outputs['Color']
-                                mat_links.new(
-                                                tex_node_output,
-                                                shader_node.inputs[input_key]
-                                                )
-            # Set the cycles displacement method
-            mat.cycles.displacement_method = 'BUMP'
-            
-                
             if mat_nodes is not None:
                 NodeArrange.toNodeArrange(mat_nodes)
     

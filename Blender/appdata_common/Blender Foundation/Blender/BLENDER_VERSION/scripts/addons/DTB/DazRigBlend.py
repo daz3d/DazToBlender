@@ -88,21 +88,15 @@ class DazRigBlend:
                     Global.deselect()
                     Versions.active_object_none()
 
-    def clear_pose(self):
-        Versions.select(Global.getAmtr(), True)
-        Versions.active_object(Global.getAmtr())
-        Versions.show_x_ray(Global.getAmtr())
-        Global.setOpsMode('POSE')
-        bpy.ops.pose.transforms_clear()
-        Global.setOpsMode('OBJECT')
 
     def orthopedy_everything(self):
         amtr_objs = []
         self.del_empty = []
         Global.deselect()
+        # Cycles through the objects and unparents the meshes from the figure.
         for dobj in Util.myacobjs():
             if dobj.type == 'MESH':
-                if dobj.parent==Global.getAmtr():
+                if dobj.parent == Global.getAmtr():
                     Versions.select(dobj, True)
                     Versions.active_object(dobj)
                     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
@@ -110,6 +104,8 @@ class DazRigBlend:
                     bpy.ops.object.parent_clear()
                     Versions.select(dobj, False)
         Global.deselect()
+        
+        # Zero out the transforms on the Armature
         Versions.select(Global.getAmtr(),True)
         Versions.active_object(Global.getAmtr())
         Versions.show_x_ray(Global.getAmtr())
@@ -119,6 +115,8 @@ class DazRigBlend:
         bpy.ops.object.scale_clear()
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         Global.deselect()
+        
+        # Reposition Objects 
         for dobj in amtr_objs:
             Versions.select(dobj, True)
             Versions.active_object(dobj)
@@ -129,6 +127,7 @@ class DazRigBlend:
                 dobj.lock_rotation[i] = True
                 dobj.lock_scale[i] = True
             Global.deselect()
+        
         mainbone = Global.getAmtr()
         Versions.select(mainbone,True)
         Versions.active_object(mainbone)
@@ -136,6 +135,8 @@ class DazRigBlend:
             mainbone.lock_location[i] = True
             mainbone.lock_rotation[i] = True
             mainbone.lock_scale[i] = True
+
+        # Reparent to Armature
         Global.setOpsMode('OBJECT')
         for btn in self.buttons:
             Versions.select(btn, True)
@@ -149,7 +150,8 @@ class DazRigBlend:
             bpy.ops.object.parent_set(type='ARMATURE')
             Versions.select(dobj,False)
             Versions.select(mainbone,False)
-
+        
+        
     def fixGeniWeight(self, db):
         obj = Global.getBody()
         if Global.getIsMan()==False:
@@ -266,7 +268,7 @@ class DazRigBlend:
 
     def set_bone_head_tail(self):
         # Read bone's head, tail and a vector to calculate roll
-        input_file = open(Global.getHomeTown() + Global.getFileSp() + "FIG_boneHeadTail.csv", "r")
+        input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneHeadTail.csv"), "r")
         lines = input_file.readlines()
         input_file.close()
         bone_head_tail_dict = dict()
@@ -469,9 +471,8 @@ class DazRigBlend:
             self.foot_finger_forg3()
             Global.deselect()
         Versions.active_object_none()
-        if Global.want_real():
-            Global.changeSize(1, [b[1] for b in self.mub_ary])
-        Global.scale_environment()
+        Global.change_size(Global.getAmtr())
+        Global.scale_settings()
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
@@ -504,7 +505,7 @@ class DazRigBlend:
                     obj.location[i] = 0
 
     def mub_ary_A(self):
-        adr = Global.getHomeTown() + Global.getFileSp()+"FIG.dat"
+        adr = os.path.join(Global.getHomeTown(), "FIG.dat")
         if os.path.exists(adr):
             with open(adr) as f:
                 ls = f.readlines()
@@ -529,7 +530,7 @@ class DazRigBlend:
                 obj = Util.myacobjs().get(ss[1])
                 if obj.type != 'MESH':
                     continue
-                vgs =obj.vertex_groups
+                vgs = obj.vertex_groups
                 for vs in vgs:
                     obj.vertex_groups.remove(vs)
                 Versions.select(Util.myacobjs().get(ss[1]), True)
