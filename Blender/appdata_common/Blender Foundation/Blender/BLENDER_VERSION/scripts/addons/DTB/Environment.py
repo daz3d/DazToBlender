@@ -2,13 +2,14 @@ import bpy
 import os
 import json
 import math
-import mathutils
 from . import Versions
 from . import Global
 from . import Util
 from . import DtbMaterial
 from . import NodeArrange
+from . import Poses
 import re
+
 
 def set_transform(obj,data,type):
     if type == "scale":
@@ -72,16 +73,14 @@ class EnvProp:
 class ReadFbx:
     adr = ""
     index = 0
-    bone_head_tail_dict = None
-    pose_data = {}
     my_meshs = []
+    pose = None
 
     def __init__(self,dir,i,int_progress):
+        
         self.adr = dir
         self.my_meshs = []
         self.index = i
-        self.pose_data = {}
-        self.bone_head_tail_dict = None
         if self.read_fbx():
             progress_bar(int(i * int_progress)+int(int_progress / 2))
             self.setMaterial()
@@ -162,6 +161,7 @@ class ReadFbx:
     
     #TODO: combine shared code with figure import
     def import_as_armature(self, objs, amtr):
+        pose = Poses.Posing("ENV")
         Global.deselect()
         self.create_controller()
         vertex_group_names = []
@@ -197,37 +197,16 @@ class ReadFbx:
         
         hides = []
         bones = amtr.data.edit_bones
-        bcnt = len(bones)
-        notbuilding = bcnt > 30  #Use DTU to check Asset Type
         
         #Fix and Check Bones to Hide
         for bone in bones:
-            binfo = self.get_bone_info(bone.name)
-            if binfo is None:
+            if not pose.set_bone_head_tail(bone):
                 hides.append(bone.name)
                 continue
             if bone.name not in vertex_group_names:
                 if self.is_child_bone(amtr, bone, vertex_group_names) == False:
                     hides.append(bone.name)
                     continue
-            
-            # set head
-            bone.head[0] = float(binfo[1])
-            bone.head[1] = -float(binfo[3])
-            bone.head[2] = float(binfo[2])
-            
-            # set tail
-            bone.tail[0] = float(binfo[4])
-            bone.tail[1] = -float(binfo[6])
-            bone.tail[2] = float(binfo[5])
-
-            # calculate roll aligning bone towards a vector
-            align_axis_vec = mathutils.Vector((
-                                float(binfo[7]),
-                                -float(binfo[9]),
-                                float(binfo[8])
-                                ))
-            bone.align_roll(align_axis_vec)
             
         for obj in objs:
             Versions.select(obj, True)
@@ -242,7 +221,7 @@ class ReadFbx:
 
         #Apply Custom Shape
         for pb in amtr.pose.bones:
-            binfo = self.get_bone_info(pb.name)
+            binfo = pose.get_bone_limits_dict(pb.name)
             if binfo is None:
                 continue
             else:
@@ -251,52 +230,8 @@ class ReadFbx:
                     pb.custom_shape = ob
                     pb.custom_shape_scale = 0.04
                     amtr.data.bones.get(pb.name).show_wire = True
-            #Apply Limits 
-            #TODO: Check What limits are needed
-            lrs = [False, False, False]
-            for i in range(3):
-                for j in range(3):
-                    if binfo[10 + (i * 3) + j] == '0':
-                        if i == 0 and lrs[i] == False:
-                            lrs[i] = True
-                            lim = pb.constraints.new(type='LIMIT_LOCATION')
-                            lim.owner_space = 'LOCAL'
-                        elif i == 1 and lrs[i] == False:
-                            lim = pb.constraints.new(type='LIMIT_ROTATION')
-                            lim.owner_space = 'LOCAL'
-                            lrs[i] = True
-                        elif i == 2 and lrs[i] == False:
-                            lrs[i] = True
-                            lim = pb.constraints.new(type='LIMIT_SCALE')
-                            lim.owner_space = 'LOCAL'
-                        if j == 1:
-                            if i == 1:
-                                lim.use_limit_x = True
-                                lim.use_limit_x = True
-                            else:
-                                lim.use_min_x = True
-                                lim.use_max_x = True
-                        elif j == 0:
-                            if i == 1:
-                                lim.use_limit_y = True
-                                lim.use_limit_y = True
-                            else:
-                                lim.use_min_y = True
-                                lim.use_max_y = True
-                        elif j == 2:
-                            if i == 1:
-                                lim.use_limit_z = True
-                                lim.use_limit_z = True
-                            else:
-                                lim.use_min_z = True
-                                lim.use_max_z = True
-                        if i == 2:
-                            lim.min_x = 1
-                            lim.min_y = 1
-                            lim.min_z = 1
-                            lim.max_x = 1
-                            lim.max_y = 1
-                            lim.max_z = 1
+            #Apply Limits and Change Rotation Order
+            pose.bone_limit_modify(pb)
 
         # Hide Bones
         for hide in hides:
@@ -327,26 +262,6 @@ class ReadFbx:
         return False
 
 
-    #Bone property
-    def get_bone_info(self,bname):
-        bname = bname.split(".00")[0] # To deal with Duplicates
-        if self.bone_head_tail_dict is None:
-            self.get_bone_head_tail_data()
-        if bname in self.bone_head_tail_dict.keys():
-            return self.bone_head_tail_dict[bname]
-        return None
-
-    
-    def get_bone_head_tail_data(self):
-        input_file = open(os.path.join(self.adr, "ENV_boneHeadTail.csv"), "r")
-        lines = input_file.readlines()
-        input_file.close()
-        self.bone_head_tail_dict = dict()
-        for line in lines:
-            line_split = line.split(",")
-            self.bone_head_tail_dict[line_split[0]] = line_split
-
-
     def is_child_bone(self,amtr,bone,vertex_groups):
         rtn = self.has_child(amtr,bone)
         if rtn is None or len(rtn) == 0:
@@ -363,35 +278,11 @@ class ReadFbx:
                 rtn.append(bone.name)
         return rtn
     
+
     def import_empty(self, objs, root):
         # Load an instance of the pose info
-        self.load_pose_data()
         set_transform(root,[1,1,1],"scale")
         Global.deselect()
-        
-        root_pose = self.get_pose(root)
-        #Organize List
-        objs = sorted(objs, key = lambda obj: obj.name)
-        for obj in objs:
-            if obj is None or obj == root:
-                continue
-            Versions.select(obj, True)
-            Versions.active_object(obj)
-            pose = self.get_pose(obj)
-            if pose != {}:
-                if obj.type == pose["Object Type"]:
-                    # Set Position of Shape
-                    #bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
-                    #set_transform(obj, [0, obj.location[1], 0], "translate")
-                    # Delete data to speed up next object
-                    del self.pose_data[pose['Label']]
-                # for i in range(3):
-                    # obj.lock_location[i] = True
-                    # obj.lock_rotation[i] = True
-                    # obj.lock_scale[i] = True
-                Global.deselect()
-            else:
-                print(obj.name)
         Versions.select(root, True)
         Versions.active_object(root)
 
@@ -399,32 +290,9 @@ class ReadFbx:
             root.lock_location[i] = True
             root.lock_rotation[i] = True
             root.lock_scale[i] = True
-        Global.setOpsMode('OBJECT')
+        Global.setOpsMode('OBJECT')    
 
-
-    def load_pose_data(self):
-        with open(os.path.join(self.adr, "ENV.transforms")) as f:
-            self.pose_data = json.load(f)
     
- 
-    def get_pose(self,obj):
-        obj_name = obj.name.replace(".Shape", "")
-        if obj_name in self.pose_data:
-            return self.pose_data[obj_name]
-
-        for key in self.pose_data:
-            if obj_name == key:
-                return self.pose_data[obj_name]
-            elif obj_name.replace("_dup_", " ") == key:
-                return self.pose_data[key]
-            elif len(obj_name.split(".00")) > 1:
-                temp_name = obj_name.split(".00")[0] + " " + str(int(obj_name.split(".00")[1]) + 1)
-                if temp_name == key:
-                    return self.pose_data[key] 
-            elif self.pose_data[key]["Name"] == obj_name:
-                return self.pose_data[key]
-        return {}
-
     def setMaterial(self):
         dtb_shaders = DtbMaterial.DtbShaders()
         dtb_shaders.make_dct()

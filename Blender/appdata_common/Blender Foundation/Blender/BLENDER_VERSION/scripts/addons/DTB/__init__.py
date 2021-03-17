@@ -286,7 +286,7 @@ class IMP_OT_FBX(bpy.types.Operator):
         drb = DazRigBlend.DazRigBlend()
         dtb_shaders = DtbMaterial.DtbShaders()
         anim = Animations.Animations()
-        pose = Poses.Posing()
+        pose = Poses.Posing("FIG")
         db = DataBase.DB()
         self.pbar(5,wm)
         anim.reset_total_key_count()
