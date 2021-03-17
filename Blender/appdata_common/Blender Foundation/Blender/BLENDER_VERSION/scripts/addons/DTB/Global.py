@@ -1059,7 +1059,7 @@ def scale_settings():
     
     
     location = [float_by_size(7.15), float_by_size(-4.35), float_by_size(100.0)]
-    rotation = [-0.7150, -0.5860, -0.2601, -0.2788]
+    rotation = [0.6888, 0.6246, 0.2473, 0.2727]
     distance = float_by_size(430)
     
     for area in bpy.context.screen.areas:

@@ -106,6 +106,10 @@ class ReadFbx:
                 objs.remove(root)
         else:
             root = objs[0]
+        # Temporaily Delete Animation Until Support is Added
+        root.animation_data_clear()
+        for obj in objs:
+            obj.animation_data_clear()
         Versions.active_object(root)
         Global.deselect()
         if root.type == 'ARMATURE':
