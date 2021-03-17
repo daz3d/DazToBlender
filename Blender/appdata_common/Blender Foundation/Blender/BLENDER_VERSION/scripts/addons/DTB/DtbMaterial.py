@@ -236,6 +236,8 @@ class DtbShaders:
         elif ("Hair" in material_type) or ("Hair" in object_type):
             return "IrayUber" 
 
+        elif material_type == "DAZ Studio Default":
+            return "DAZ Studio Default"
         else:
             return "DefaultMaterial"
 
