@@ -76,9 +76,6 @@ def forbitMinus():
                                 if node_input.default_value < 0:
                                     node_input.default_value = 0.0
 
-def optimize_materials():
-    print("To Clean Up Dupes")     
-
 def adjust_material(kind, inc_value, isEye):
     skincombi = [
         ['Base Color.Hue', 11, 0],
@@ -175,9 +172,14 @@ class DtbShaders:
         for mat_info in mat_info_list:
             if mat_info["Asset Name"] in self.mat_data_dict.keys():
                 self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+            if mat_info["Asset Label"] in self.mat_data_dict.keys():
+                self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
             else:
                 self.mat_data_dict[mat_info["Asset Name"]] = {}
+                self.mat_data_dict[mat_info["Asset Label"]] = {}
+                self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
                 self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+            
         
     def load_shader_nodes(self):
         file_path = "./dependencies/link_library.blend"
@@ -241,6 +243,18 @@ class DtbShaders:
         else:
             return "DefaultMaterial"
 
+    
+    def optimize_materials(self, mat_slot):
+        mat = mat_slot.material
+        mat_name = mat.name.split(".")[0]
+        material = bpy.data.materials.get(mat_name)
+        if mat.name != material.name:
+            if mat["Asset Name"] == material["Asset Name"]:
+                mat_slot.material = material
+                bpy.data.materials.remove(mat)
+                return True
+ 
+    
     def set_eevee_alpha(self,mat):
         if self.is_Alpha:
              Versions.eevee_alpha(mat, 'HASHED', 0)
@@ -287,11 +301,13 @@ class DtbShaders:
    
     def setup_materials(self,obj):
         for mat_slot in obj.material_slots:
+            
             mat = mat_slot.material
             mat_name = mat.name
-            # To Deal with duplications
+            
             obj_name = obj.name.replace(".Shape","")
-            obj_name = obj_name.split(".")[0]
+            obj_name = obj_name.split(".")[0]   
+                   
             if mat is None:
                 # Get or create a new material when slot is missing material
                 mat = bpy.data.materials.get(mat_slot.name) \
@@ -303,7 +319,18 @@ class DtbShaders:
                 mat_name = mat.name.split(".")[0]
                 if mat_name not in self.mat_data_dict[obj_name].keys():
                     continue
+            
             mat_data = self.mat_data_dict[obj_name][mat_name]
+            mat_property_dict = self.get_mat_properties(mat_data)
+            # Set Custom Properties
+            for key in mat_data:
+                if not key == "Properties":
+                    mat[key] = mat_data[key]
+
+            # To Deal with duplications
+            if self.optimize_materials(mat_slot):
+                continue  
+            
             mat.use_nodes = True
             mat_nodes = mat.node_tree.nodes
             mat_links = mat.node_tree.links
@@ -333,7 +360,7 @@ class DtbShaders:
                         out_node_ev.inputs['Surface']
                     )
             # Find and Attach Node Input
-            mat_property_dict = self.get_mat_properties(mat_data)
+            
             for input_key in shader_node.inputs.keys():
                 
                 if ("Texture" in input_key) or ("Value" in input_key):

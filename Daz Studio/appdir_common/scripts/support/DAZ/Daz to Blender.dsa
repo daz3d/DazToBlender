@@ -2187,16 +2187,15 @@
 				sFileBasename = sEnvPath + s_sEnv;
 				sPoseFilename = sFileBasename + ".transforms";
 				
-				writeConfiguration( oNode, sFileBasename );
 				if( bIsBone ){
 					writeFigureBoneData( oNode, sFileBasename );
 				} else {
 					writePoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
-
 				updateName( oNode );
 				
+				writeConfiguration( oNode, sFileBasename );
 
 				setLock( oNode, false, false );
 			}

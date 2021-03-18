@@ -1021,8 +1021,8 @@ def change_size(root):
                     deselect()
             elif obj.type=='LIGHT' or obj.type=='CAMERA':
                 for i in range(3):
-                    og_scale = d.scale[i]
-                    d.scale[i] = og_scale * get_size()
+                    og_scale = obj.scale[i]
+                    obj.scale[i] = og_scale * get_size()
                 Versions.select(obj, True)
                 Versions.active_object(obj)
                 bpy.ops.object.transform_apply(scale=True)
