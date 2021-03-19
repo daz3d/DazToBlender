@@ -158,11 +158,13 @@ def getNidx(idx, nodes):
 class DtbShaders:
     def __init__(self):
         self.mat_data_dict = {}
+        self.mat_property_dict = {}
         self.node_groups = []
         self.is_Diffuse = False
+        self.is_Refract = False
         self.is_Alpha = False
 
-    #TODO: Deal with Materials having same name
+    #TODO: Find a better way to create the dict
     def make_dct(self):
         for file in os.listdir(Global.getHomeTown()):
             if file.endswith(".dtu"):
@@ -170,17 +172,26 @@ class DtbShaders:
         dtu_content = input_file.read()
         mat_info_list = json.loads(dtu_content)["Materials"]
         for mat_info in mat_info_list:
-            if mat_info["Asset Name"] in self.mat_data_dict.keys():
-                self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
-            if mat_info["Asset Label"] in self.mat_data_dict.keys():
-                self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
-            else:
-                self.mat_data_dict[mat_info["Asset Name"]] = {}
-                self.mat_data_dict[mat_info["Asset Label"]] = {}
-                self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
-                self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
-            
-        
+            if mat_info["Asset Name"] == mat_info["Asset Label"]:
+                if  mat_info["Asset Name"] in self.mat_data_dict.keys():
+                    self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+                else:
+                    self.mat_data_dict[mat_info["Asset Name"]] = {}
+                    self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+            elif mat_info["Asset Name"] != mat_info["Asset Label"]: 
+                if mat_info["Asset Name"] not in self.mat_data_dict.keys():
+                    self.mat_data_dict[mat_info["Asset Name"]] = {}
+                    self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+                if mat_info["Asset Name"] in self.mat_data_dict.keys():
+                    if mat_info["Material Name"] not in self.mat_data_dict[mat_info["Asset Name"]]:
+                        self.mat_data_dict[mat_info["Asset Name"]][mat_info["Material Name"]] = mat_info
+                if mat_info["Asset Label"] in self.mat_data_dict.keys():
+                    self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
+                if mat_info["Asset Label"] not in self.mat_data_dict.keys():
+                    self.mat_data_dict[mat_info["Asset Label"]] = {}
+                    self.mat_data_dict[mat_info["Asset Label"]][mat_info["Material Name"]] = mat_info
+
+
     def load_shader_nodes(self):
         file_path = "./dependencies/link_library.blend"
         file_dir = os.path.dirname(os.path.realpath(__file__))
@@ -201,10 +212,10 @@ class DtbShaders:
             mat_property_dict[mat_property["Label"]] = mat_property
         return mat_property_dict
     
-    def get_mat_type(self,mat_data):
-        material_name = mat_data["Material Name"]
-        material_type = mat_data["Material Type"]
-        object_type = mat_data["Value"]
+    def get_mat_type(self,material):
+        material_name = material["Material Name"]
+        material_type = material["Material Type"]
+        object_type = material["Value"]
         if material_name in [
                             "Cornea",
                             "EyeMoisture",
@@ -246,35 +257,23 @@ class DtbShaders:
     
     def optimize_materials(self, mat_slot):
         mat = mat_slot.material
-        mat_name = mat.name.split(".")[0]
-        material = bpy.data.materials.get(mat_name)
-        if mat.name != material.name:
+        if "Genesis" in mat["Asset Name"]:
+            mat_name = mat["Asset Label"] + "_" + mat["Material Name"]
+        else:
+            mat_name = mat["Asset Name"] + "_" + mat["Material Name"]
+        if mat_name not in bpy.data.materials:
+            if mat["Asset Name"] != mat["Asset Label"]:
+                mat.name = mat["Asset Name"] + "_" + mat["Material Name"]
+                return
+            else:
+                return
+                    
+        material = bpy.data.materials[mat_name]
+        if mat_name != mat.name:
             if mat["Asset Name"] == material["Asset Name"]:
                 mat_slot.material = material
                 bpy.data.materials.remove(mat)
                 return True
- 
-    
-    def set_eevee_alpha(self,mat):
-        if self.is_Alpha:
-             Versions.eevee_alpha(mat, 'HASHED', 0)
-        else:
-            mat_name = mat.name.split(".")[0]
-            if mat_name in [
-                    "Cornea",
-                    "EyeMoisture",
-                    "EylsMoisture",
-                    "Tear",
-                    "Eyelashes"
-                ]:
-                Versions.eevee_alpha(mat, 'HASHED', 0)
-            
-
-    def find_node_property(self,input_key,mat_property_dict):
-        property_key, property_type = input_key.split(": ")
-        property_info = mat_property_dict[property_key][property_type]
-        return property_key,property_type,property_info
-        
     #TODO: Check for all Color Maps            
     def check_map_type(self,property_key):
         if "Diffuse" in property_key:
@@ -285,6 +284,38 @@ class DtbShaders:
             self.is_Alpha = True
         else:
             self.is_Alpha = False
+
+    
+    def check_refract(self):
+        if "Refraction Weight" in self.mat_property_dict.keys():
+            if self.mat_property_dict["Refraction Weight"]["Value"] > 0:
+                self.is_Refract = True
+    
+    
+    def set_eevee_alpha(self,mat):
+        if self.is_Alpha:
+             Versions.eevee_alpha(mat, 'HASHED', 0)
+        else:
+            mat_name = mat["Material Name"]
+            if mat_name in [
+                    "Cornea",
+                    "EyeMoisture",
+                    "EylsMoisture",
+                    "Tear",
+                    "Eyelashes",
+                    "Glass"
+                ]:
+                Versions.eevee_alpha(mat, 'HASHED', 0)
+            
+    def set_eevee_refract(self,mat):
+        if self.is_Refract:
+            mat.use_screen_refraction = True
+            mat.refraction_depth = 0.8 * Global.get_size()
+
+    def find_node_property(self,input_key,mat_property_dict):
+        property_key, property_type = input_key.split(": ")
+        property_info = mat_property_dict[property_key][property_type]
+        return property_key,property_type,property_info
 
     def create_texture_input(self,tex_path,tex_image_node):
         tex_image = bpy.data.images.load(filepath=tex_path)
@@ -299,12 +330,13 @@ class DtbShaders:
         color_rgb.append(1) # alpha
         return color_rgb
    
+
     def setup_materials(self,obj):
         for mat_slot in obj.material_slots:
             
             mat = mat_slot.material
             mat_name = mat.name
-            
+        
             obj_name = obj.name.replace(".Shape","")
             obj_name = obj_name.split(".")[0]   
                    
@@ -321,12 +353,22 @@ class DtbShaders:
                     continue
             
             mat_data = self.mat_data_dict[obj_name][mat_name]
-            mat_property_dict = self.get_mat_properties(mat_data)
+            self.mat_property_dict = self.get_mat_properties(mat_data)
             # Set Custom Properties
             for key in mat_data:
                 if not key == "Properties":
                     mat[key] = mat_data[key]
 
+            # Update Name
+            new_name = mat["Asset Label"] + "_" + mat["Material Name"]
+            # To Deal with a duplicate being converted first.
+            if new_name in bpy.data.materials:
+                mat_slot.material = bpy.data.materials[new_name]
+                bpy.data.materials.remove(mat)
+                continue
+            mat.name = new_name
+            mat_name = mat.name
+            
             # To Deal with duplications
             if self.optimize_materials(mat_slot):
                 continue  
@@ -347,7 +389,7 @@ class DtbShaders:
 
             # Create shader node and set links
             shader_node = mat_nodes.new(type='ShaderNodeGroup')
-            node_group = self.get_mat_type(mat_data)
+            node_group = self.get_mat_type(mat)
             shader_node.node_tree = bpy.data.node_groups[node_group]
             
             # Link corresponding nodes in the material
@@ -365,8 +407,8 @@ class DtbShaders:
                 
                 if ("Texture" in input_key) or ("Value" in input_key):
                     # To deal with Gen 8.1 Not Share the Same info as Gen 8 "temp"
-                    if input_key.split(": ")[0] in mat_property_dict.keys():
-                        property_key,property_type,property_info = self.find_node_property(input_key,mat_property_dict)
+                    if input_key.split(": ")[0] in self.mat_property_dict.keys():
+                        property_key,property_type,property_info = self.find_node_property(input_key,self.mat_property_dict)
                         if property_type == "Value":
                             # Check if Info is a Hex Color
                             if isinstance(property_info,str):
@@ -387,6 +429,8 @@ class DtbShaders:
                                                 )
                                 
             # Set Alpha Modes
+            self.check_refract()
+            self.set_eevee_refract(mat)
             self.set_eevee_alpha(mat)
                       
             # Set the cycles displacement method
