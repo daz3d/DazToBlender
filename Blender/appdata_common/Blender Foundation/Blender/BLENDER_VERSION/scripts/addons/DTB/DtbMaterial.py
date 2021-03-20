@@ -361,17 +361,18 @@ class DtbShaders:
 
             # Update Name
             new_name = mat["Asset Label"] + "_" + mat["Material Name"]
-            # To Deal with a duplicate being converted first.
-            if new_name in bpy.data.materials:
-                mat_slot.material = bpy.data.materials[new_name]
-                bpy.data.materials.remove(mat)
-                continue
-            mat.name = new_name
-            mat_name = mat.name
             
-            # To Deal with duplications
-            if self.optimize_materials(mat_slot):
-                continue  
+            if (bpy.context.window_manager.combine_materials):
+                # To Deal with a duplicate being converted first.
+                if new_name in bpy.data.materials:
+                    mat_slot.material = bpy.data.materials[new_name]
+                    bpy.data.materials.remove(mat)
+                    continue
+                mat.name = new_name
+                mat_name = mat.name
+                # To Deal with duplications
+                if self.optimize_materials(mat_slot):
+                    continue  
             
             mat.use_nodes = True
             mat_nodes = mat.node_tree.nodes

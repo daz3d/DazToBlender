@@ -24,6 +24,14 @@ def colobjs(col_name):
         return col.objects
     return bpy.context.scene.collection.objects
 
+def all_armature():
+    objs =  bpy.data.objects
+    armatures = []
+    for obj in objs:
+        if obj.type == "ARMATURE":
+            armature = obj
+            armatures.append(armature)
+    return armatures
 
 def allobjs():
     return bpy.data.objects

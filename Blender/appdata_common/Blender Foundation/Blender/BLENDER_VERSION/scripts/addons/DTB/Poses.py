@@ -3,6 +3,8 @@ import os
 import math
 import json
 import mathutils
+import gzip
+import urllib.parse
 from . import DataBase
 from . import Versions
 from . import Global
@@ -19,13 +21,36 @@ class Posing:
         if asset == "FIG":
             self.bone_limits = DataBase.get_bone_limits_dict()
             self.get_pose_data(asset)
-
+        
+        if asset == "POSE":
+            pass
+        
         if asset == "ENV":
             self.load_bone_limits(asset)
             self.load_bone_head_tail_data(asset)
             self.get_pose_data(asset)
-        
-    
+
+
+    def is_json(self, myjson):
+        try:
+            json_object = json.load(myjson)
+        except ValueError as e:
+            return False
+        return True    
+
+
+    def load_duf(self, input_duf):
+        with open(input_duf, "r") as file:
+            string = file
+            if self.is_json(string):
+                with open(input_duf, "r") as file:
+                    return json.load(file)
+            else:
+                data =  gzip.open(input_duf, "rb")
+                return json.load(data)
+                
+
+
     def load_bone_head_tail_data(self, asset):
         input_file = open(os.path.join(Global.getHomeTown(), asset + "_boneHeadTail.csv"), "r")
         lines = input_file.readlines()
@@ -216,6 +241,9 @@ class Posing:
             limits[2] = -limits[2]
             limits[3] = -limits[3]
 
+        # TODO: Check how to convert it.
+        elif rotation_order == "YXZ":
+            return limits
         return limits
 
     def get_pose_data(self, asset):
@@ -267,46 +295,49 @@ class Posing:
 
     #TODO Refactor and update to Reenable
     def pose_copy(self,dur):
+        self.pose_data_dict = {}
         if os.path.exists(dur) == False:
             return
-        with open(dur, errors='ignore', encoding='utf-8') as f:
-            ls = f.readlines()
-        ptn = ['"url" : ','"keys" : ']
-        xyz = ["/x/value","/y/value","/z/value"]
-        v3ary = []
-        v3 = []
-        for l in ls:
-            for i in range(2):
-                f = l.find(ptn[i])
-                if f >=0:
-                    l = l[f+len(ptn[i]):]
-                else:
-                    continue
-                if '#' in l:
-                    continue
-                if i == 0:
-                    k = "@selection/"
-                    f = l.find(k)
-                    if f >= 0:
-                        l = l[f+len(k):]
-                        f = l.find("rotation")
-                        if f>=0:
-                            v3 = []
-                            v3.append(l[:f-2])
-                            for kidx,k in enumerate(xyz):
-                                if k in l:
-                                    v3.append(kidx)
-                                    break
-                elif i == 1 and len(v3) == 2:
-                    a = l.find(",")
-                    if a > 0:
-                        l = l[a+1:]
-                        a = l.find("]")
-                        if a > 0:
-                            l = l[:a]
-                            v3.append(float(l.strip()))
-                            v3ary.append(v3)
-        self.make_pose(v3ary)
+        pose_data = self.load_duf(dur)
+        self.pose_data_dict["Asset Name"] = pose_data["asset_info"]["id"].split("/")[-1].replace("%20"," ").replace(".duf","")
+        for info in pose_data["scene"]["animations"]:
+            url = info["url"]
+            keys = info["keys"]
+            sep = url.split("/")
+            # To Deal with Shape_keys info
+            if "#" in sep[2]:
+                continue
+
+            # To Deal with Root Bone
+            if "?" in sep[2]:
+                bone = "root"
+                transform = sep[2].split("?")[1]
+                axis = sep[3]
+            else:
+                bone = sep[3].split(":?")[0]
+                transform = sep[3].split(":?")[1]
+                axis = sep[4]
+
+            value = keys[0][1]
+            if bone not in self.pose_data_dict.keys():
+                self.pose_data_dict[bone] = {}
+            if "Position" not in self.pose_data_dict[bone].keys():
+                self.pose_data_dict[bone]["Position"] = [0, 0, 0]
+            if "Rotation" not in self.pose_data_dict[bone].keys():
+                self.pose_data_dict[bone]["Rotation"] = [0, 0, 0]
+            if axis == "x":
+                index = 0
+            if axis == "y":
+                index = 1
+            if axis == "z":
+                index = 2
+            if transform == "translation":
+                trans_key = "Position"
+            if transform == "rotation":
+                trans_key = "Rotation"
+            self.pose_data_dict[bone][trans_key][index] = value
+
+        self.make_pose("import")
 
     def reorder_rotation(self,rotation_order,rotations,name):
         if rotation_order == 'XYZ':
@@ -370,6 +401,8 @@ class Posing:
             # X invert (-X)
             rotations[0] = -rotations[0]
 
+        elif rotation_order == "YXZ":
+            return rotations
         return rotations
 
     def get_rotation_order(self,order):
@@ -383,20 +416,28 @@ class Posing:
             return 'XYZ'
         elif order == 'ZYX':
             return 'YZX'
+        elif order == "YXZ":
+            return 'YXZ'
 
     
-    def make_pose(self):
+    def make_pose(self,type):
+        Global.setOpsMode("POSE")
         bone_limits = self.bone_limits_dict
         transform_data = self.pose_data_dict
-
-        pbs = Global.getAmtr().pose.bones
-        for bone_limit_key in bone_limits:
-            bone_limit = bone_limits[bone_limit_key]
-            order = bone_limit[1]
-            new_order = self.get_rotation_order(order)
-            bname = bone_limit[0]
-            if bname in transform_data.keys():
-                if bname in pbs:
+        if type == "first":
+            pbs = Global.getAmtr().pose.bones
+        if type == "import":
+            figure  = bpy.context.window_manager.choose_daz_figure
+            print(figure)
+            if figure == "null":
+                return
+            pbs = bpy.data.objects[figure].pose.bones
+        for pb in pbs:
+            if "Daz Rotation Order" in pb.keys():
+                order = pb["Daz Rotation Order"]
+                bname = pb.name
+                new_order = self.get_rotation_order(order)
+                if bname in transform_data.keys():
                     position = transform_data[bname]["Position"]
                     rotation = transform_data[bname]["Rotation"]
                     
@@ -418,16 +459,45 @@ class Posing:
                         pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
                     pbs[bname].rotation_mode = new_order
                     
-                    #Add Pose to Libary
-                    bpy.ops.pose.select_all(action="TOGGLE")
-                    bpy.ops.poselib.pose_add(frame=0, name=str(Global.get_asset_name() + " Pose"))
-                    for action in bpy.data.actions:
-                        if action.name == "PoseLib":
-                            action.name = Global.get_asset_name() + " Pose Library"
-                    bpy.ops.pose.select_all(action="DESELECT")
+                    if (bpy.context.window_manager.add_pose_lib):
+                        if self.pose_lib_check():
+                            self.add_pose(transform_data)
+                        else:
+                            num = ""
+                            if ".0" in Global.get_Amtr_name():
+                                num = " " + Global.get_Amtr_name()[-1]
+                            bpy.ops.pose.select_all(action="SELECT")
+                            bpy.ops.poselib.pose_add(frame=0, name=str(Global.get_asset_name() + " Pose"))
+                            for action in bpy.data.actions:
+                                if action.name == "PoseLib":
+                                    action.name = Global.get_asset_name() + num + " Pose Library"
+                            bpy.ops.pose.select_all(action="DESELECT")
 
-    
+    def pose_lib_check(self):
+        for action in bpy.data.actions:
+            if ".0" in Global.get_Amtr_name():
+                num = ""
+                if ".0" in Global.get_Amtr_name():
+                    num = " " + Global.get_Amtr_name()[-1]
+                if action.name == Global.get_asset_name() + num + " Pose Library":
+                    return True
+                else:
+                    return
+            if action.name == Global.get_asset_name() + " Pose Library":
+                return True
+                
+    def add_pose(self,transform_data):
+        #Add Pose to Library
+        for action in bpy.data.actions:
+            if action.name == Global.get_asset_name() + " Pose Library":
+                frame_count = len(action.fcurves) + 1
+        if "Asset Name" in transform_data.keys():
+            name = transform_data["Asset Name"]
+            bpy.ops.pose.select_all(action="SELECT")
+            bpy.ops.poselib.pose_add(frame=frame_count, name=str(name))
+            bpy.ops.pose.select_all(action="DESELECT")
+        
     def restore_pose(self):
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode("POSE")
-        self.make_pose()
+        self.make_pose("first")
