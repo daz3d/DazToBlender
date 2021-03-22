@@ -1021,8 +1021,8 @@ def change_size(root):
                     deselect()
             elif obj.type=='LIGHT' or obj.type=='CAMERA':
                 for i in range(3):
-                    og_scale = d.scale[i]
-                    d.scale[i] = og_scale * get_size()
+                    og_scale = obj.scale[i]
+                    obj.scale[i] = og_scale * get_size()
                 Versions.select(obj, True)
                 Versions.active_object(obj)
                 bpy.ops.object.transform_apply(scale=True)
@@ -1059,7 +1059,7 @@ def scale_settings():
     
     
     location = [float_by_size(7.15), float_by_size(-4.35), float_by_size(100.0)]
-    rotation = [-0.7150, -0.5860, -0.2601, -0.2788]
+    rotation = [0.6888, 0.6246, 0.2473, 0.2727]
     distance = float_by_size(430)
     
     for area in bpy.context.screen.areas:

@@ -221,6 +221,15 @@ class DazRigBlend:
 
             bone_limit = bone_limits[bone.name]
 
+            # Store Custom Properties
+            bone["Daz Rotation Order"] = bone_limit[1]
+            bone["min x"] = bone_limit[2]
+            bone["max x"] = bone_limit[3]
+            bone["min y"] = bone_limit[4]
+            bone["max y"] = bone_limit[5]
+            bone["min z"] = bone_limit[6]
+            bone["max z"] = bone_limit[7]
+
             bone.constraints.new('LIMIT_ROTATION')
             rot_limit = bone.constraints['Limit Rotation']
             rot_limit.owner_space = 'LOCAL'

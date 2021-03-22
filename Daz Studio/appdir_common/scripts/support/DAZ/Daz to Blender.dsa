@@ -841,7 +841,7 @@
 	/*********************************************************************/
 	// Destructive Changes the names of the Assets in Daz
 	// void : ...
-	function updateName( oBaseNode, sFilename, bIsFigure )
+	function updateName( oBaseNode, bIsFigure )
 	{
 		s_aPoseData = [];
 		
@@ -887,40 +887,6 @@
 		};
 	};
 
-	/*********************************************************************/	
-	// DzVec3 : ...
-	function calcOrigin( oNode )
-	{
-		if( !oNode.getSkeleton() ){
-			return DzVec3( 0, 0, 0 );
-		}
-		
-		vecOrigin = oNode.getWSPos();
-		if( oNode.getNodeParent() == 0 ){
-			return DzVec3( 0, 0, 0 );
-		}
-		return vecOrigin;
-	}
-
-	/*********************************************************************/	
-	// DzVec3 : ...
-	function calcParentOrigin( oNode )
-	{
-		if( !oNode.getSkeleton() ){
-			return DzVec3( 0, 0, 0 );
-		}
-		oNode = oNode.getNodeParent();
-		if( oNode ){
-			if( oNode.getNodeParent() == 0 ){
-				return DzVec3( 0, 0, 0 )
-			}
-			return oNode.getWSPos();
-		}
-		else{
-			return DzVec3( 0, 0, 0 );
-		}
-	}
-
 	/*********************************************************************/
 	// void : ...
 	function writePoseData( oBaseNode, sFilename, bIsFigure )
@@ -960,8 +926,6 @@
 		var quatRot;
 		var mtxScale;
 		var sLine;
-		var vecOrigin;
-		var vecNewPos;
 		var oData = {};
 		var oParent;
 		for( var i = 0; i < nNodes; i += 1 ){
@@ -971,20 +935,6 @@
 			quatRot = oNode.getLocalRot();
 			mtxScale = oNode.getLocalScale();
 			oParent = oNode.getNodeParent();
-			vecOrigin = calcOrigin( oNode )
-			vecNewPos = DzVec3(0,0,0)
-			if( oParent ){
-				vecOrigin = vecOrigin.subtract( calcOrigin( oParent ) )
-			};
-			if( oNode.inherits( "DzSkeleton" )
-			|| oNode.inherits( "DzBone") ){
-				vecNewPos.x = vecOrigin.x;
-				vecNewPos.y = vecOrigin.y;
-				vecNewPos.z = vecOrigin.z;
-			}
-			else{
-				vecNewPos.x = vecPos.subtract( vecOrigin );
-			}
 			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			sLabel = oNode.getLabel();	
 			sName = oNode.name;		
@@ -1055,50 +1005,58 @@
 			}
 		}
 	};
-	
+
 	/*********************************************************************/
 	// void : ...
-	// TODO : refactor - efficiency
+	function changeLock ( oProperty, bLock ) {
+		if ( ! oProperty ) {
+			return;
+		}
+		oProperty.lock( bLock );
+	}
+
+	/*********************************************************************/
+	// void : ...
 	function setLock( oBaseNode, bLock, bIsFigure )
 	{
 		var aNodes = oBaseNode.getNodeChildren( true );
 		if( !bIsFigure ){
 			aNodes.push( oBaseNode );
 		}
-		
-		var aAxis = [ "X", "Y", "Z" ];
-		
+				
 		var oNode;
-		var aProperties;
-		var oProperty;
-		var oOwner;
-		var aNames;
-		var sAxis;
-		
+		var oTransform;
+
 		for( var i = 0; i < aNodes.length; i += 1 ){
 			oNode = aNodes[i];
 			if( getObjectType( oNode ) == 'BONE' ){
 				continue;
 			}
+			// Translations
+			oTransform = oNode.getXPosControl();
+			changeLock( oTransform, bLock );
+			oTransform = oNode.getYPosControl();
+			changeLock( oTransform, bLock );
+			oTransform = oNode.getZPosControl();
+			changeLock( oTransform, bLock );
 			
-			aProperties = getElementProperties( oNode, true, true );
-			for( var j = 0; j < aProperties.length; j += 1 ){
-				oProperty = aProperties[ j ];
-				oOwner = oProperty.getOwner();
-				if( !oOwner.inherits( "DzBone" ) ){
-					continue;
-				}
-				
-				for( var k = 0; k < aAxis.length; k += 1 ){
-					sAxis = aAxis[k];
-					aNames = [ sAxis + "Translate", sAxis + "Rotate", sAxis + "Scale" ];
-					for( var m = 0; m < aNames.length; m += 1 ){
-						if( oProperty.name == aNames[m] ){
-							oProperty.lock( bLock );
-						}
-					}
-				}
-			}
+			// Rotations
+			oTransform = oNode.getXRotControl();
+			changeLock( oTransform, bLock );
+			oTransform = oNode.getYRotControl();
+			changeLock( oTransform, bLock );
+			oTransform = oNode.getZRotControl();
+			changeLock( oTransform, bLock );
+			
+			// Scale
+			oTransform = oNode.getScaleControl();
+			changeLock( oTransform, bLock );
+			oTransform = oNode.getXScaleControl();
+			changeLock( oTransform, bLock );
+			curTransform = oNode.getYScaleControl();
+			changeLock( oTransform, bLock );
+			curTransform = oNode.getZScaleControl();
+			changeLock( oTransform, bLock );
 		}
 	};
 	
@@ -2263,7 +2221,7 @@
 			var bIsBone;
 			var sEnvPath;
 			var sPoseFilename;
-			var sBoneFilename;
+			var sFileBasename;
 			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
 				oNode = s_aEnvProp[i];
 				
@@ -2293,18 +2251,16 @@
 				
 				sFileBasename = sEnvPath + s_sEnv;
 				sPoseFilename = sFileBasename + ".transforms";
-				sBoneFilename = sFileBasename + ".bon";
 				
-				writeConfiguration( oNode, sFileBasename );
 				if( bIsBone ){
 					writeFigureBoneData( oNode, sFileBasename );
 				} else {
 					writePoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
-
 				updateName( oNode );
 				
+				writeConfiguration( oNode, sFileBasename );
 
 				setLock( oNode, false, false );
 			}
