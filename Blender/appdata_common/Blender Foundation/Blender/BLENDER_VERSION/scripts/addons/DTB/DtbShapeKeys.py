@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(__file__))
 class DtbShapeKeys:
     root = Global.getRootPath()
     flg_rigify = False
+    key_block_prefix = "Genesis8_1Female__"
 
     def __init__(self, flg_rigify):
         self.flg_rigify = flg_rigify
@@ -24,8 +25,6 @@ class DtbShapeKeys:
         body_obj = Global.getBody()
 
         shape_keys = body_obj.data.shape_keys
-        print(">>> SHAPEKEY count: " + str(len(shape_keys)))
-
 
     def make_drivers(self):
         body_obj = Global.getBody()
@@ -151,6 +150,11 @@ class DtbShapeKeys:
         correction_factor = 1
         bone_name = morph_link["Bone"]
         property_name = morph_link["Property"]
+
+        # Return when controller is not a Bone
+        if bone_name == "None":
+            return var_name
+
         bone_limits = DataBase.get_bone_limits_dict()
         bone_order = bone_limits[bone_name][1]
         
@@ -237,19 +241,59 @@ class DtbShapeKeys:
             return "(" + "self.value + " + var_name + " + " + addend + ")"
         elif link_type == 6:
             # ERCKeyed
+            # TODO: Figure out a way to represent in Blender.
             return "(" + var_name + ")"
             
         return var_name
     
+    def get_morph_link_control_type(self, morph_link):
+        if morph_link["Type"] == 6:
+            # skip links that are 'ERCKeyed' for now
+            return 'CONTROL_BY_NONE'
+        elif morph_link["Bone"] == "None":
+            return 'CONTROL_BY_MORPH'
+        else:
+            return 'CONTROL_BY_BONE'
+    
+    def make_bone_var(self, link_index, morph_link, driver):
+        link_var = driver.variables.new()
+        link_var.name = "var" + str(link_index)
+        link_var.type = 'TRANSFORMS'
+        
+        target = link_var.targets[0]
+        target.id = Global.getAmtr()
+        target.bone_target = morph_link["Bone"]
+        target.transform_space = 'LOCAL_SPACE'
+        target.transform_type = self.get_transform_type(morph_link)
+        
+        return link_var
+
+    def make_morph_var(self, link_index, morph_link, driver, shape_key):
+        link_var = driver.variables.new()
+        link_var.name = "var" + str(link_index)
+        link_var.type = 'SINGLE_PROP'
+        
+        target = link_var.targets[0]
+        target.id_type = 'KEY'
+        target.id = shape_key
+        block_id = self.key_block_prefix + morph_link["Property"]
+        rna_data_path = "key_blocks[\"" + block_id + "\"].value"
+        target.data_path = rna_data_path
+
+        return link_var
+
+    def property_in_shape_keys(self, morph_link, shape_key_blocks):
+        property_name = morph_link["Property"]
+        is_found = False
+        for key_block in shape_key_blocks:
+            if property_name == key_block.name[len(self.key_block_prefix): ]:
+                is_found = True
+                break
+        return is_found
+    
     def make_driver(self, dobj):
-        mesh_name = dobj.data.name
-        mesh_amtr = Global.getAmtr()
-
-        # TODO: check if this is needed
-        Versions.active_object(dobj)
-        aobj = bpy.context.active_object
-
-        if bpy.data.meshes[mesh_name].shape_keys is None:
+        shape_key = dobj.data.shape_keys
+        if shape_key is None:
             return
         
         # Read all the morph links from the DTU
@@ -259,9 +303,10 @@ class DtbShapeKeys:
         dtu_content = input_file.read()
         morph_links_list = json.loads(dtu_content)["MorphLinks"]
 
-        shape_key_blocks = dobj.data.shape_keys.key_blocks
+        # Create drivers for shape key blocks
+        shape_key_blocks = shape_key.key_blocks
         for key_block in shape_key_blocks:
-            key_name = key_block.name[len("Genesis8_1Female__"): ]
+            key_name = key_block.name[len(self.key_block_prefix): ]
             if key_name not in morph_links_list:
                 continue
 
@@ -270,73 +315,34 @@ class DtbShapeKeys:
 
             morph_links = morph_links_list[key_name]
             expression = ""
+            var_count = 0
             for link_index, morph_link in enumerate(morph_links):
-                link_var = driver.variables.new()
-                link_var.name = "var" + str(link_index)
-                link_var.type = 'TRANSFORMS'
-                target = link_var.targets[0]
-                target.id = mesh_amtr
-                target.bone_target = morph_link["Bone"]
-                target.transform_space = 'LOCAL_SPACE'
-                target.transform_type = self.get_transform_type(morph_link)
-                expression += self.get_target_expression(link_var.name, morph_link, driver) + "+"
-            driver.expression = expression[:-1]
-
-
-        return
-        ridx = 0
-        db = DataBase()
-        cur = db.tbl_mdrive
-        if Global.getIsG3():
-            cur.extend(db.tbl_mdrive_g3)
-        while ridx < len(cur):
-            max = len(bpy.data.meshes[mesh_name].shape_keys.key_blocks)
-            row = cur[ridx]
-            for i in range(max):
-                if aobj is None:
+                control_type = self.get_morph_link_control_type(morph_link)
+                if control_type == 'CONTROL_BY_NONE':
                     continue
-                aobj.active_shape_key_index = i
-                if aobj.active_shape_key is None:
-                    continue
-                sk_name = aobj.active_shape_key.name
-                if row[0] in sk_name and sk_name.endswith(".001") == False:
-                    dvr = aobj.data.shape_keys.key_blocks[sk_name].driver_add(
-                        'value')
-                    dvr.driver.type = 'SCRIPTED'
-                    var = dvr.driver.variables.new()
-                    Versions.set_debug_info(dvr)
-                    if self.flg_rigify:
-                        target_bone = self.get_rigify_bone_name(row[1])
-                        xyz = self.toRgfyXyz(row[2], target_bone)
-                        self.setDriverVariables(
-                            var, 'val', Global.getRgfy(), target_bone, xyz)
-                        exp = self.getRgfyExp(row[3], target_bone, row[0])
-                        if ridx < len(cur) - 1 and cur[ridx + 1][0] in sk_name:
-                            row2 = cur[ridx + 1]
-                            target_bone2 = self.get_rigify_bone_name(row2[1])
-                            var2 = dvr.driver.variables.new()
-                            xyz2 = self.toRgfyXyz(row2[2], target_bone2)
-                            self.setDriverVariables(
-                                var2, 'val2', Global.getRgfy(), target_bone2, xyz2)
-                            exp2 = self.getRgfyExp(
-                                row2[3], target_bone2, row2[0])
-                            exp += '+' + exp2
-                            ridx = ridx + 1
-                        dvr.driver.expression = exp
-                    else:
-                        self.setDriverVariables(
-                            var, 'val', Global.getAmtr(), row[1], row[2])
-                        exp = row[3]
-                        if ridx < len(cur)-1 and cur[ridx+1][0] in sk_name:
-                            row2 = cur[ridx+1]
-                            var2 = dvr.driver.variables.new()
-                            self.setDriverVariables(
-                                var2, 'val2', Global.getAmtr(), row2[1], row2[2])
-                            exp += '+' + row2[3]
-                            ridx = ridx + 1
-                        dvr.driver.expression = exp
-                    break
-            ridx = ridx + 1
+                if control_type == 'CONTROL_BY_MORPH':
+                    is_found = self.property_in_shape_keys(morph_link, shape_key_blocks)
+                    if not is_found:
+                        # If the controller morph is not in listed shape keys
+                        continue
+                    var = self.make_morph_var(link_index, morph_link, driver, shape_key)
+                    var_count += 1
+                elif control_type == 'CONTROL_BY_BONE':
+                    var = self.make_bone_var(link_index, morph_link, driver)
+                    var_count += 1
+
+                expression += self.get_target_expression(var.name, morph_link, driver) + "+"
+            
+            # Delete the driver and continue if there are no variables
+            if var_count == 0:
+                key_block.driver_remove("value")
+                continue
+            
+            if expression.endswith("+"):
+                expression = expression[:-1]
+            driver.expression = expression
+
+        # TODO: Create drivers for bone trasnforms
 
     def toRgfyXyz(self, xyz, bname):
         zy_switch = ['chest', 'hips']
@@ -427,9 +433,7 @@ class DtbShapeKeys:
                     'PHM'
                 ]
         for shape_key in bpy.data.shape_keys:
-            print(">> shape_key: " + shape_key.name)
             for key_block in shape_key.key_blocks:
-                print(">>>> key_block: " + key_block.name)
                 continue
                 # Strip pJCM suffix
                 suff_idx = key_block.name.find("__pJCM")

@@ -2078,36 +2078,101 @@
 	function loadMorphLinks( oNode )
 	{
 		var oSkeleton = oNode.getSkeleton( oNode );
-		var aSkelProperties = getElementProperties( oSkeleton, true, true );
 		
-		for( var i = 0; i < aSkelProperties.length; i += 1 ){
-			var oProperty = aSkelProperties[i];
-			nControllerCount = oProperty.getNumControllers();
+		// Load Morph properties on the DzFigure node
+		var aMorphProperties = []
+		var aFigureProperties = getElementProperties( oSkeleton, true, true );
+		for( var i = 0; i < aFigureProperties.length; i += 1 ){
+			var oProperty = aFigureProperties[i];
+			if( oProperty.getOwner().inherits( "DzMorph" ) ){
+				aMorphProperties.push( oProperty );
+			}
+		}
+		
+		for( var i = 0; i < aMorphProperties.length; i += 1 ){
+			var oMorphProperty = aMorphProperties[i];
+			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
-			for( var k = 0; k < nControllerCount; k += 1 ){
+			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
-				oErcLink = oProperty.getController(k);
-				oLinkOwner = oErcLink.getProperty().getOwner()
-				if( oLinkOwner.inherits( "DzBone" ) ){
-					
+				oErcLink = oMorphProperty.getController(j);
+				oControllerProperty = oErcLink.getProperty();
+				oOwnerNode = oControllerProperty.getOwner();
+				if( oOwnerNode.inherits( "DzBone" ) ){
 					var oLink = {
-							"Bone": oLinkOwner.name,
-							"Property": oErcLink.getProperty().name,
-							"Type": oErcLink.type,
-							"Scalar": oErcLink.scalar,
-							"Addend": oErcLink.addend
-						};
+						"Bone": oOwnerNode.name,
+						"Property": oControllerProperty.name,
+						"Type": oErcLink.type,
+						"Scalar": oErcLink.scalar,
+						"Addend": oErcLink.addend
+					};
+					
+					aLinks.push( oLink );
+				}
+				else if( oOwnerNode.inherits( "DzMorph" ) ){
+					var oLink = {
+						"Bone": "None",
+						"Property": oControllerProperty.getLabel(),
+						"Type": oErcLink.type,
+						"Scalar": oErcLink.scalar,
+						"Addend": oErcLink.addend
+					};
 					
 					aLinks.push( oLink );
 				}
 			}
 			
 			if( aLinks.length > 0 ){
-				s_oMorphLinks[oProperty.getLabel()] = aLinks;
+				s_oMorphLinks[oMorphProperty.getLabel()] = aLinks;
 			}
 		}
 		
-		return;
+		// Load Transform properties on all the Bones
+		var aBoneProperties = []
+		var aBones = oSkeleton.getAllBones();
+		for( var i = 0; i < aBones.length; i += 1 ){
+			var oBone = aBones[i];
+			aProperties = getElementProperties( oBone, true, true );
+			for( var j = 0; j < aProperties.length; j += 1 ){
+				var oBoneProperty = aProperties[j];
+				var sPropPath = oBoneProperty.getPath();
+				if( sPropPath.indexOf( "General/Transforms/" ) > -1 ){
+					if( oBoneProperty.getNumControllers() > 0 ){
+						aBoneProperties.push( oBoneProperty );
+					}
+				}
+			}
+		}
+		
+		for( var i = 0; i < aBoneProperties.length; i += 1 ){
+			var oBoneProperty = aBoneProperties[i];
+			var nControllerCount = oBoneProperty.getNumControllers();
+			var aLinks = []
+			for( var j = 0; j < nControllerCount; j += 1 ){
+				var oErcLink = new DzERCLink();
+				oErcLink = oBoneProperty.getController(j);
+				oControllerProperty = oErcLink.getProperty();
+				oOwnerNode = oControllerProperty.getOwner();
+				if( oOwnerNode.inherits( "DzMorph" ) ){
+					var oLink = {
+						"Bone": "None",
+						"Property": oControllerProperty.getLabel(),
+						"Type": oErcLink.type,
+						"Scalar": oErcLink.scalar,
+						"Addend": oErcLink.addend
+					};
+					
+					aLinks.push( oLink );
+				}
+			}
+			
+			if( aLinks.length > 0 ){
+				sBoneName = oBoneProperty.getOwner().name;
+				s_oMorphLinks[sBoneName + "." + oBoneProperty.name] = aLinks;
+			}
+		}
+		
+		return;		
 	};
 
 	/*********************************************************************/
