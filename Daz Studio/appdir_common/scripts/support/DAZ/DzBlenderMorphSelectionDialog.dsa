@@ -99,7 +99,7 @@
         
         // Left tree with morph structure
         s_wMorphTreeWidget = new DzListView( wMainWgt );
-        s_wMorphTreeWidget.resizeMode = DzListView.Manual  
+        s_wMorphTreeWidget.resizeMode = DzListView.Maximum   
         s_wMorphTreeWidget.widthMode = DzListView.NoColumn 
         s_wMorphTreeWidget.addColumn("")
         s_wMorphTreeWidget.rootIsDecorated = true;
@@ -107,7 +107,7 @@
 
         // Center list showing morphs for selected tree items        
 	    s_wMorphListWidget = new DzListView( wMainWgt );
-        s_wMorphListWidget.resizeMode = DzListView.Manual 
+        s_wMorphListWidget.resizeMode = DzListView.Maximum  
         s_wMorphListWidget.widthMode = DzListView.NoColumn 
         s_wMorphListWidget.addColumn("")
         s_wMorphListWidget.selectionMode = DzListView.Extended
@@ -115,7 +115,7 @@
 
         // Right list showing morphs that will export
 	    s_wMorphExportListWidget = new DzListView( wMainWgt );
-        s_wMorphExportListWidget.resizeMode = DzListView.Manual 
+        s_wMorphExportListWidget.resizeMode = DzListView.Maximum  
         s_wMorphExportListWidget.widthMode = DzListView.NoColumn 
         s_wMorphExportListWidget.addColumn("")
         s_wMorphExportListWidget.selectionMode = DzListView.Extended

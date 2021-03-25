@@ -129,7 +129,7 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                     
                 l.separator()
        
-        l.operator('df.optimize', icon="MATERIAL")
+        # l.operator('df.optimize', icon="MATERIAL")
 
 class DTB_PT_POSE(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_pose_daz"
