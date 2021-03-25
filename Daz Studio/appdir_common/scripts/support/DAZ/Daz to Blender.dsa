@@ -1,11 +1,16 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
 
 (function(){
+	// To be able to use the IDE Input your absolute Path.
+	//var s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"
 	
+	var s_sDazBridgeName = "Daz To Blender"
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
-	var s_sToolName = s_oFileInfo.baseName();
+	var s_sScriptPath = s_oFileInfo.path();
+	var s_sToolName = s_sDazBridgeName;
+	var s_sMorphDialog = "DzBlenderMorphSelectionDialog"
 	s_oFileInfo.deleteLater();
-	
+
 	var s_aFigures = [];
 	var s_aEnvProp = [];
 	
@@ -29,16 +34,15 @@
 	};
 	var s_nExportType = s_oExportTypes.None;
 	
+	var s_sRootPath = "";
+	var s_sPresetPath = "";
+	
 	var s_sMorphRules = "";
 	var s_aMorphExported = [];
-	var s_sRootPath = "";
+	var s_oMorphLinks = {};
 	
-	var s_oMorphs = {};
-	var s_aSearch = [];
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
-	var s_nMaxAll = 63;
-	var s_s3Spaces = "   ";
 	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
 	
 	var s_vecDef = new DzVec3( 0, 0, 0 );
@@ -52,74 +56,90 @@
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
 	
-	var s_oMorphLinks = {};
 	
+	
+	
+// --- START Sub Script ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/remote_operation/sub_script/start
+ 	
+ 	// - Extracted functions
+	// - Returns Scripts Paramater
+ 	// - Adjusted to be used within bridge
 	/*********************************************************************/
-	// void : ...
-	// Note: destructive - modifies the scene contents
-	// TODO: Redo Morph export need to give users a choice
-	function buildMorphList( oNode )
-	{
-		if( oNode.inherits( "DzFigure" ) ){
-            oNode = oNode.getSkeleton();
-			var aProperties = getElementProperties( oNode, true, true );
-        }    
-		else{
-			var aProperties = getElementProperties( oNode, true, true );
-		}
-		var nAlfIdx = 0;
-		var aTops = [ "Morphs", "Hidden", "Pose" ];
+	// Object? 
+	function executeSubScript( sScript, aArgs ){
+ 
+		/*********************************************************************/
+		// String : A function for retrieving a translation if one exists
+		function text( sText )
+		{
+			// If the version of the application supports qsTr()
+			if( typeof( qsTr ) != "undefined" ){
+				// Return the translated (if any) text
+				return qsTr( sText );
+			}
+	 
+			// Return the original text
+			return sText;
+		};
+	 
+		/*********************************************************************/
+		// Declare working variables
+		var sTitle, sMessage;
+	 
+		// Define common strings
+		var sButton = text( "&OK" );
+	 
+		// Define the base path of the script we'll call; without the file extension
+		var sBasePath = String( "%1/%2" ).arg( s_sScriptPath ).arg( sScript );
 		
-		var oProp;
-		var oOwner;
-		var oTop;
-		var sPath;
-		var sHead;
-		var sLabel;
-		var sTmp;
-		
-		for( var i = 0; i < aProperties.length; i += 1 ){
-			oProp = aProperties[i];
-			oOwner = oProp.getOwner();
-			sPath = oProp.getPath();
-			sHead = "";
-
-			for( var j = 0; j < aTops.length; j += 1 ){
-				oTop = aTops[j];
-				if( sPath.indexOf( "/" + oTop ) == 0 ){
-					sHead = "<" + oTop + ">";
-					break;
-				}
+		// Create a script object
+		var oScript = new DzScript();
+	 
+		// Attempt to find our script; doing it this way, we can debug with an
+		// ascii file and distribute a binary [encrypted] file with the same name...
+		// without having to update the contents of the script or manually handle
+		// the file extensions; requires 3.0.1.5 or newer
+		var sScriptPath = oScript.getScriptFile( sBasePath );
+	 
+		// If a script is found
+		if( !sScriptPath.isEmpty() ){
+			// If the script loads
+			if( oScript.loadFromFile( sScriptPath ) ){
+				// Execute the script; pass in an array of arguments;
+				// passing in arguments requires 2.2.2.17 or newer
+				oScript.execute( aArgs );
+				return oScript.result();
+			// If the script doesn't load
+			} else {
+				// Define text variables for the message
+				sTitle = text( "Read Error" );
+				sMessage = text( "The '%1' file could not be loaded." ).arg( sScriptPath );
+				// Inform the user
+				MessageBox.information( sMessage, sTitle, sButton );
 			}
-			
-			if( sHead.isEmpty() ){
-				continue;
-			}
-			
-			sLabel = oProp.getLabel();
-			if( ( sLabel.length + 2 + s_nMaxName ) > s_nMaxAll ){
-				sLabel = sLabel.slice( 0, s_nMaxAll - s_nMaxName - 2 - 2 );
-				sLabel = sLabel + "_" + s_sAlf.substr( nAlfIdx, 1 );
-				nAlfIdx += 1;
-				if( nAlfIdx >= 36 ){ 
-					nAlfIdx = nAlfIdx % 36 - 1;
-				}
-			}
-			
-			sName = oProp.getName()
-			// To deal with Hidden Morphs
-			if (sHead.indexOf("Hidden") > 0){
-				sName = sLabel
-			};
-			s_oMorphs[sLabel] = {
-									"sMorphHead": sHead,
-									"sMorphName" : sName,
-									"sMorphPath" : sPath
-								};
-			
+		// If a script is not found
+		} else {
+			// Define text variables for the message
+			sTitle = text( "File Not Found" );
+			sMessage = text( "A '%1.ds(a|b|e)' file could not be found." ).arg( sBasePath );
+			// Inform the user
+			MessageBox.information( sMessage, sTitle, sButton );
 		}
 	};
-	
+
+// --- END Sub Script ----
 	
 // --- START node_properties ----
 	/**********************************************************************
@@ -136,7 +156,7 @@
 	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
  	
  	// - Extraccted functions
- 	
+
 	/*********************************************************************/
 	// Array<DzProperty> : A function for getting a list of the properties in a group
 	function getGroupProperties( oGroup, bTraverse, bRecurse )
@@ -515,96 +535,6 @@
 // --- END export_obj_silent ----
 	
 	/*********************************************************************/
-	// Array<String> : ...
-	// TODO: Only export base Morphs 
-	function getMinimalMorphRules()
-	{
-		var sResult; 
-
-		for( sMorphLabel in s_oMorphs ){
-			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
-			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
-			var sMorphHead = s_oMorphs[sMorphLabel]['sMorphHead']
-			
-
-			if( sMorphPath.indexOf( '/Head' ) > 0 ){
-				if( sMorphPath.endsWith( 'Expressions' ) ){
-					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-				}
-				if( sMorphPath.indexOf( '/Expressions' ) < 0 ){
-					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-				}
-			}
-			if ( sMorphPath.indexOf( 'Corrective' ) > 0 ){
-					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-				}
-		}
-		
-		return sResult;
-	};
-	
-	/*********************************************************************/
-	// Array<String> : ...
-	// TODO: Add better customization for Presets
-	function getMorphPresets( sPreset )
-	{
-		var sResult 
-
-		for( sMorphLabel in s_oMorphs ){
-			var sMorphPath = s_oMorphs[sMorphLabel]['sMorphPath']
-			var sMorphName = s_oMorphs[sMorphLabel]['sMorphName']
-			var sMorphHead = s_oMorphs[sMorphLabel]['sMorphHead']
-			if ( sPreset == "All Body Morphs" ){
-				if ( sMorphPath.indexOf( '/Arms' ) > 0
-					|| sMorphPath.indexOf( '/Hip' ) > 0
-					|| sMorphPath.indexOf( '/Torso' ) > 0
-					|| sMorphPath.indexOf( '/Neck' ) > 0
-					|| sMorphPath.indexOf( '/Legs' ) > 0
-					|| sMorphPath.indexOf( '/Hands' ) > 0
-					|| sMorphPath.indexOf( '/Feet' ) > 0 ){
-					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-				}		
-			}
-			if ( sPreset == "All Joint Corrective Morphs" ){
-				if ( sMorphPath.indexOf( 'Corrective' ) > 0 ){
-					sResult += sMorphName + "\n1\n";
-					s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-				}
-			}
-				
-			else{
-				if ( sMorphPath.indexOf( '/Head' ) > 0 ){
-					if ( sPreset == "Face Controls" ){
-						if(!( sMorphPath.indexOf( 'Expressions' ) > 0 
-							|| sMorphPath.indexOf( 'Visemes' ) > 0 ) ){
-							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-						}
-					}
-					if ( sPreset == "Expressions" ){
-						if( sMorphPath.indexOf( 'Expressions' ) > 0 ){
-							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-						}
-					}
-					if ( sPreset == "Visemes" ){
-						if	( sMorphPath.indexOf( 'Visemes' ) > 0 ){
-							sResult += sMorphName + "\n1\n";
-							s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-						}
-					}		
-				}
-			}
-		}
-		
-		return sResult;
-	};
-
-	/*********************************************************************/
 	
 	// void : ...
 	function addBanner( wDlg, sImagePath )
@@ -617,154 +547,6 @@
 		wDlg.addWidget( wLabel );
 	};
 	
-	/*********************************************************************/
-	// Boolean : ...
-	// TODO: Replace a listbox for a more functional option, Allow user to Choose From Their Expressions
-	function promptMorphRules( oNode )
-	{	
-		
-		var wDlg = new DzBasicDialog();
-		wDlg.caption = s_sToolName + ": Morph Names";
-	
-		var sKey = wDlg.caption.replace( / /g, "" ) + "Dlg";
-		
-		if( oNode ){
-			wDlg.caption += " - " + oNode.getLabel();
-		}
-		
-		var oDlgWgt = wDlg.getWidget();
-		oDlgWgt.objectName = sKey;
-		
-		//addBanner( wDlg, App.getResourcesPath() + "/images/bridges/" + s_sToolName + ".png" );
-		
-		var wMinimalMorphsCbx = new DzCheckBox( wDlg );
-		wMinimalMorphsCbx.text = qsTr( "Include All Default Head and Joint Corrective Morphs" );
-		wMinimalMorphsCbx.checked = true;
-		wDlg.addWidget( wMinimalMorphsCbx );
-		
-		var wLbl = new DzLabel( wDlg );
-		wDlg.addWidget( wLbl );
-		
-		var wMorphNamesLbl = new DzLabel( wDlg );
-		wMorphNamesLbl.text = qsTr( "Morph Names: (line separated)\n[empty = OK, partial words = OK, 3+ letters required]" );
-		wDlg.addWidget( wMorphNamesLbl );
-		
-		var wMorphNamesTEdit = new DzTextEdit( wDlg );
-		wMorphNamesTEdit.text = "";
-		wDlg.addWidget( wMorphNamesTEdit );
-		
-		wLbl = new DzLabel( wDlg );
-		wDlg.addWidget( wLbl );
-		
-		var wValidMorphNamesLbl = new DzLabel( wDlg );
-		wValidMorphNamesLbl.text = qsTr( "Valid Morph Names and Presets:\n[double-click to copy above]" );
-		wDlg.addWidget( wValidMorphNamesLbl );
-
-		var aMorphList = []
-		var wValidMorphNamesLBox = new DzListBox( wDlg );
-		var sMorphHead;
-		var sMorphPath;
-
-		for(var s_aMorphLabel in s_oMorphs) {
-			sMorphHead = s_oMorphs[s_aMorphLabel]["sMorphHead"];
-			sMorphPath = s_oMorphs[s_aMorphLabel]["sMorphPath"];
-			if( sMorphHead != "Hidden" ){
-				var sMorphHeaders = sMorphPath.split("/") 
-				aMorphList.push( 
-									sMorphHeaders[sMorphHeaders.length - 2] + " "
-									+ sMorphHeaders[sMorphHeaders.length - 1] + " :"
-									+ s_s3Spaces + s_aMorphLabel
-								);
-			}
-		}
-
-		// Organize the Visible Morphs
-		aMorphList.sort()
-
-		for( var sMorphLabel in s_oMorphs ){
-			sMorphHead = s_oMorphs[sMorphLabel]["sMorphHead"];
-			if( sMorphHead == "Hidden" ){
-				aMorphList.push( sMorphHead + ":" + s_s3Spaces + sMorphLabel );
-			}
-		}
-
-		// Add a few temporary presets for ease of use.	
-		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Face Controls" );
-		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Expressions" );
-		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"Visemes" );	
-		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Body Morphs" );
-		wValidMorphNamesLBox.insertItem( "Presets:" + s_s3Spaces +"All Joint Corrective Morphs" );
-		
-		for( var i = 0; i < aMorphList.length; i += 1 ){
-			wValidMorphNamesLBox.insertItem( aMorphList[i] );
-		}
-		wDlg.addWidget( wValidMorphNamesLBox );
-		
-		function addValidMorphName(){
-			var sCurText = wValidMorphNamesLBox.currentText;
-			sCurText = sCurText.split( ":" + s_s3Spaces )[1];
-			wMorphNamesTEdit.append( sCurText );
-		};
-		wValidMorphNamesLBox.doubleClicked.connect( wValidMorphNamesLBox, addValidMorphName );
-		
-		var sizeHint = oDlgWgt.minimumSizeHint;
-		var nHeight = sizeHint.height;
-		var nWidth = sizeHint.width < 300 ? 300 : sizeHint.width;
-		wDlg.setFixedSize( nWidth, sizeHint.height * 2 );
-		
-		if( !wDlg.exec() ){
-			return false;
-		}
-		
-		if( wMinimalMorphsCbx.checked ){
-			// Temporarily skip minimal morphs, export only linked morphs
-			// s_sMorphRules = getMinimalMorphRules();
-		}
-		
-		createMorphRules( wMorphNamesTEdit.text.split( "\n" ) );
-	
-		return true;
-	};
-
-	/*********************************************************************/
-	// Take List of Morph Labels and Convert to Format for FBX Exporter
-	// void : ...
-	// TODO: Allow Partial Names to Export Morphs, Refactor Code to Grab Morph Info Cleaner
-	function createMorphRules( aMorphLabels )
-	{	
-		var sMorphName;
-		var sMorphLabel;
-
-		// Temporarily export only linked morphs and return
-		for(var morph in s_oMorphLinks) {
-			s_sMorphRules += morph + "\n1\n";
-		}
-		s_sMorphRules += "Anything\n0";
-		return true;
-		
-		for( var i = 0; i < aMorphLabels.length; i += 1 ){
-			sMorphLabel = aMorphLabels[i];
-			
-			if( s_oMorphs[sMorphLabel] !== undefined ){
-				if( s_oMorphs[sMorphLabel]["sMorphHead"] == 'Pose' ){
-					sMorphName = s_oMorphs[sMorphLabel]["sMorphName"];
-				}
-				else{
-					//Hidden Morphs do not have labels
-					sMorphName = sMorphLabel;
-				}
-				s_aMorphExported.push( [sMorphName ,sMorphLabel] );
-			}
-			else{
-				s_sMorphRules += getMorphPresets( sMorphLabel );
-			}
-			s_sMorphRules += sMorphName + "\n1\n";	
-		}
-		s_sMorphRules += "Anything\n0";
-
-		return true;
-	};
-
 	/*********************************************************************/
 	// Array<Number> : ...
 	// TODO : refactor - efficiency
@@ -1128,7 +910,7 @@
 	/*********************************************************************/
 	// void : ...
 	// Delete previous export
-	// TODO : refactor - efficiency
+	// TODO : Create a Config folder to Hold the User's Daz Directories
 	function prepareForExport( nType )
 	{
 		var oDir = new DzDir( "" );
@@ -1140,40 +922,56 @@
 		var sDelPath;
 		var oDelDir = new DzDir( "" );
 		
-		var aSubs = [ "Documents","DAZ 3D", "Bridges", "Daz To Blender", s_sEnv, s_sFig ];
-		for( var i = 0; i < aSubs.length; i += 1 ){
-			sPath = s_sRootPath + aSubs[i] + "/";
-			oDir.setPath( sPath );
-			if( !oDir.exists() ){
-				oDir.mkdir( sPath );
-			}
+		var aRoot = ["Documents","DAZ 3D", "Bridges", s_sDazBridgeName, "Presets", "Exports"];
+		var aSubs = [s_sEnv, s_sFig]
+
+		for( var i = 0; i < aRoot.length; i += 1 ){
+			// Create Base Directory
 			
-			if( i < 4 ){
+			sPath = s_sRootPath + aRoot[i] + "/";
+			
+			if( i != 4 ){
 				s_sRootPath = sPath;
-			} else {
-				if( (i == 5 && nType == s_oExportTypes.EnvProp)
-				|| (i == 4 && nType == s_oExportTypes.Figure) ){
-					continue;
-				}
-				
-				oDir.setPath( sPath );
-				
-				aFiles = oDir.getFilesFromDir( [], true );
-				for( var j = 0; j < aFiles.length; j += 1 ){
-					oDir.remove( aFiles[j] );
-				}
-				
-				for( var j = 0; j < 100; j += 1 ){
-					sDelPath = sPath + "/" + aSubs[i] + j;
-					oDelDir.setPath( sDelPath );
-					if( oDelDir.exists() ){
-						oDir.rmdir( sDelPath );
-					} else {
-						break;
-					}
-				}
 			}
+			if ( i == 4 ){
+				s_sPresetPath = sPath;
+			}
+			// Create Directories
+			oDir.setPath( sPath );
+				if( !oDir.exists() ){
+					oDir.mkdir( sPath );
+				}
+		};
+
+		// Create Type Directories
+		if(nType == s_oExportTypes.EnvProp ){
+			sPath = s_sRootPath + aSubs[0] + "/"	
+			}
+		if(nType == s_oExportTypes.Figure ){
+			sPath = s_sRootPath + aSubs[1] + "/"	
+			}	
+
+		// Create Directories
+		oDir.setPath( sPath );
+		if( !oDir.exists() ){
+			oDir.mkdir( sPath );
 		}
+		// Clear Directory
+		oDir.setPath( sPath );
+		// Delete Files
+		aFiles = oDir.getFilesFromDir( [], true );
+		for( var j = 0; j < aFiles.length; j += 1 ){
+			oDir.remove( aFiles[j] );
+		}
+		// Delete Dirs
+		var aDirs = oDir.entryList();
+		for ( var j = 0; j < aDirs.length; j += 1 ){
+			sDelPath = sPath + aDirs[j]
+			oDelDir.setPath( sDelPath );
+			if( oDelDir.exists() ){
+				oDelDir.rmdir( sDelPath );
+			}
+		};
 	};
 	
 	/*********************************************************************/
@@ -2157,12 +1955,11 @@
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
-				
+				// Define Subscripts
+				s_sMorphRules = executeSubScript(s_sMorphDialog, [oFigure, s_sPresetPath, s_sDazBridgeName] );
 				loadMorphLinks( oFigure );
-				buildMorphList( oFigure );	
-				if( !promptMorphRules( oFigure) ){
-					continue;
-				}
+			
+				
 				
 				// Write data
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
@@ -2239,5 +2036,5 @@
 	
 	/*********************************************************************/
 	main();
-	
+
 })();
