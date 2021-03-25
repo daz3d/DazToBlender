@@ -1844,29 +1844,8 @@
 	
 	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
-	function loadMorphLinks( oNode )
+	function loadMorphLinks( aExportableProperties )
 	{
-		var oSkeleton = oNode.getSkeleton( oNode );
-		
-		// Load properties on the DzFigure node from required paths
-		var aExportableProperties = []
-		var aRequiredPaths = [
-								//"Actor/Head/Face",
-								//"Hidden",
-								"Pose Controls/Head/Eyes/Lids",
-								"Hidden/Correctives/Base"
-							]
-		var aFigureProperties = getElementProperties( oSkeleton, true, true );
-		for( var i = 0; i < aFigureProperties.length; i += 1 ){
-			var oProperty = aFigureProperties[i];
-			var sPath = oProperty.getPath();
-			for( var j = 0; j < aRequiredPaths.length; j += 1 ){
-				if( sPath.indexOf( aRequiredPaths[j] ) > 0 ){
-					aExportableProperties.push( oProperty );
-					break;
-				}
-			}
-		}
 		// Load all the controller links on the properties
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
 			var oMorphProperty = aExportableProperties[i];
@@ -1955,12 +1934,16 @@
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
+				
 				// Define Subscripts
-				s_sMorphRules = executeSubScript(s_sMorphDialog, [oFigure, s_sPresetPath, s_sDazBridgeName] );
-				loadMorphLinks( oFigure );
-			
+				s_sMorphRules, aExportableProperties = executeSubScript(
+									s_sMorphDialog, 
+									[oFigure, s_sPresetPath, s_sDazBridgeName] 
+								);
 				
-				
+				aExportableProperties = [] // TODO: Remove this line
+				loadMorphLinks( aExportableProperties );
+
 				// Write data
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				writeFigureBoneData( oFigure, sFileBasename );

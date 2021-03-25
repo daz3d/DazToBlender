@@ -631,6 +631,6 @@
     /*********************************************************************/
     main();
 
-    return s_sMorphRules
+    return s_sMorphRules, s_aMorphsToExport;
 })( getArguments() );
 
