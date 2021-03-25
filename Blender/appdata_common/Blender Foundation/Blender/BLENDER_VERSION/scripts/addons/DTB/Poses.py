@@ -16,7 +16,9 @@ class Posing:
     bone_head_tail_dict = {}
     bone_limits_dict = {}
     pose_data_dict = {}
-    
+    fig_object = ""
+    fig_object_name = "" 
+
     def __init__(self, asset):
         if asset == "FIG":
             self.bone_limits = DataBase.get_bone_limits_dict()
@@ -337,7 +339,7 @@ class Posing:
                 trans_key = "Rotation"
             self.pose_data_dict[bone][trans_key][index] = value
 
-        self.make_pose("import")
+        self.make_pose()
 
     def reorder_rotation(self,rotation_order,rotations,name):
         if rotation_order == 'XYZ':
@@ -420,18 +422,15 @@ class Posing:
             return 'YXZ'
 
     
-    def make_pose(self,type):
+    def make_pose(self):
         Global.setOpsMode("POSE")
         bone_limits = self.bone_limits_dict
         transform_data = self.pose_data_dict
-        if type == "first":
-            pbs = Global.getAmtr().pose.bones
-        if type == "import":
-            figure  = bpy.context.window_manager.choose_daz_figure
-            print(figure)
-            if figure == "null":
-                return
-            pbs = bpy.data.objects[figure].pose.bones
+        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
+        if self.fig_object_name == "null":
+            return
+        pbs = self.fig_object.pose.bones
         for pb in pbs:
             if "Daz Rotation Order" in pb.keys():
                 order = pb["Daz Rotation Order"]
@@ -459,45 +458,50 @@ class Posing:
                         pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
                     pbs[bname].rotation_mode = new_order
                     
-                    if (bpy.context.window_manager.add_pose_lib):
-                        if self.pose_lib_check():
-                            self.add_pose(transform_data)
-                        else:
-                            num = ""
-                            if ".0" in Global.get_Amtr_name():
-                                num = " " + Global.get_Amtr_name()[-1]
-                            bpy.ops.pose.select_all(action="SELECT")
-                            bpy.ops.poselib.pose_add(frame=0, name=str(Global.get_asset_name() + " Pose"))
-                            for action in bpy.data.actions:
-                                if action.name == "PoseLib":
-                                    action.name = Global.get_asset_name() + num + " Pose Library"
-                            bpy.ops.pose.select_all(action="DESELECT")
+        if (bpy.context.window_manager.add_pose_lib):
+            if self.pose_lib_check():
+                self.add_pose(transform_data)
+            else:
+                num = ""
+                if ".0" in self.fig_object_name:
+                    num = " " + self.fig_object_name[-1]
+                bpy.ops.pose.select_all(action="SELECT")
+                bpy.ops.poselib.pose_add(frame=0, name=str(self.fig_object["Asset Name"] + " Pose"))
+                action = bpy.data.actions["PoseLib"]
+                action.name = self.fig_object["Asset Name"] + num + " Pose Library"
+                bpy.ops.pose.select_all(action="DESELECT")
 
     def pose_lib_check(self):
-        for action in bpy.data.actions:
-            if ".0" in Global.get_Amtr_name():
-                num = ""
-                if ".0" in Global.get_Amtr_name():
-                    num = " " + Global.get_Amtr_name()[-1]
-                if action.name == Global.get_asset_name() + num + " Pose Library":
-                    return True
-                else:
-                    return
-            if action.name == Global.get_asset_name() + " Pose Library":
-                return True
-                
+        if ".0" in self.fig_object_name:
+            num = " " + self.fig_object_name[-1]
+            name = self.fig_object["Asset Name"] + num + " Pose Library"
+        else:
+            name = self.fig_object["Asset Name"] + " Pose Library"
+        if name in bpy.data.actions.keys():  
+            return True
+
+    # Add Pose to Library
     def add_pose(self,transform_data):
-        #Add Pose to Library
-        for action in bpy.data.actions:
-            if action.name == Global.get_asset_name() + " Pose Library":
-                frame_count = len(action.fcurves) + 1
-        if "Asset Name" in transform_data.keys():
-            name = transform_data["Asset Name"]
-            bpy.ops.pose.select_all(action="SELECT")
-            bpy.ops.poselib.pose_add(frame=frame_count, name=str(name))
-            bpy.ops.pose.select_all(action="DESELECT")
+        if ".0" in self.fig_object_name:
+                num = ""
+                if ".0" in self.fig_object_name:
+                    num = " " + self.fig_object_name[-1]
+                    name = self.fig_object["Asset Name"] + num + " Pose Library"
+        else:
+            name = self.fig_object["Asset Name"] + " Pose Library"
+        action = bpy.data.actions[name]
+        frame_count = len(action.fcurves) + 1
         
+        if "Asset Name" in transform_data.keys():
+            pose_name = transform_data["Asset Name"]
+        else:
+            pose_name = frame_count
+
+        bpy.ops.pose.select_all(action="SELECT")
+        bpy.ops.poselib.pose_add(frame=frame_count, name=str(pose_name))
+        bpy.ops.pose.select_all(action="DESELECT")
+       
     def restore_pose(self):
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode("POSE")
-        self.make_pose("first")
+        self.make_pose()
