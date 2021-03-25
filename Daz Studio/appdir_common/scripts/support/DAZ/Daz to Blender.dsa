@@ -1,12 +1,12 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
 
 (function(){
-	// To be able to use the IDE Input your absolute Path.
-	//var s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"
 	
 	var s_sDazBridgeName = "Daz To Blender"
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
+	// To be able to use the IDE Input your absolute Path.
+	s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
 	var s_sMorphDialog = "DzBlenderMorphSelectionDialog"
 	s_oFileInfo.deleteLater();
@@ -1841,7 +1841,27 @@
 		}
 		return sPropertyName;
 	};
-	
+	/*********************************************************************/
+	// String : Returns the morph rules to be used at Export
+	function getMorphString(s_aMorphsToExport){
+        var aMorphNamesToExport;
+        var sMorphString
+
+        if ( s_aMorphsToExport.length == 0 )
+        {
+            return "";
+        }
+        aMorphNamesToExport = [];
+        sMorphString = "";
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            oMorphInfo = s_aMorphsToExport[i]
+            aMorphNamesToExport.push( oMorphInfo.name );
+        }
+        sMorphString = aMorphNamesToExport.join("\n1\n");
+        sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
+        return sMorphString;
+    };
+
 	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
 	function loadMorphLinks( aExportableProperties )
@@ -1876,7 +1896,7 @@
 		
 		return;		
 	};
-
+	
 	/*********************************************************************/
 	// void : ...
 	function main()
@@ -1936,13 +1956,15 @@
 				setSubDivLevelAll( oFigure );
 				
 				// Define Subscripts
-				s_sMorphRules, aExportableProperties = executeSubScript(
+				aExportableProperties = executeSubScript(
 									s_sMorphDialog, 
 									[oFigure, s_sPresetPath, s_sDazBridgeName] 
 								);
 				
+				s_sMorphRules = getMorphString( aExportableProperties );
 				loadMorphLinks( aExportableProperties );
-
+				
+				
 				// Write data
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				writeFigureBoneData( oFigure, sFileBasename );

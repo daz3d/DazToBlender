@@ -623,17 +623,20 @@
         prepareDialog();
         // When user Cancels the dialog
 		if( !wDlg.exec() ){
-            
             return false;
-
 		};
-        s_sMorphRules = getMorphString();
+        return true
         
     };
 
     /*********************************************************************/
-    main();
+    if(main()){
+        return s_aMorphsToExport;
+    }
+    else{
+        return []
+    }
 
-    return s_sMorphRules, s_aMorphsToExport;
+    
 })( getArguments() );
 
