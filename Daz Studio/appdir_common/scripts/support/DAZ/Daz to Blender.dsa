@@ -6,7 +6,7 @@
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
 	// To be able to use the IDE Input your absolute Path.
-	s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
+	//s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
 	var s_sMorphDialog = "DzBlenderMorphSelectionDialog"
 	s_oFileInfo.deleteLater();
