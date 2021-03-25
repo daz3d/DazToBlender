@@ -196,13 +196,6 @@ class IMP_OT_FBX(bpy.types.Operator):
         
             self.pbar(40, wm)
 
-            if Global.getIsEyls():
-                drb.integrationEyelashes()
-                Global.deselect()
-            if Global.getIsTEAR():
-                drb.integrationTear()
-                Global.deselect()
-
             if Global.getIsGen():
                 drb.fixGeniWeight(db)
             Global.deselect()
@@ -212,26 +205,19 @@ class IMP_OT_FBX(bpy.types.Operator):
 
             # Shape keys
             dsk = DtbShapeKeys.DtbShapeKeys(False)
-            dsk.deleteEyelashes() #Removes Eyelashes but does not connect right now
-            self.pbar(50, wm)
-            # dsk.toshortkey() #Renaming does not work correctly as Alias Change in Daz 4.12
-            # dsk.deleteExtraSkey()
-            # dsk.toHeadMorphMs(db)
-            wm.progress_update(55)
-            # if wm.quick_heavy==False:
-            #     dsk.delete_all_extra_sk(55, 75, wm)
-            self.pbar(75,wm)
             dsk.make_drivers()
             Global.deselect()
-            self.pbar(80,wm)
+            self.pbar(60,wm)
 
             drb.makeRoot()
             drb.makePole()
             drb.makeIK()
             drb.pbone_limit()
             drb.mub_ary_Z()
+            self.pbar(70,wm)
             Global.setOpsMode("OBJECT")
             CustomBones.CBones()
+            self.pbar(80,wm)
             Global.setOpsMode('OBJECT')
             Global.deselect()
             self.pbar(90,wm)
