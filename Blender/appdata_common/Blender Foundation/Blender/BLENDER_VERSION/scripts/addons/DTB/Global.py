@@ -569,7 +569,7 @@ def getRootPath():
             hdir = os.path.expanduser('~')
         else:
             hdir = os.environ['HOME']
-        hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender")
+        hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Exports")
         if os.path.exists(hdir):
             root = hdir
         else:
