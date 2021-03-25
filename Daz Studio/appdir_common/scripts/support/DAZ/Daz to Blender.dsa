@@ -1848,7 +1848,7 @@
 	{
 		// Load all the controller links on the properties
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
-			var oMorphProperty = aExportableProperties[i];
+			var oMorphProperty = aExportableProperties[i].property;
 			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
 			for( var j = 0; j < nControllerCount; j += 1 ){
@@ -1941,7 +1941,6 @@
 									[oFigure, s_sPresetPath, s_sDazBridgeName] 
 								);
 				
-				aExportableProperties = [] // TODO: Remove this line
 				loadMorphLinks( aExportableProperties );
 
 				// Write data

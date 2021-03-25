@@ -49,11 +49,12 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType ){
+    function morphInfo( sName, sLabel, sPath, sType, oProperty ){
         this.name = sName;
         this.label = sLabel;
         this.path = sPath;
         this.type = sType;
+        this.property = oProperty;
     };
 
     /*********************************************************************/
@@ -274,7 +275,8 @@
                     sPropName,
                     sPropLabel,
                     sPath,
-                    oPresentation.type
+                    oPresentation.type,
+                    oProperty
                 );
                 
                 if( !( oMorphInfo.name in s_oMorphs ) ){
@@ -302,7 +304,8 @@
                                 sModName,
                                 sPropLabel,
                                 sPath,
-                                oPresentation.type
+                                oPresentation.type,
+                                oProperty
                             );
                             if( !( oMorphInfo.name in s_oMorphs ) ){
                                 s_oMorphs[oMorphInfo.name] = oMorphInfo;
