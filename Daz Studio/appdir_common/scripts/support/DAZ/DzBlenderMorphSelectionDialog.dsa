@@ -484,7 +484,6 @@
         oFile = new DzFile( sFilePath );
         if( !oFile.open( DzFile.WriteOnly ) ){
 			print( String( "Unable to open \"%1\" for writing." ).arg( sFilePath ) );
-            oFile.close();
 			return;
 		};
 
@@ -554,7 +553,6 @@
         oFile = new DzFile( sPresetFilePath );
         if( !oFile.open( DzFile.ReadOnly ) ){
 			print( String( "Unable to open \"%1\" for Reading." ).arg( sPresetFilePath ) );
-			oFile.close();
 			return;
 		};
 

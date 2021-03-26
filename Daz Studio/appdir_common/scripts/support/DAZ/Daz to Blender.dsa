@@ -938,33 +938,34 @@
 			}
 			// Create Directories
 			oDir.setPath( sPath );
-				if( !oDir.exists() ){
-					oDir.mkdir( sPath );
-				}
+			if( !oDir.exists() ){
+				oDir.mkdir( sPath );
+			};
 		};
 
 		// Create Type Directories
 		if(nType == s_oExportTypes.EnvProp ){
 			sPath = s_sRootPath + aSubs[0] + "/"	
-			}
+			};
 		if(nType == s_oExportTypes.Figure ){
 			sPath = s_sRootPath + aSubs[1] + "/"	
-			}	
+			};	
 
 		// Create Directories
 		oDir.setPath( sPath );
 		if( !oDir.exists() ){
 			oDir.mkdir( sPath );
-		}
-		// Clear Directory
-		oDir.setPath( sPath );
+		};
+		
 		// Delete Files
 		aFiles = oDir.getFilesFromDir( [], true );
 		for( var j = 0; j < aFiles.length; j += 1 ){
 			oDir.remove( aFiles[j] );
-		}
+		};
 		// Delete Dirs
-		var aDirs = oDir.entryList();
+		var aDirs = oDir.entryList( "*",
+			DzDir.Dirs | DzDir.NoSymLinks | DzDir.NoDotAndDotDot, DzDir.Name );
+		
 		for ( var j = 0; j < aDirs.length; j += 1 ){
 			sDelPath = sPath + aDirs[j]
 			oDelDir.setPath( sDelPath );
