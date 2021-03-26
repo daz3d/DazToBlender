@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2, 2, 2),
+    "version": (2, 3, 0),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -26,10 +26,15 @@ from . import ToRigify
 from . import Global
 from . import Versions
 from . import DtbDazMorph
+from . import DtbOperators
+from . import DtbPanels
 from . import DtbMaterial
 from . import CustomBones
+from . import Poses
+from . import Animations
 from . import Util
-from . import WCmd
+from . import DtbCommands
+from . import DtbIKBones
 from bpy.props import EnumProperty
 from bpy.props import BoolProperty
 from bpy.props import StringProperty
@@ -61,636 +66,11 @@ eyekeys=[
     'Bump.Strength',
     'Bump.Distance',
 ]
-num_bones = [6, 6, 3, 3]
-ik_name = ['rHand_IK', 'lHand_IK', 'rShin_IK', 'lShin_IK']
-bone_name = ['rHand', 'lHand', 'rShin', 'lShin']
-bone_name_rigify = ['MCH-upper_arm_ik.R','MCH-upper_arm_ik.L','MCH-thigh_ik.R','MCH-thigh_ik.L']
-fbx_exsported = ""
-obj_exsported = ""
-mute_bones = []
-ik_access_ban = False
+
 region = 'UI'
 BV = Versions.getBV()
-total_key_count = 0 # To keep track of the max number of the keys in actions, so to set fps
 
-def get_influece_data_path(bname):
-    amtr = Global.getAmtr()
-    if amtr is None:
-        return
-    if bname in amtr.pose.bones:
-        pbn = amtr.pose.bones[bname]
-        for c in pbn.constraints:
-            if bname + '_IK' in c.name:
-                return [c, 'influence']
-    return None
 
-def get_ik_influence(data_path):
-    return eval("data_path[0].%s" % data_path[1])
-
-def set_ik_influence(data_path, val):
-    exec("data_path[0].%s = %f" % (data_path[1], val))
-
-def set_ik(data_path):
-    set_ik_influence(data_path, 1.0)
-
-def set_fk(data_path):
-    set_ik_influence(data_path, 0.0)
-
-def set_translation(matrix, loc):
-    trs = matrix.decompose()
-    rot = trs[1].to_matrix().to_4x4()
-    scale = mathutils.Matrix.Scale(1, 4, trs[2])
-    if BV<2.80:
-        return mathutils.Matrix.Translation(loc) * (rot * scale)
-    else:
-        return mathutils.Matrix.Translation(loc) @ (rot @ scale)
-
-def reset_total_key_count():
-    global total_key_count
-    total_key_count = 0
-
-def update_total_key_count(key_count):
-    global total_key_count
-    if key_count > total_key_count:
-        total_key_count = key_count
-
-def get_total_key_count():
-    global total_key_count
-    return total_key_count
-
-def set_scene_settings():
-    scene = bpy.context.scene
-    scene.unit_settings.length_unit = 'CENTIMETERS'
-
-    # Set start and end playable range for the animations.
-    scene.frame_start = 0
-    scene.frame_end = get_total_key_count() - 1
-    scene.frame_current = 0
-
-    # Set armature display settings
-    Global.setOpsMode('POSE')
-    armature = Global.getAmtr().data
-    armature.display_type = 'OCTAHEDRAL'
-    armature.show_names = False
-    armature.show_axes = False
-    armature.show_bone_custom_shapes = True
-
-# region - Quaternion to Euler
-
-def get_rotation_order(node_name):
-    bone_limits = Global.get_bone_limit()
-    for bone_limit in bone_limits:
-        if bone_limit[0] in node_name:
-            return bone_limit[1]
-    return "XYZ"
-
-
-def get_or_create_fcurve(action, data_path, array_index=-1, group=None):
-    for fc in action.fcurves:
-        if fc.data_path == data_path and (array_index < 0 or fc.array_index == array_index):
-            return fc
-
-    fc = action.fcurves.new(data_path, index=array_index)
-    fc.group = group
-    return fc
-
-
-def add_keyframe_euler(action, euler, frame, bone_prefix, group):
-    for i in range(len(euler)):
-        fc = get_or_create_fcurve(
-                action, bone_prefix + "rotation_euler",
-                i,
-                group
-                )
-        pos = len(fc.keyframe_points)
-        fc.keyframe_points.add(1)
-        fc.keyframe_points[pos].co = [frame, euler[i]]
-        fc.update()
-
-
-def frames_matching(action, data_path):
-    frames = set()
-    for fc in action.fcurves:
-        if fc.data_path == data_path:
-            fri = [kp.co[0] for kp in fc.keyframe_points]
-            frames.update(fri)
-    return frames
-
-
-def fcurves_group(action, data_path):
-    for fc in action.fcurves:
-        if fc.data_path == data_path and fc.group is not None:
-            return fc.group
-    return None
-
-
-def convert_quaternion_to_euler(action, obj):
-    # Get all the bones with quaternion animation data
-    bone_prefixes = set()
-    for fcurve in action.fcurves:
-        if fcurve.data_path == "rotation_quaternion" or fcurve.data_path[-20:] == ".rotation_quaternion":
-            bone_prefixes.add(fcurve.data_path[:-19])
-
-    for bone_prefix in bone_prefixes:
-        if (bone_prefix == ""):
-            bone = obj
-        else:
-            # get the bone using the data path prefix
-            bone = eval("obj." + bone_prefix[:-1])
-
-        data_path = bone_prefix + "rotation_quaternion"
-        frames = frames_matching(action, data_path)
-        group = fcurves_group(action, data_path)
-
-        for fr in frames:
-            # Get quaternion keyframe value
-            quat = bone.rotation_quaternion.copy()
-            for fcurve in action.fcurves:
-                if fcurve.data_path == data_path:
-                    quat[fcurve.array_index] = fcurve.evaluate(fr)
-
-            # Calculate euler equivalent for the quaternion
-            order = get_rotation_order(bone.name)
-            euler = quat.to_euler(order)
-
-            # Add euler keyframe and set correct rotation order
-            add_keyframe_euler(action, euler, fr, bone_prefix, group)
-            bone.rotation_mode = order
-    
-    # delete all the curves with quaternion data
-    quat_fcurves = []
-    for fcurve in action.fcurves:
-        if fcurve.data_path[-20:] == ".rotation_quaternion":
-            quat_fcurves.append(fcurve)
-    for fcurve in quat_fcurves:
-        action.fcurves.remove(fcurve)    
-
-# endregion - Quaternion to Euler
-
-def convert_rotation_orders():
-    Versions.active_object(Global.getAmtr())
-    Global.setOpsMode('POSE')
-    for bone in Global.getAmtr().pose.bones:
-        order = bone.rotation_mode
-        if order == 'XYZ':
-            bone.rotation_mode = 'ZXY'
-        elif order == 'XZY':
-            bone.rotation_mode = 'YZX'
-        elif order == 'YZX':
-            bone.rotation_mode = 'YZX'
-        elif order == 'ZXY':
-            bone.rotation_mode = 'XYZ'
-        elif order == 'ZYX':
-            bone.rotation_mode = 'YZX'
-
-def clean_animations():
-    Versions.active_object(Global.getAmtr())
-    Global.setOpsMode('POSE')
-
-    for action in bpy.data.actions:
-
-        # Convert rotation animation data from quaternion to euler angles
-        convert_quaternion_to_euler(action, Global.getAmtr())
-
-        # Convert animation data from Studio to Blender
-        curve_count = len(action.fcurves)
-        index = 0
-        while index < curve_count:
-            fcurve = action.fcurves[index]
-            start_index = fcurve.data_path.find('[')
-            end_index = fcurve.data_path.find(']')
-            if (start_index == -1 or end_index == -1):
-                # Convert Figure root bone animation data
-                if "Genesis" in action.name:
-                    if fcurve.data_path == "rotation_euler":
-                        for point in fcurve.keyframe_points:
-                            point.co[1] = 0
-                    if fcurve.data_path == "scale":
-                        for point in fcurve.keyframe_points:
-                            point.co[1] = 1.0
-                # Convert non Figure root bone animation data
-                else:
-                    if fcurve.data_path == "location":
-                        fcurve_x = action.fcurves[index + 0]
-                        fcurve_y = action.fcurves[index + 1]
-                        fcurve_z = action.fcurves[index + 2]
-                        point_count = len(fcurve_x.keyframe_points)
-
-                        for i in range(point_count):
-                            # Y invert (-Y)
-                            fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                            # Z invert (-Z)
-                            fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-                        
-                        index += 2
-            else:
-                node_name = fcurve.data_path[start_index + 2 : end_index - 1]
-                property_name = fcurve.data_path[end_index + 2 :]
-                rotation_order = get_rotation_order(node_name)
-
-                # Convert location animation data for all the non root bones
-                if property_name == "location":
-                    fcurve_x = action.fcurves[index + 0]
-                    fcurve_y = action.fcurves[index + 1]
-                    fcurve_z = action.fcurves[index + 2]
-                    point_count = len(fcurve_x.keyframe_points)
-                    update_total_key_count(point_count)
-
-                    for i in range(point_count):
-                        # Y invert (-Y)
-                        fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                        # Z invert (-Z)
-                        fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                    # Get skeleton scale and set to location animation data
-                    skeleton_data = DataBase.get_skeleton_data()
-                    skeleton_scale = skeleton_data["skeletonScale"]
-                    skeleton_scale *= 0.01 # To match armature scale
-                    for i in range(point_count):
-                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale
-                        fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
-                        fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
-
-                    index += 2
-
-                # Convert rotation animation data for all the non root bones
-                if property_name == "rotation_euler":
-                    fcurve_x = action.fcurves[index + 0]
-                    fcurve_y = action.fcurves[index + 1]
-                    fcurve_z = action.fcurves[index + 2]
-                    point_count = len(fcurve_x.keyframe_points)
-                    update_total_key_count(point_count)
-
-                    if rotation_order == 'XYZ':
-                        for i in range(point_count):
-                            # YZ switch (Y <-> Z)
-                            temp = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                            fcurve_z.keyframe_points[i].co[1] = temp
-
-                            # XY switch (X <-> Y)
-                            temp = fcurve_x.keyframe_points[i].co[1]
-                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = temp
-
-                            if(node_name.startswith("r")):
-                                # Y invert (-Y)
-                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                # Z invert (-Z)
-                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                    elif rotation_order == 'XZY':
-                        for i in range(point_count):
-                            # XY switch (X <-> Y)
-                            temp = fcurve_x.keyframe_points[i].co[1]
-                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = temp
-
-                            # X invert (-X)
-                            fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
-
-                            if(node_name.startswith("r")):
-                                # Y invert (-Y)
-                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                # Z invert (-Z)
-                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                    elif rotation_order == "YZX":
-                        # Bones that are pointed down with YZX order
-                        # TODO: remove hardcoding
-                        if node_name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
-                            for i in range(point_count):
-                                # Y invert (-Y)
-                                fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]
-
-                                # Z invert (-Z)
-                                fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
-                    elif rotation_order == "ZXY":
-                        for i in range(point_count):
-                            # XY switch (X <-> Y)
-                            temp = fcurve_x.keyframe_points[i].co[1]
-                            fcurve_x.keyframe_points[i].co[1] = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = temp
-
-                            # YZ switch (Y <-> Z)
-                            temp = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                            fcurve_z.keyframe_points[i].co[1] = temp
-
-                    elif rotation_order == "ZYX":
-                        for i in range(point_count):
-                            # YZ switch (Y <-> Z)
-                            temp = fcurve_y.keyframe_points[i].co[1]
-                            fcurve_y.keyframe_points[i].co[1] = fcurve_z.keyframe_points[i].co[1]
-                            fcurve_z.keyframe_points[i].co[1] = temp
-
-                            # X invert (-X)
-                            fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
-                    
-                    index += 2
-
-            index += 1
-
-    convert_rotation_orders()
-
-class DTB_PT_Main(bpy.types.Panel):
-    bl_label = "DazToBlender"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = region
-    if BV <2.80:
-        bl_category = "Tools"
-    else:
-        bl_category = "DazToBlender"
-    t_non = None
-    def draw(self, context):
-        l = self.layout
-        box = l.box()
-        w_mgr = context.window_manager
-        row = box.row(align=True)
-        row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
-        row.prop(w_mgr, "size_100", text="Size * 100", toggle=False)
-        box.operator('import.fbx', icon='POSE_HLT')
-        box.operator('import.env', icon='WORLD')
-        if context.object and context.active_object:
-            cobj = context.active_object
-            if Global.get_Body_name() == "" and Global.get_Rgfy_name() == "" and Global.get_Amtr_name() == "":
-                Global.clear_variables()
-                Global.decide_HERO()
-            if context.object.type == 'ARMATURE' and Global.getRgfy() is None and Global.getAmtr() is None:
-                Global.clear_variables()
-                Global.find_AMTR(cobj)
-                Global.find_RGFY(cobj)
-            if context.object.type == 'MESH' and Global.getBody() is None:
-                Global.clear_variables()
-                Global.find_BODY(cobj)
-            if cobj.mode == 'POSE':
-                if Global.get_Amtr_name() != cobj.name and len(cobj.data.bones) > 90 and len(cobj.data.bones) < 200:
-                    Global.clear_variables()
-                    Global.find_Both(cobj)
-                if Global.get_Rgfy_name() != cobj.name and len(cobj.data.bones) > 600:
-                    Global.clear_variables()
-                    Global.find_Both(cobj)
-            elif context.object.type == 'MESH':
-                if Global.get_Body_name() != "" and Global.get_Body_name() != cobj.name and len(
-                        cobj.vertex_groups) > 163 \
-                        and len(cobj.data.vertices) >= 16384 \
-                        and len(cobj.vertex_groups) < 500 and len(cobj.data.vertices) < 321309:
-                    Global.clear_variables()
-                    Global.find_Both(cobj)
-            if ik_access_ban == False and context.active_object.mode == 'POSE':
-                l.separator()
-                if Global.amIAmtr(context.object):
-                    col = l.column(align=True)
-                    r = col.row(align=True)
-                    for i in range(len(ik_name)):
-                        if i == 2:
-                            r = col.row(align=True)
-                        influence_data_path = get_influece_data_path(bone_name[i])
-                        if influence_data_path is not None:
-                            r.prop(w_mgr, 'ifk' + str(i), text=ik_name[i], toggle=True)
-                    col.operator('limb.redraw',icon='LINE_DATA')
-                    l.separator()
-                elif Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('my.iktofk', icon="MESH_CIRCLE")
-                        row.operator('my.fktoik', icon="MESH_CUBE")
-                if Global.amIAmtr(context.object):
-                    l.operator('to.rigify', icon='ARMATURE_DATA')
-                if Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('match.ikfk')
-                        row.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
-                    else:
-                        l.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
-                l.separator()
-                l.operator('my.clear')
-            if Global.amIBody(context.object):
-                col = l.column(align=True)
-                box = col.box()
-                row = box.row(align=True)
-                row.alignment = 'EXPAND'
-                row.prop(w_mgr, "is_eye", text="Eye")
-                row.prop(w_mgr, "ftime_prop", text="x 4")
-                if w_mgr.is_eye:
-                    box.prop(w_mgr, "eye_prop", text="")
-                else:
-                    box.prop(w_mgr, "skin_prop", text="")
-                row = box.row(align=True)
-                row.alignment = 'EXPAND'
-                row.operator('material.up', icon="TRIA_UP")
-                row.operator('material.down', icon="TRIA_DOWN")
-                box.operator('df.material')
-            if context.object.type == 'MESH':
-                if Global.isRiggedObject(context.object):
-                    if Versions.get_active_object().mode == 'OBJECT':
-                        l.prop(w_mgr, 'new_morph', text="Make New Morph")
-                    row = l.row(align=True)
-                    row.operator('exsport.morph', icon="TRIA_LEFT")
-                    row.operator('to.sculpt', icon="MONKEY")
-                    if obj_exsported != "":
-                        l.label(text=obj_exsported)
-                    
-                l.separator()
-            row = l.row(align=True)
-            row.alignment = 'EXPAND'
-            row.prop(w_mgr, "search_prop")
-            if context.object.type == 'MESH':
-                row.operator('search.morph', icon='VIEWZOOM')
-            else:
-                row.operator('search.morph', icon='HAND')
-        else:
-            l.prop(w_mgr, "search_prop")
-        l.operator('remove.alldaz', icon='BOIDS')
-        l.operator('df.optimize', icon="MATERIAL")
-        
-                    
-
-
-class IMP_OT_FBX(bpy.types.Operator):
-    bl_idname = "import.fbx"
-    bl_label = "Import New Genesis 3/8"
-    bl_options = {'REGISTER', 'UNDO'}
-    root = Global.getRootPath()
-
-    def invoke(self, context, event):
-        if bpy.data.is_dirty:
-            return context.window_manager.invoke_confirm(self, event)
-        return self.execute(context)
-
-    def finish_obj(self):
-        Versions.reverse_language()
-        Versions.pivot_active_element_and_center_and_trnormal()
-        Global.setRenderSetting(True)
-
-    def layGround(self):
-        bpy.context.preferences.inputs.use_mouse_depth_navigate = True
-        Util.deleteEmptyDazCollection()
-        bpy.context.scene.render.engine = 'CYCLES'
-        bpy.context.space_data.shading.type = 'SOLID'
-        bpy.context.space_data.shading.color_type = 'OBJECT'
-        bpy.context.space_data.shading.show_shadows = False
-        Versions.set_english()
-        bco = bpy.context.object
-        if bco != None and bco.mode != 'OBJECT':
-            Global.setOpsMode('OBJECT')
-        bpy.ops.view3d.snap_cursor_to_center()
-
-    def pbar(self,v,wm):
-        wm.progress_update(v)
-
-    def import_one(self,fbx_adr):
-        Versions.active_object_none()
-        Util.decideCurrentCollection('FIG')
-        wm = bpy.context.window_manager
-        wm.progress_begin(0, 100)
-        Global.clear_variables()
-        ik_access_ban = True
-        reset_total_key_count()
-        drb = DazRigBlend.DazRigBlend()
-        dtb_shaders = DtbMaterial.DtbShaders()
-        self.pbar(5,wm)
-        drb.convert_file(filepath=fbx_adr)
-        self.pbar(10, wm)
-        db = DataBase.DB()
-        Global.decide_HERO()
-        self.pbar(15, wm)
-
-        if Global.getAmtr() is not None and Global.getBody() is not None:
-            Global.deselect() # deselect all the objects
-            drb.clear_pose() # Select Armature and clear transform
-            drb.mub_ary_A() # Find and read FIG.dat file
-            drb.orthopedy_empty() # On "EMPTY" type objects
-            self.pbar(18, wm)
-            drb.orthopedy_everything() # clear transform, clear and reapply parent
-            Global.deselect()
-            self.pbar(20, wm)
-            drb.set_bone_head_tail() # Sets head and tail positions for all the bones
-            Global.deselect()
-            self.pbar(25, wm)
-            drb.bone_limit_modify()
-            clean_animations()
-            Global.deselect()
-            self.pbar(30, wm)
-            drb.unwrapuv()
-            Global.deselect()
-            if Global.getIsEyls():
-                drb.integrationEyelashes()
-                Global.deselect()
-            if Global.getIsTEAR():
-                drb.integrationTear()
-                Global.deselect()
-
-            # materials
-            dtb_shaders.make_dct()
-            dtb_shaders.load_shader_nodes()
-            dtb_shaders.body_texture()
-            self.pbar(35, wm)
-            dtb_shaders.wardrobe_texture()
-            self.pbar(40, wm)
-
-            if Global.getIsGen():
-                drb.fixGeniWeight(db)
-            Global.deselect()
-            self.pbar(45, wm)
-            Global.setOpsMode('OBJECT')
-            Global.deselect()
-
-            # Shape keys
-            dsk = DtbShapeKeys.DtbShapeKeys(False)
-            #dsk.deleteEyelashes() #Removes Eyelashes but does not connect right now
-            self.pbar(50, wm)
-            #dsk.toshortkey() #Renaming does not work correctly as Alias Change in Daz 4.12
-            dsk.deleteExtraSkey()
-            dsk.toHeadMorphMs(db)
-            wm.progress_update(55)
-            if wm.quick_heavy==False:
-                dsk.delete_all_extra_sk(55, 75, wm)
-            self.pbar(75,wm)
-            dsk.makeDrives(db)
-            Global.deselect()
-            self.pbar(80,wm)
-
-            drb.makeRoot()
-            drb.makePole()
-            drb.makeIK()
-            drb.pbone_limit()
-            drb.mub_ary_Z()
-            Global.setOpsMode("OBJECT")
-            CustomBones.CBones()
-            Global.setOpsMode('OBJECT')
-            Global.deselect()
-            self.pbar(90,wm)
-            dsk.delete001_sk()
-            amt = Global.getAmtr()
-            for bname in bone_name:
-                bone = amt.pose.bones[bname]
-                for bc in bone.constraints:
-                    if bc.name == bname + "_IK":
-                        pbik = amt.pose.bones.get(bname + "_IK")
-                        amt.pose.bones[bname].constraints[bname + '_IK'].influence = 0
-            drb.makeBRotationCut(db) # lock movements around axes with zeroed limits for each bone
-            Global.deselect()
-            
-            # materials
-            DtbMaterial.forbitMinus()
-            self.pbar(95,wm)
-            Global.deselect()
-
-            Versions.active_object(Global.getAmtr())
-            Global.setOpsMode("POSE")
-            drb.mub_ary_Z()
-            Global.setOpsMode("OBJECT")
-            drb.finishjob()
-            Global.setOpsMode("OBJECT")
-            Util.Posing().setpose()
-            bone_disp(-1, True)
-            set_scene_settings()
-            self.pbar(100,wm)
-            ik_access_ban = False
-            self.report({"INFO"}, "Success")
-        else:
-            self.show_error()
-
-        wm.progress_end()
-        ik_access_ban = False
-
-    def execute(self, context):
-        global ik_access_ban
-
-        if self.root == "":
-            self.report({"ERROR"}, "Appropriate FBX does not exist!")
-            return {'FINISHED'}
-        self.layGround()
-        for i in range(10):
-            fbx_adr = self.root + "FIG/FIG" + str(i) + "/B_FIG.fbx"
-            if os.path.exists(fbx_adr)==False:
-                break
-            Global.setHomeTown(self.root+"FIG/FIG" + str(i))
-            self.import_one(fbx_adr)
-        self.finish_obj()
-        return {'FINISHED'}
-
-    def show_error(self):
-        Global.setOpsMode("OBJECT")
-        for b in Util.myacobjs():
-            bpy.data.objects.remove(b)
-        filepath = os.path.dirname(__file__) + Global.getFileSp()+"img" + Global.getFileSp() + "Error.fbx"
-        if os.path.exists(filepath):
-            bpy.ops.import_scene.fbx(filepath=filepath)
-            bpy.context.space_data.shading.type = 'SOLID'
-            bpy.context.space_data.shading.color_type = 'TEXTURE'
-        for b in Util.myacobjs():
-            for i in range(3):
-                b.scale[i] = 0.01
 
 class MATERIAL_OT_up(bpy.types.Operator):
     bl_idname = "material.up"
@@ -726,13 +106,7 @@ class MATERIAL_OT_down(bpy.types.Operator):
         adjust_material(context, True)
         return {'FINISHED'}
 
-class CLEAR_OT_Pose(bpy.types.Operator):
-    bl_idname = "my.clear"
-    bl_label = 'CLEAR ALL POSE'
 
-    def execute(self, context):
-        clear_pose()
-        return {'FINISHED'}
 
 def clear_pose():
     if bpy.context.object is None:
@@ -760,8 +134,8 @@ class TRANS_OT_Rigify(bpy.types.Operator):
 
         trf = ToRigify.ToRigify()
         db = DataBase.DB()
-        adjust_shin_y(2, False)
-        adjust_shin_y(3, False)
+        DtbIKBones.adjust_shin_y(2, False)
+        DtbIKBones.adjust_shin_y(3, False)
         trf.toRigify(db, self)
         return {'FINISHED'}
 
@@ -773,12 +147,7 @@ class DEFAULT_OT_material(bpy.types.Operator):
         default_material(context)
         return {'FINISHED'}
 
-class OPTIMIZE_OT_material(bpy.types.Operator):
-    bl_idname = "df.optimize"
-    bl_label = 'Optimize Materials(WIP)'
-    def execute(self, context):
-        DtbMaterial.optimize_materials()
-        return {'FINISHED'}
+
 
 def default_material(context):
     w_mgr = context.window_manager
@@ -804,13 +173,7 @@ class MATCH_OT_ikfk(bpy.types.Operator):
         trf.match_ikfk(influence4)
         return {'FINISHED'}
 
-class SEARCH_OT_morph(bpy.types.Operator):
-    bl_idname = "search.morph"
-    bl_label = 'Command'
 
-    def execute(self, context):
-        search_morph(context)
-        return {'FINISHED'}
 
 class SCULPT_OT_push(bpy.types.Operator):
     bl_idname = 'to.sculpt'
@@ -856,28 +219,14 @@ class FK2IK_OT_button(bpy.types.Operator):
             rgfy = ToRigify.ToRigify()
             rgfy.ik2fk(-1)
         else:
-            bone_disp(-1, False)
-            global mute_bones
-            mute_bones.append('NG')
-            for i in range(len(bone_name)):
-                fktoik(i)
-                adjust_shin_y(i, True)
-            mute_bones = []
+            DtbIKBones.bone_disp(-1, False)
+            DtbIKBones.mute_bones.append('NG')
+            for i in range(len(DtbIKBones.bone_name)):
+                DtbIKBones.fktoik(i)
+                DtbIKBones.adjust_shin_y(i, True)
+            DtbIKBones.mute_bones = []
         return {'FINISHED'}
 
-class IMP_OT_ENV(bpy.types.Operator):
-    bl_idname = "import.env"
-    bl_label = "Import New Env/Prop"
-    bl_options = {'REGISTER', 'UNDO'}
-    def invoke(self, context, event):
-        if bpy.data.is_dirty:
-            return context.window_manager.invoke_confirm(self, event)
-        return self.execute(context)
-
-    def execute(self, context):
-        from . import Environment
-        Environment.EnvProp()
-        return {'FINISHED'}
 
 class IK2FK_OT_button(bpy.types.Operator):
     bl_idname = "my.iktofk"
@@ -890,32 +239,14 @@ class IK2FK_OT_button(bpy.types.Operator):
             rgfy = ToRigify.ToRigify()
             rgfy.fk2ik(-1)
         else:
-            bone_disp(-1, True)
-            global mute_bones
-            mute_bones.append('NG')
-            for i in range(len(bone_name)):
-                iktofk(i)
-                adjust_shin_y(i, False)
-            mute_bones = []
+            DtbIKBones.bone_disp(-1, True)
+            DtbIKBones.mute_bones.append('NG')
+            for i in range(len(DtbIKBones.bone_name)):
+                DtbIKBones.iktofk(i)
+                DtbIKBones.adjust_shin_y(i, False)
+            DtbIKBones.mute_bones = []
         return {'FINISHED'}
 
-
-class REMOVE_DAZ_OT_button(bpy.types.Operator):
-    bl_idname = "remove.alldaz"
-    bl_label = "Remove All Daz"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def invoke(self,context,event):
-        return context.window_manager.invoke_confirm(self, event)
-
-    def execute(self, context):
-        col = bpy.data.collections.get('DAZ_ROOT')
-        if col is not None:
-            for c in col.children:
-                for obj in c.objects:
-                    bpy.data.objects.remove(obj)
-                bpy.data.collections.remove(c)
-        return {'FINISHED'}
 
 class LIMB_OT_redraw(bpy.types.Operator):
     bl_idname = "limb.redraw"
@@ -926,9 +257,9 @@ class LIMB_OT_redraw(bpy.types.Operator):
             return
         w_mgr = bpy.context.window_manager
         for i in range(4):
-            ik_value = get_ik_influence(get_influece_data_path(bone_name[i]))
+            ik_value = DtbIKBones.get_ik_influence(DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i]))
             flg_ik = ik_value >= 0.5
-            bone_disp(i, flg_ik == False)
+            DtbIKBones.bone_disp(i, flg_ik == False)
             if i == 0:
                 if w_mgr.ifk0 != flg_ik:
                     w_mgr.ifk0 = flg_ik
@@ -949,392 +280,7 @@ class LIMB_OT_redraw(bpy.types.Operator):
                     c.influence = ik_value
         return {'FINISHED'}
 
-def manageKeyFrame(index, flg_to_ik, switch):
-    global mute_bones
-    amt = Global.getAmtr()
-    if index ==1000:
-        return
-    if amt is None:
-        return
-    if 'NG' in mute_bones:
-        return
-    if amt.animation_data is None:
-        return
-    act = amt.animation_data.action
-    if act is None:
-        return
-    ckey = bpy.context.scene.frame_current
-    if switch<0:
-        mute_bones = []
-        my_bone = amt.pose.bones[bone_name[index]]
-        num = num_bones[index]
-        for i in range(num):
-            mute_bones.append(my_bone.name)
-            my_bone = my_bone.parent
-        mute_bones.append(ik_name[index])
-        if index>1:
-            poles = ['', '', 'rShin_P', 'lShin_P']
-            foots = ['', '', 'rFoot', 'lFoot']
-            mute_bones.append(poles[index])
-            mute_bones.append(foots[index])
-        if flg_to_ik:
-            mute_bones.append("hip")
-    if switch < 0:
-        first_cr = bpy.context.scene.frame_start
-        first_ik = first_cr
-        prev_cr = -999
-        fkp_ik = Find_KeyFrame_Point(act.fcurves, mute_bones, ['influence',ik_name[index],bone_name[index]], ckey)
-        prev_ik = fkp_ik.previous
-        first_ik = fkp_ik.skip_first(first_ik)
-        if index > 1:
-            foots = ['', '', 'rFoot', 'lFoot']
-            fkp_cr = Find_KeyFrame_Point(act.fcurves, mute_bones, ['influence', 'Copy Rotation',foots[index]], ckey)
-            prev_cr = fkp_cr.previous
-            first_cr= fkp_cr.skip_first(first_cr)
-        if first_cr >= prev_cr:
-            first_cr = -999
-        if first_ik >= prev_ik:
-            first_ik = -999
-        for b in mute_bones:
-            for c in amt.pose.bones.get(b).constraints:
-                if (index > 1 and c.name == 'Copy Rotation' and b[1:]=='Foot'):
-                    if first_cr > -1:
-                        c.keyframe_insert(data_path='influence', frame=first_cr)
-                    if prev_cr > -1:
-                        c.keyframe_insert(data_path='influence', frame=prev_cr)
-                if c.name==ik_name[index]:
-                    if first_ik >-1:
-                        c.keyframe_insert(data_path='influence', frame=first_ik)
-                    if prev_ik > -1:
-                        c.keyframe_insert(data_path='influence', frame=prev_ik)
-    if switch==0:
-        for b in mute_bones:
-            if flg_to_ik==False:
-                if (b.endswith("_IK") or b.endswith("_P"))==False:
-                    amt.pose.bones[b].keyframe_insert(data_path='rotation_euler', frame=ckey)
-            else:
-                if (b.endswith("_IK") or b.endswith("_P")):
 
-                    amt.pose.bones[b].keyframe_insert(data_path='location', frame=ckey)
-                    if index > 1 and b.endswith("_IK"):
-                        amt.pose.bones[b].keyframe_insert(data_path='rotation_euler', frame=ckey)
-
-            for c in amt.pose.bones.get(b).constraints:
-                if (index > 1 and c.name == 'Copy Rotation') or c.name == ik_name[index]:
-                    c.keyframe_insert(data_path='influence', frame=ckey)
-    else:
-        for fcu in act.fcurves:
-            if switch > 0 and fcu.mute:
-                fcu.mute = False
-            else:
-                names = fcu.data_path.split(sep='"', maxsplit=2)
-                if len(names) < 2:
-                    continue
-                name = names[1]
-                if name in  mute_bones and switch < 0:
-                    fcu.mute = True
-    if switch==1:
-        mute_bones = []
-
-class Find_KeyFrame_Point():
-    find_collection = []
-    skip_collection = []
-    previous = -999
-
-    def skip_first(self,now_first):
-        if len(self.skip_collection)>1:
-            wk = self.skip_collection[len(self.skip_collection)-1]
-            if wk == now_first:
-                return -999
-            else:
-                return now_first
-        else:
-            return now_first
-
-    def __init__(self,fcurves,find_keys,skip_keys,now_posision):
-        self.find_collection = []
-        self.skip_collection = []
-        self.previous = -999
-        for fc in fcurves:
-            for fk in find_keys:
-                if (fk in fc.data_path):
-                    for point in fc.keyframe_points:
-                        if point.co[0] < now_posision and (point.co[0] in self.find_collection) == False:
-                            self.find_collection.append(point.co[0])
-            err = False
-            for sk in skip_keys:
-                if (sk in fc.data_path)==False:
-                    err = True
-                    break
-            if err ==False:
-                for point in fc.keyframe_points:
-                    if point.co[0] < now_posision and (point.co[0] in self.skip_collection)==False:
-                        self.skip_collection.append(point.co[0])
-        self.find_collection.sort()
-        self.find_collection.reverse()
-        self.skip_collection.sort()
-        self.skip_collection.reverse()
-        if len(self.find_collection)<=0:
-            self.previous =  -999
-        elif len(self.skip_collection)<=0 or self.skip_collection[0] < self.find_collection[0]:
-            self.previous = self.find_collection[0]
-        else:
-            self.previous =  -999
-
-def fktoik(index):
-    manageKeyFrame(index, True, -1)
-    amt = Global.getAmtr()
-    adjust_shin_y(index, True)
-    my_bone = amt.pose.bones[bone_name[index]]
-    ik_bone = amt.pose.bones[ik_name[index]]
-    set_fk(get_influece_data_path(bone_name[index]))
-    Global.setOpsMode('OBJECT')
-    Global.setOpsMode('POSE')
-    ik_bone.matrix = set_translation(ik_bone.matrix, my_bone.tail)
-    set_ik(get_influece_data_path(bone_name[index]))
-    if index>1:
-        rot3 = Global.getFootAngle(index-2)
-        for ridx,rot in enumerate(rot3):
-            ik_bone.rotation_euler[ridx] = math.radians(rot)
-        toFootCopyRotate(index,True)
-    manageKeyFrame(index, True, 0)
-    if index == 0:
-        t = threading.Thread(target=my_srv0_1)
-        t.start()
-    if index == 1:
-        t = threading.Thread(target=my_srv1_1)
-        t.start()
-    if index == 2:
-        t = threading.Thread(target=my_srv2_1)
-        t.start()
-    if index == 3:
-        t = threading.Thread(target=my_srv3_1)
-        t.start()
-
-def toFootCopyRotate(index,flg_ik):
-    copy_r = ['','','rFoot', 'lFoot']
-    pbone = Global.getAmtr().pose.bones
-    if pbone is None:
-        return
-    for c in pbone.get(copy_r[index]).constraints:
-        if 'Copy Rotation' == c.name:
-            if flg_ik:
-                c.influence = 1.0
-            else:
-                c.influence = 0.0
-
-def my_service(index,flg_to_ik):
-    time.sleep(2)
-    manageKeyFrame(index, flg_to_ik, 1)
-
-def my_srv0_1():
-    my_service(0,True)
-def my_srv1_1():
-    my_service(1,True)
-def my_srv2_1():
-    my_service(2,True)
-def my_srv3_1():
-    my_service(3,True)
-def my_srv0_0():
-    my_service(0,False)
-def my_srv1_0():
-    my_service(1,False)
-def my_srv2_0():
-    my_service(2,False)
-def my_srv3_0():
-    my_service(3,False)
-
-def iktofk(index):
-    manageKeyFrame(index, False, -1)
-    adjust_shin_y(index, False)
-    amt = Global.getAmtr()
-    ik_bone = amt.pose.bones[ik_name[index]]
-    my_bone = amt.pose.bones[bone_name[index]]
-    set_ik(get_influece_data_path(bone_name[index]))
-    Global.setOpsMode('OBJECT')
-    Global.setOpsMode('POSE')
-    ik_bone_matrixes = []
-    if my_bone.name=='lShin':
-        my_bone = amt.pose.bones.get('lFoot')
-    elif my_bone.name == 'rShin':
-        my_bone = amt.pose.bones.get('rFoot')
-    it = my_bone
-    for i in range(num_bones[index]+1):
-        if it == None:
-            continue
-        mx = deepcopy(it.matrix)
-        ik_bone_matrixes.append(mx)
-        it = it.parent
-    set_fk(get_influece_data_path(bone_name[index]))
-    if index >1:
-        toFootCopyRotate(index,False)
-    it = my_bone
-    for i in range(num_bones[index] + 1):
-        if it == None:
-            continue
-        it.matrix = deepcopy(ik_bone_matrixes[i])
-        it = it.parent
-    manageKeyFrame(index, False, 0)
-    if index == 0:
-        t = threading.Thread(target=my_srv0_0)
-        t.start()
-    if index == 1:
-        t = threading.Thread(target=my_srv1_0)
-        t.start()
-    if index == 2:
-        t = threading.Thread(target=my_srv2_0)
-        t.start()
-    if index == 3:
-        t = threading.Thread(target=my_srv3_0)
-        t.start()
-
-def bone_disp2(idx,pose_bone,amt_bone,flg_hide):
-    hfp = CustomBones.hikfikpole
-    scales = [hfp[0],hfp[0],hfp[1],hfp[1],hfp[2],hfp[2]]
-    if amt_bone is None or pose_bone is None:
-        return
-    isAnim = Global.isExistsAnimation()
-    if flg_hide and isAnim:
-        pose_bone.custom_shape_scale = scales[idx] * 0.4
-    else:
-        pose_bone.custom_shape_scale = scales[idx]
-    if isAnim:
-        amt_bone.hide = False
-    else:
-        amt_bone.hide = flg_hide
-
-def bone_disp(idx, flg_hide):
-    if idx < 0 or idx > 3:
-        for i in range(4):
-            bone_disp(i, flg_hide)
-        return
-    abones = Global.getAmtrBones()
-    pbones = Global.getAmtr().pose.bones
-    if ik_name[idx] in abones:
-        bone_disp2(idx, pbones.get(ik_name[idx]),abones.get(ik_name[idx]), flg_hide)
-    if idx>1:
-        pole = ik_name[idx][0:len(ik_name[idx])-2]
-        pole = pole + 'P'
-        if pole in abones:
-            bone_disp2(idx+2, pbones.get(pole), abones.get(pole),flg_hide)
-
-def search_morph_(self, context):
-    search_morph(context)
-
-def search_morph(context):
-    w_mgr = context.window_manager
-    key = w_mgr.search_prop
-    nozero = False
-    if key.startswith("!"):
-        nozero = True
-        key = key[1:]
-    if len(key) < 2:
-        return
-    if key.startswith("#"):
-        WCmd.Command(key[1:], context)
-        return
-    cobj = bpy.context.object
-    mesh = cobj.data
-    for z in range(2):
-        find = False
-        max = len(mesh.shape_keys.key_blocks)
-        for kidx, kb in enumerate(mesh.shape_keys.key_blocks):
-            if kidx <= Versions.get_active_object().active_shape_key_index:
-                continue
-            if nozero and kb.value == 0.0:
-                continue
-            if (key.lower() in kb.name.lower()):
-                Versions.get_active_object().active_shape_key_index = kidx
-                find = True
-                break
-        if z == 0 and find == False:
-            if max > 1:
-                Versions.get_active_object().active_shape_key_index = 1
-        else:
-            break
-
-def bonerange_onoff(self):
-    bonerange_onoff(self,bpy.contxt)
-    
-def bonerange_onoff(self,context):
-    flg_on = context.window_manager.br_onoff_prop
-    Global.boneRotation_onoff(context, flg_on)
-
-def ifk_update0(self, context):
-    ifk_update(context, 0)
-
-def ifk_update1(self, context):
-    ifk_update(context, 1)
-
-def ifk_update2(self, context):
-    ifk_update(context, 2)
-
-def ifk_update3(self, context):
-    ifk_update(context, 3)
-
-def ifk_update(context, idx):
-    if Global.get_Amtr_name() == "" or ik_access_ban == True:
-        return {'FINISHED'}
-    if idx >= 0 and idx <= 3:
-        ik_force = (get_ik_influence(get_influece_data_path(bone_name[idx])) > 0.5)
-        gui_force = eval('context.window_manager.ifk' + str(idx))
-        if ik_force != gui_force:
-            if ik_force == False:
-                bone_disp(idx, False)
-                fktoik(idx)
-            else:
-                bone_disp(idx, True)
-                iktofk(idx)
-    return {'FINISHED'}
-
-def adjust_shin_y(idx, flg_ik):
-    if Global.getAmtr() is None or idx < 2:
-        return
-    idx = idx - 2
-    bns = ['rShin', 'lShin']
-    Global.setOpsMode('EDIT')
-    mobj = Global.getBody()
-    if mobj is None:
-        Global.find_Both(Global.getAmtr())
-        return
-    vgs = mobj.data.vertices
-    fm_ikfk = [[4708 ,3418],[4428,3217]]
-    vidx = 0
-    if Global.getIsMan():
-        if flg_ik:
-            vidx = fm_ikfk[1][0]
-        else:
-            vidx = fm_ikfk[1][1]
-    else:
-        if flg_ik:
-            vidx = fm_ikfk[0][0]
-        else:
-            vidx = fm_ikfk[0][1]
-    if Global.getIsGen():
-        vidx = Global.toGeniVIndex(vidx)
-    Global.getAmtr().data.edit_bones[bns[idx]].head[1] = vgs[vidx].co[1]
-    Global.setOpsMode('POSE')
-    if flg_ik:
-        for i in range(2):
-            s = Global.getAmtr().pose.bones.get(bns[i])
-            if s is not None:
-                if s.rotation_euler[0] <= 0.0:
-                    s.rotation_euler[0] = 0.1
-
-def gorl_update(self, context):
-    w_mgr = context.window_manager
-    gorl = w_mgr.gorl_prop
-    if gorl == False:
-        for i, bn in enumerate(bone_name):
-            v = get_ik_influence(get_influece_data_path(bn))
-            if i == 0:
-                w_mgr.ifk0 = v > 0.5
-            elif i == 1:
-                w_mgr.ifk1 = v > 0.5
-            elif i == 2:
-                w_mgr.ifk2 = v > 0.5
-            elif i == 3:
-                w_mgr.ifk3 = v > 0.5
 
 def init_props():
     w_mgr = bpy.types.WindowManager
@@ -1378,48 +324,75 @@ def init_props():
         name="",
         default="",
         description="Search_shape_keys",
-        update=search_morph_
+        update= DtbCommands.search_morph_
     )
     w_mgr.is_eye = BoolProperty(name="eyes")
     w_mgr.ftime_prop = BoolProperty(name="ftime")
-    w_mgr.br_onoff_prop = BoolProperty(name="br_onoff", default=True, update=bonerange_onoff)
-    w_mgr.ifk0 = BoolProperty(name="ifk0", default=False, update=ifk_update0)
-    w_mgr.ifk1 = BoolProperty(name="ifk1", default=False, update=ifk_update1)
-    w_mgr.ifk2 = BoolProperty(name="ifk2", default=False, update=ifk_update2)
-    w_mgr.ifk3 = BoolProperty(name="fik3", default=False, update=ifk_update3)
+    w_mgr.br_onoff_prop = BoolProperty(name="br_onoff", default=True, update=DtbIKBones.bonerange_onoff)
+    w_mgr.ifk0 = BoolProperty(name="ifk0", default=False, update=DtbIKBones.ifk_update0)
+    w_mgr.ifk1 = BoolProperty(name="ifk1", default=False, update=DtbIKBones.ifk_update1)
+    w_mgr.ifk2 = BoolProperty(name="ifk2", default=False, update=DtbIKBones.ifk_update2)
+    w_mgr.ifk3 = BoolProperty(name="fik3", default=False, update=DtbIKBones.ifk_update3)
     w_mgr.new_morph = BoolProperty(name="_new_morph",default=False)
     w_mgr.skip_isk = BoolProperty(name = "_skip_isk",default = False)
     w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
-    w_mgr.size_100 = BoolProperty(name="size_100", default=False)
+    w_mgr.combine_materials = BoolProperty(name="combine_materials", default=True)
+    w_mgr.add_pose_lib = BoolProperty(name="add_pose_lib", default=True)
+    figure_items = [("null" , "Choose Character", "Select which figure you wish to import")]
+    w_mgr.choose_daz_figure = EnumProperty(
+        name  = "Highlight for Collection",
+        description = "Choose any figure in your scene to which you wish to add a pose.",
+        items = figure_items,
+        default = "null",
+    )
+    w_mgr.scene_scale = EnumProperty(
+        name = "Scene Scale",
+        description = "Used to change scale of imported object and scale settings",
+        items = [
+            ('0.01', 'Real Scale (Centimeters)', 'Daz Scale'),
+            ('0.1', 'x10', '10 x Daz Scale'),
+            ('1', 'x100 (Meters)', '100 x Daz Scale')
+        ],
+        default = '0.01'
+    )
+   
 
 
 
 classes = (
-    DTB_PT_Main,
-    IMP_OT_FBX,
+    
+    DtbPanels.DTB_PT_MAIN,
+    DtbPanels.DTB_PT_POSE,
+    DtbPanels.DTB_PT_MATERIAL,
+    DtbPanels.DTB_PT_GENERAL,
+    DtbPanels.DTB_PT_COMMANDS,
+    DtbOperators.IMP_OT_POSE,
+    DtbOperators.IMP_OT_FBX,
+    DtbOperators.IMP_OT_ENV,
+    DtbOperators.CLEAR_OT_Pose,
+    DtbOperators.REFRESH_DAZ_FIGURES,
+    DtbOperators.REMOVE_DAZ_OT_button,
+    DtbOperators.OPTIMIZE_OT_material,
+    DtbCommands.SEARCH_OT_Commands,
     IK2FK_OT_button,
     FK2IK_OT_button,
-    CLEAR_OT_Pose,
     MATERIAL_OT_up,
     MATERIAL_OT_down,
     DEFAULT_OT_material,
-    OPTIMIZE_OT_material,
-    SEARCH_OT_morph,
     TRANS_OT_Rigify,
     MATCH_OT_ikfk,
     LIMB_OT_redraw,
     EXP_OT_morph,
     SCULPT_OT_push,
-    IMP_OT_ENV,
-    REMOVE_DAZ_OT_button,
-
-
+   
+   
 )
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     init_props()
+    
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)

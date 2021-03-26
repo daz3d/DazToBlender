@@ -356,7 +356,7 @@ class MatDct:
                         if mat_type_prop[0] == '6':
                             mat_type_prop[0] = '7'
                         key = mat_type_prop[0] + mat_type_prop[1]
-                        value = fig_tex_path + Global.getFileSp() + tex_name
+                        value = os.path.join(fig_tex_path, tex_name)
                         self.add_to_dct(key, value)
 
     def cloth_dct_0(self, adr):
@@ -416,7 +416,7 @@ class MatDct:
                             wd = ""
                             break
                     if wd != "":
-                        ans = aadr + Global.getFileSp() + L
+                        ans = os.path.join(aadr, L)
                         ans = os.path.realpath(os.path.abspath(ans))
                         if skip_adr != ans:
                             cloth_dct.append([wd, ans])
