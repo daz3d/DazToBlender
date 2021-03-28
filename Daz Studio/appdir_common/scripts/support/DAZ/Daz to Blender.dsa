@@ -1641,7 +1641,8 @@
 		var nYRotMax;
 		var nZRotMin;
 		var nZRotMax;
-		
+		var vecOffset = new DzVec3( 0, 0, 0 );
+
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
 		var aSkeletonData = new Array( 1 );
@@ -1649,6 +1650,14 @@
 		// To account for the scale on the skeleton due to morphs
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
 		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
+		
+		// Currently Does not work with animation
+		// To account for offset on the hip bone.
+		vecPos = aNodes[0].getLocalPos();
+		if( vecPos.y != 0 ){
+			vecOffset = vecPos
+		};
+		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
@@ -1673,14 +1682,15 @@
 			vecHead = oNode.getOrigin( false );
 			vecTail = vecHead.add( vecPrimaryAxis );
 			vecSecondAxis = getNodeSecondAxis( oNode );
+			
 			aHeadTailData[i] = [
 				oNode.getName(),
-				vecHead.x * nSkeletonScale,
-				vecHead.y * nSkeletonScale,
-				vecHead.z * nSkeletonScale,
-				vecTail.x * nSkeletonScale,
-				vecTail.y * nSkeletonScale,
-				vecTail.z * nSkeletonScale,
+				vecHead.x * nSkeletonScale + vecOffset.x,
+				vecHead.y * nSkeletonScale + vecOffset.y,
+				vecHead.z * nSkeletonScale + vecOffset.z,
+				vecTail.x * nSkeletonScale + vecOffset.x,
+				vecTail.y * nSkeletonScale + vecOffset.y,
+				vecTail.z * nSkeletonScale + vecOffset.z,
 				vecSecondAxis.x,
 				vecSecondAxis.y,
 				vecSecondAxis.z

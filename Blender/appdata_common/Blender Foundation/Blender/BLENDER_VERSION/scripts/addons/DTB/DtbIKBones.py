@@ -26,6 +26,7 @@ from bpy.props import StringProperty
 import threading
 import time
 
+BV = Versions.getBV()
 num_bones = [6, 6, 3, 3]
 ik_name = ['rHand_IK', 'lHand_IK', 'rShin_IK', 'lShin_IK']
 bone_name = ['rHand', 'lHand', 'rShin', 'lShin']

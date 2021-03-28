@@ -154,9 +154,13 @@ class IMP_OT_FBX(bpy.types.Operator):
         self.pbar(15, wm)
 
         if Global.getAmtr() is not None and Global.getBody() is not None:
+
+            # Set Custom Properties
             Global.getAmtr()["Asset Name"] = Global.get_asset_name()
             Global.getAmtr()["Collection"] = Util.cur_col_name()
             reload_dropdowns("choose_daz_figure")
+            pose.add_skeleton_data()
+
             Global.deselect() # deselect all the objects
             pose.clear_pose() # Select Armature and clear transform
             drb.mub_ary_A() # Find and read FIG.dat file
@@ -244,6 +248,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             drb.finishjob()
             Global.setOpsMode("OBJECT")
             if not anim.has_keyframe(Global.getAmtr()):
+                pose.update_scale()
                 pose.restore_pose() #Run when no animation exists.
             DtbIKBones.bone_disp(-1, True)
             DtbIKBones.set_scene_settings(anim.total_key_count)

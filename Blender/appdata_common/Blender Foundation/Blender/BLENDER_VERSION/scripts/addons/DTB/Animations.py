@@ -1,5 +1,6 @@
 import bpy
 import mathutils
+from . import Poses
 from . import Global
 from . import Versions
 from . import DataBase
@@ -129,10 +130,11 @@ class Animations:
 
 
     def clean_animations(self):
+        poses = Poses.Posing("FIG")
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
         scene_size = Global.get_size()
-
+        root_scale = float(poses.get_scale())
         #Choose Action
         armature = Global.getAmtr()
         action = armature.animation_data.action
@@ -155,7 +157,7 @@ class Animations:
                             point.co[1] = 0
                     if fcurve.data_path == "scale":
                         for point in fcurve.keyframe_points:
-                            point.co[1] = 1.0
+                            point.co[1] = root_scale
                 # Convert non Figure root bone animation data
                 else:
                     if fcurve.data_path == "location":
@@ -197,7 +199,7 @@ class Animations:
                     skeleton_scale = skeleton_data["skeletonScale"]
                     skeleton_scale *= scene_size # To match armature scale
                     for i in range(point_count):
-                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale 
                         fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
                         fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
 
