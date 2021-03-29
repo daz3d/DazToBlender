@@ -16,14 +16,17 @@ class Posing:
     bone_head_tail_dict = {}
     bone_limits_dict = {}
     pose_data_dict = {}
+    skeleton_data_dict = {}
     fig_object = ""
     fig_object_name = "" 
 
     def __init__(self, asset):
         if asset == "FIG":
             self.bone_limits = DataBase.get_bone_limits_dict()
+            self.load_skeleton_data(asset)
             self.get_pose_data(asset)
-        
+            
+
         if asset == "POSE":
             pass
         
@@ -52,6 +55,41 @@ class Posing:
                 return json.load(data)
                 
 
+    def load_skeleton_data(self, asset):
+        input_file = open(os.path.join(Global.getHomeTown(), asset + "_skeletonData.csv"), "r")
+        lines = input_file.readlines()
+        input_file.close()
+        self.bone_head_tail_dict = dict()
+        for line in lines:
+            line_split = line.split(",")
+            self.skeleton_data_dict[line_split[0]] = line_split
+
+
+    def add_skeleton_data(self):
+        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+        if self.fig_object_name == "null":
+            return
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
+        skeleton_data = self.skeleton_data_dict
+        # Add to properties
+        for key in skeleton_data:
+           self.fig_object[key] =  float(skeleton_data[key][1])
+
+
+    def get_scale(self):
+        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+        if self.fig_object_name == "null":
+            return 1
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
+        return float(self.fig_object["skeletonScale"])
+
+    def get_offset(self):
+        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+        if self.fig_object_name == "null":
+            return 0
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
+        return float(self.fig_object["offset"])
+
 
     def load_bone_head_tail_data(self, asset):
         input_file = open(os.path.join(Global.getHomeTown(), asset + "_boneHeadTail.csv"), "r")
@@ -61,7 +99,7 @@ class Posing:
         for line in lines:
             line_split = line.split(",")
             self.bone_head_tail_dict[line_split[0]] = line_split
-    
+
 
     #Bone property
     def get_bone_head_tail_data(self, bname):
@@ -421,7 +459,20 @@ class Posing:
         elif order == "YXZ":
             return 'YXZ'
 
-    
+    def update_scale(self):
+        Global.setOpsMode("POSE")
+        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
+        if self.fig_object_name == "null":
+            return
+        pbs = self.fig_object.pose.bones
+        root_bone = pbs[0]
+        root_name = root_bone.name
+        scale = self.get_scale()
+        pbs[root_name].scale[0] = scale
+        pbs[root_name].scale[1] = scale
+        pbs[root_name].scale[2] = scale
+
     def make_pose(self):
         Global.setOpsMode("POSE")
         bone_limits = self.bone_limits_dict
@@ -437,13 +488,18 @@ class Posing:
                 bname = pb.name
                 new_order = self.get_rotation_order(order)
                 if bname in transform_data.keys():
+                    
                     position = transform_data[bname]["Position"]
                     rotation = transform_data[bname]["Rotation"]
                     
                     # Position
-                    for i in range(len(position)):   
-                        position[i] = position[i] * Global.get_size()
+                    for i in range(len(position)):
+                        if bname == "hip":
+                            if self.get_offset() != 0:
+                                position[i] = 0
 
+                        position[i] = position[i] * Global.get_size()
+                    
                     pbs[bname].location[0] = float(position[0])
                     # Y invert (-Y)
                     pbs[bname].location[1] = -float(position[1])
@@ -490,7 +546,7 @@ class Posing:
         else:
             name = self.fig_object["Asset Name"] + " Pose Library"
         action = bpy.data.actions[name]
-        frame_count = len(action.fcurves) + 1
+        frame_count = len(action.pose_markers) + 1
         
         if "Asset Name" in transform_data.keys():
             pose_name = transform_data["Asset Name"]
