@@ -55,6 +55,7 @@
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
+	var s_bIncludeMorphs
 	
 	
 	
@@ -1027,6 +1028,12 @@
 		wIncludeAnimationsCbx.checked = true;
 		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 		
+
+		// Checkbox to include morph data
+		var wIncludeMorphsCbx = new DzCheckBox( wSettingsDialog );
+		wIncludeMorphsCbx.text = "Include Morphs";
+		wIncludeMorphsCbx.checked = false;
+		wSettingsDialog.addWidget( wIncludeMorphsCbx );
 		// When user Cancels the dialog
 		if( !wSettingsDialog.exec() ){
 			return false;
@@ -1035,7 +1042,7 @@
 		// Set settings variables from the Dialog
 		s_nSubDivLevel = wSubDivGroup.selected;
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
-		
+		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		// When user Accepts the dialog
 		return true;
 	};
@@ -1584,6 +1591,24 @@
 		return vecFirstAxis;
 	};
 
+	function getBoneOffset( oNode ){
+		for( var i = 0; i < oNode.getNumProperties(); i++ ){
+            oProperty = oNode.getProperty( i );
+            sPropName = oProperty.getName();
+            sPropLabel = oProperty.getLabel();
+            oPresentation = oProperty.getPresentation();
+            if (oPresentation != undefined){
+                if(sPropName.indexOf( "FBM" ) > 0){
+					nControllerCount = oProperty.getNumControllers();
+					for( var j = 0; j < nControllerCount; j++ ){
+						oErcLink = oProperty.getController( j );
+						var oControllerProp = oErcLink.getProperty();
+					};
+				}
+			};
+		};
+	};
+
 	/*********************************************************************/
 	// Float : Get length of the bone
 	function getBoneNodeLength( oNode )
@@ -1966,14 +1991,15 @@
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
 				
-				// Define Subscripts
-				aExportableProperties = executeSubScript(
-									s_sMorphDialog, 
-									[oFigure, s_sPresetPath, s_sDazBridgeName] 
-								);
-				
-				s_sMorphRules = getMorphString( aExportableProperties );
-				loadMorphLinks( aExportableProperties );
+				// Morph Export
+				if( s_bIncludeMorphs ){
+					aExportableProperties = executeSubScript(
+						s_sMorphDialog, 
+						[oFigure, s_sPresetPath, s_sDazBridgeName] 
+					);
+					s_sMorphRules = getMorphString( aExportableProperties );
+					loadMorphLinks( aExportableProperties );
+				};
 				
 				
 				// Write data

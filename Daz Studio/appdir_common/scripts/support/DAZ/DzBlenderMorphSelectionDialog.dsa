@@ -17,7 +17,8 @@
     var s_oMorphs = {};
     var s_oMorphsForNode = {};
     var s_oSelectedInTree = {};
-   
+    var s_oAvailObjects = {};
+
     // Static Widgets
     var s_wMorphTreeWidget = null;
     var s_wMorphListWidget = null;
@@ -49,21 +50,15 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType, oProperty ){
+    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent ){
         this.name = sName;
         this.label = sLabel;
         this.path = sPath;
         this.type = sType;
         this.property = oProperty;
+        this.parent = sParent;
     };
-
-    /*********************************************************************/
-    // void : ...
-    // TODO: Create A Struct that can be used to create items in a more organizedway
-    function sortListItem(){
-        DzListViewItem(s_wMorphListWidget);
-    };
-
+    
     /*********************************************************************/
     // void : ...
     function morphSelectionDialog( wDlg ){
@@ -99,26 +94,27 @@
         
         // Left tree with morph structure
         s_wMorphTreeWidget = new DzListView( wMainWgt );
-        s_wMorphTreeWidget.resizeMode = DzListView.Maximum   
-        s_wMorphTreeWidget.widthMode = DzListView.NoColumn 
-        s_wMorphTreeWidget.addColumn("")
+        s_wMorphTreeWidget.resizeMode = DzListView.Maximum;   
+        s_wMorphTreeWidget.widthMode = DzListView.NoColumn; 
+        s_wMorphTreeWidget.addColumn("");
         s_wMorphTreeWidget.rootIsDecorated = true;
         s_wMorphTreeWidget.treeStepSize = 20;
-
+       
+        
         // Center list showing morphs for selected tree items        
 	    s_wMorphListWidget = new DzListView( wMainWgt );
-        s_wMorphListWidget.resizeMode = DzListView.Maximum  
-        s_wMorphListWidget.widthMode = DzListView.NoColumn 
-        s_wMorphListWidget.addColumn("")
-        s_wMorphListWidget.selectionMode = DzListView.Extended
+        s_wMorphListWidget.resizeMode = DzListView.Maximum;  
+        s_wMorphListWidget.widthMode = DzListView.NoColumn; 
+        s_wMorphListWidget.addColumn("");
+        s_wMorphListWidget.selectionMode = DzListView.Extended;
 
 
         // Right list showing morphs that will export
 	    s_wMorphExportListWidget = new DzListView( wMainWgt );
-        s_wMorphExportListWidget.resizeMode = DzListView.Maximum  
-        s_wMorphExportListWidget.widthMode = DzListView.NoColumn 
-        s_wMorphExportListWidget.addColumn("")
-        s_wMorphExportListWidget.selectionMode = DzListView.Extended
+        s_wMorphExportListWidget.resizeMode = DzListView.Maximum; 
+        s_wMorphExportListWidget.widthMode = DzListView.NoColumn;
+        s_wMorphExportListWidget.addColumn("");
+        s_wMorphExportListWidget.selectionMode = DzListView.Extended;
         
 
         // Quick filter box
@@ -148,7 +144,15 @@
         lytTree.addWidget( wAvailMorphLabel );
         lytTree.addWidget( s_wMorphTreeWidget );
 
-        // TODO: Add buttons
+        // Button for extra 
+        var wExtraGroupBox = DzGroupBox( wMainWgt );
+        wExtraGroupBox.title = "Extra Options";
+        var lytExtra = new DzGridLayout( lytTree );
+        lytExtra.margin = nMargin;
+        lytExtra.spacing = nMargin;
+        lytExtra.addWidget( wExtraGroupBox );
+        var wAddConnectedMorphs = new DzPushButton( wExtraGroupBox );
+        wAddConnectedMorphs.text = "Add Connected Morphs";
        
         // Center List of morphs based on tree selection
         var wMorphSelGrpLabel = new DzLabel( wMainWgt )
@@ -179,18 +183,19 @@
         var wRemoveMorphsButton = new DzPushButton( wMainWgt );
         wRemoveMorphsButton.text = "Remove From Export";
         lytSelectedList.addWidget( wRemoveMorphsButton );
-      
+        
         wDlg.addWidget( wMainWgt );
         wDlg.setFixedWidth( 800 );
         wDlg.setFixedHeight( 800 );
         refreshPresetsCombo();
 
         // Create Connections
-        connect( s_wMorphTreeWidget, "currentChanged(DzListViewItem*)",itemSelectionChanged )
+        connect( s_wMorphTreeWidget, "currentChanged(DzListViewItem*)",itemSelectionChanged );
         connect( s_wFilterEdit, "textChanged(const QString&)", filterChanged );
-        wSavePresetButton.released.connect( handleSavePreset )
-        wAddMorphsButton.released.connect( handleAddMorphsButton )
-        wRemoveMorphsButton.released.connect( handleRemoveMorphsButton )
+        wAddConnectedMorphs.released.connect( loadConnectedMorphs );
+        wSavePresetButton.released.connect( handleSavePreset );
+        wAddMorphsButton.released.connect( handleAddMorphsButton );
+        wRemoveMorphsButton.released.connect( handleRemoveMorphsButton );
     };
 
 
@@ -213,10 +218,10 @@
         };
         
         s_oMorphs = {};
-	    s_aMorphList = getAvailableMorphs( oSelectedNode );
+	    getAvailableMorphs( oSelectedNode );
         for ( var i = 0; i < oSelectedNode.getNumNodeChildren(); i++ ){
             oChildNode = oSelectedNode.getNodeChild( i );
-            s_aMorphList.push( getAvailableMorphs( oChildNode ) );
+            getAvailableMorphs( oChildNode );
         };
         updateMorphsTree();
         handlePresetChanged("LastUsed.csv");
@@ -248,7 +253,6 @@
     /*********************************************************************/
     // array : ...
     function getAvailableMorphs( oNode ){
-        var aNewMorphList;
         var oObject;
         var oShape;
         var oProperty;
@@ -276,15 +280,19 @@
                     sPropLabel,
                     sPath,
                     oPresentation.type,
-                    oProperty
+                    oProperty,
+                    sPath.split("/")[0]
                 );
                 
                 if( !( oMorphInfo.name in s_oMorphs ) ){
                     s_oMorphs[oMorphInfo.name] = oMorphInfo;
+                    if( !( oMorphInfo.parent in s_oAvailObjects ) ){
+                        s_oAvailObjects[oMorphInfo.parent] = {}
+                    }
+                    if( !( oMorphInfo.name in s_oAvailObjects[oMorphInfo.parent] ) ){
+                        s_oAvailObjects[oMorphInfo.parent][oMorphInfo.name] = oMorphInfo
+                    };
                 };
-            };
-            if (oPresentation != undefined && oPresentation.type == "Modifier/Shape"){
-                aNewMorphList.push( sPropName ) 
             };
         }
         if( oObject ){
@@ -305,17 +313,23 @@
                                 sPropLabel,
                                 sPath,
                                 oPresentation.type,
-                                oProperty
+                                oProperty,
+                                sPath.split("/")[0]
                             );
                             if( !( oMorphInfo.name in s_oMorphs ) ){
                                 s_oMorphs[oMorphInfo.name] = oMorphInfo;
+                                if( !( oMorphInfo.parent in s_oAvailObjects ) ){
+                                    s_oAvailObjects[oMorphInfo.parent] = {}
+                                }
+                                if( !( oMorphInfo.name in s_oAvailObjects[oMorphInfo.parent] ) ){
+                                    s_oAvailObjects[oMorphInfo.parent][oMorphInfo.name] = oMorphInfo
+                                };
                             };
                         };
                     };
                 };
             };
         };
-        return aNewMorphList
     };
     
     /*********************************************************************/
@@ -323,34 +337,50 @@
     // Build out the left tree
     function updateMorphsTree(){
         var sPath;
+        var sParentPath;
         var sPathPart;
         var sMorph;
         var oParentItem;
         var sID;
 
         s_wMorphTreeWidget.clear();
+       
         s_oMorphsForNode = {};
-        for( sMorph in s_oMorphs ){
-            sPath = s_oMorphs[sMorph].path;
-            aPathParts = sPath.split("/");
-            oParentPath = aPathParts[0]
-            oParentItem = null;
-            for( var i = 0; i < aPathParts.length; i++ ){
-                sPathPart = aPathParts[i];
-                // Used to Match to correct node.
-                sID = oParentPath + "/" + sPathPart;
-                if( sPathPart == "" ){
-                    continue;
+        for( sParent in s_oAvailObjects ){
+            for( sMorph in s_oAvailObjects[sParent] ){
+                sPath = s_oMorphs[sMorph].path;
+                sType = s_oMorphs[sMorph].path;
+                aPathParts = sPath.split("/");
+                oParentItem = null;
+                for( var i = 0; i < aPathParts.length; i++ ){
+                    sPathPart = aPathParts[i];
+                    if( i != 0 ){
+                        nPaths = aPathParts.length;
+                        if( i >= 6 ){
+                            sPathPart_helper += aPathParts[i - 1] + aPathParts[i - 2]
+                        }
+                        else{
+                            sPathPart_helper += aPathParts[i - 1]
+                        };
+                    }
+                    else{
+                        sPathPart_helper = ""
+                    }
+                    // Used to Match to correct node.
+                    sID = sParent + sPathPart_helper + sPathPart;
+                    
+                    if( sPathPart == "" ){
+                        continue;
+                    };
+                    oParentItem = findTreeItem( oParentItem, sPathPart, sID );
+                    if( !( sID in s_oMorphsForNode ) ){
+                        s_oMorphsForNode[sID] = []
+                    };
+                    s_oMorphsForNode[sID].push(s_oMorphs[sMorph]);
                 };
-                oParentItem = findTreeItem( oParentItem, sPathPart, sID );
-                if( !( sID in s_oMorphsForNode ) ){
-                    s_oMorphsForNode[sID] = []
-                };
-                
-                s_oMorphsForNode[sID].push(s_oMorphs[sMorph]);
             };
         };
-
+        
     };
 
     /*********************************************************************/
@@ -432,6 +462,27 @@
         refreshPresetsCombo();
     };
 
+    /*********************************************************************/
+    // Void : Load morph links that are directly controlled by skeleton bones
+	function loadConnectedMorphs(){    
+		// Load all the controller links on the properties
+		for( var i = 0; i < s_aMorphsToExport.length; i += 1 ){
+			var oMorphProperty = s_aMorphsToExport[i].property;
+			var nControllerCount = oMorphProperty.getNumSlaveControllers();
+			for( var j = 0; j < nControllerCount; j += 1 ){
+				oSlaveControler = oMorphProperty.getSlaveController( j );
+                var sMorphName = oSlaveControler.getOwner().name
+                oMorphInfo= s_oMorphs[sMorphName]
+                if( ( sMorphName in s_oMorphs ) ){
+                    s_aMorphsToExport.push( s_oMorphs[sMorphName] )
+                };
+		    };
+        };
+		refreshExportMorphList();
+        refreshPresetsCombo();
+			
+	};
+	
     /*********************************************************************/
     // void : ...
     // Remove morph from export list
@@ -628,11 +679,11 @@
     };
 
     /*********************************************************************/
-    if(main()){
+    if( main() ){
         return s_aMorphsToExport;
     }
     else{
-        return []
+        return [];
     }
 
     
