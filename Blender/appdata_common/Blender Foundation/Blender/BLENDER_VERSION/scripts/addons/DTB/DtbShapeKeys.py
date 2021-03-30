@@ -239,8 +239,18 @@ class DtbShapeKeys:
         if key_block_name == "Basis":
             return
 
-        # Create a custom property
+        # Create a custom property and set limits
         body_mesh_obj[key_block_name] = 0.0
+        rna_ui = body_mesh_obj.get('_RNA_UI')
+        if rna_ui is None:
+            body_mesh_obj['_RNA_UI'] = {}
+            rna_ui = body_mesh_obj.get('_RNA_UI')
+        rna_ui[key_block_name] = {
+                                    "min": 0.0,
+                                    "max": 1.0,
+                                    "soft_min":0.0,
+                                    "soft_max":1.0,
+                                }
 
         # Add driver
         driver = key_block.driver_add("value").driver
