@@ -232,6 +232,32 @@ class DtbShapeKeys:
         dtu_content = input_file.read()
         return json.loads(dtu_content)["MorphLinks"]
     
+    def add_custom_shape_key_prop(self, key_block, body_mesh_obj):
+        body_mesh_name = body_mesh_obj.data.name
+        key_block_name = key_block.name
+        # Skip Basis shape key
+        if key_block_name == "Basis":
+            return
+
+        # Create a custom property
+        body_mesh_obj[key_block_name] = 0.0
+
+        # Add driver
+        driver = key_block.driver_add("value").driver
+        driver.type = 'SUM'
+
+        # Add variable
+        link_var = driver.variables.new()
+        link_var.name = "var"
+        link_var.type = 'SINGLE_PROP'
+
+        # Set variable target
+        target = link_var.targets[0]
+        target.id_type = 'OBJECT'
+        target.id = body_mesh_obj
+        rna_data_path = "[\"" + key_block_name + "\"]"
+        target.data_path = rna_data_path
+    
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
         shape_key = body_mesh_obj.data.shape_keys
@@ -243,8 +269,10 @@ class DtbShapeKeys:
         shape_key_blocks = shape_key.key_blocks
         for key_block in shape_key_blocks:
             key_name = key_block.name[len(mesh_name + "__"):]
+            # Continue if the key is not found in the morph links list
             if key_name not in morph_links_list:
-                # Continue if the key is not found in the morph links list
+                # Create custom property for this shape key and drive it
+                self.add_custom_shape_key_prop(key_block, body_mesh_obj)
                 continue
 
             # Add driver
@@ -285,6 +313,8 @@ class DtbShapeKeys:
             # Delete the driver and continue if there are no variables
             if var_count == 0:
                 key_block.driver_remove("value")
+                # Create custom property for this shape key and drive it
+                self.add_custom_shape_key_prop(key_block, body_mesh_obj)
                 continue
             
             # Trim the extra '+' char
