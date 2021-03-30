@@ -1590,23 +1590,32 @@
 		
 		return vecFirstAxis;
 	};
-
+	/*********************************************************************/
+	// DzVec3 : Checks if there is an offset for Parent bone
+	// TODO: Check if any other bones are changed with FBMs
 	function getBoneOffset( oNode ){
+		var nOffset = new DzVec3( 0, 0, 0)
 		for( var i = 0; i < oNode.getNumProperties(); i++ ){
-            oProperty = oNode.getProperty( i );
-            sPropName = oProperty.getName();
-            sPropLabel = oProperty.getLabel();
-            oPresentation = oProperty.getPresentation();
-            if (oPresentation != undefined){
-                if(sPropName.indexOf( "FBM" ) > 0){
-					nControllerCount = oProperty.getNumControllers();
-					for( var j = 0; j < nControllerCount; j++ ){
-						oErcLink = oProperty.getController( j );
-						var oControllerProp = oErcLink.getProperty();
+			var oProperty = oNode.getProperty( i );
+			var sPropName = oProperty.getName();
+			print( sPropName )
+			// Currently only checking YTranslate
+			if( sPropName == "YTranslate" ){
+				var nControllerCount = oProperty.getNumControllers();
+				for( var j = 0; j < nControllerCount; j += 1 ){
+					var oErcLink = new DzERCLink();
+					oErcLink = oProperty.getController( j );
+					var oControllerProp = oErcLink.getProperty();
+					sControllerName = getPropertyName(oControllerProp);
+					if( sControllerName.indexOf( "FBM" ) != -1 ){
+						if( oControllerProp.getDoubleValue() != 0 ){
+							nOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
+						};
 					};
-				}
+				};
 			};
 		};
+		return nOffset
 	};
 
 	/*********************************************************************/
@@ -1666,7 +1675,7 @@
 		var nYRotMax;
 		var nZRotMin;
 		var nZRotMax;
-		var vecOffset = new DzVec3( 0, 0, 0 );
+		var vecOffset
 
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
@@ -1676,12 +1685,9 @@
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
 		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
 		
-		// Currently Does not work with animation
+		
 		// To account for offset on the hip bone.
-		vecPos = aNodes[0].getLocalPos();
-		if( vecPos.y != 0 ){
-			vecOffset = vecPos
-		};
+		vecOffset = getBoneOffset(aNodes[0])
 		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
 		
 		for( var i = 0; i < nNodes; i += 1 ){
