@@ -140,34 +140,34 @@ class DtbShapeKeys:
 
     def get_target_expression(self, var_name, morph_link, driver):
         link_type = morph_link["Type"]
-        scalar = str(morph_link["Scalar"])
+        scalar = str(round(morph_link["Scalar"], 2))
         addend = str(morph_link["Addend"])
 
         var_name = self.get_var_correction(var_name, morph_link)
 
         if link_type == 0:
             # ERCDeltaAdd
-            return "(" + var_name + "*" + scalar + " + " + addend + ")"
+            return "(" + var_name + "*" + scalar + "+" + addend + ")"
         elif link_type == 1:
             # ERCDivideInto
             driver.use_self = True
-            return "(" + var_name + "/self.value + " + addend + ")"
+            return "(" + var_name + "/self.value+" + addend + ")"
         elif link_type == 2:
             # ERCDivideBy
             driver.use_self = True
-            return "(" + "self.value/" + var_name + " + " + addend + ")"
+            return "(" + "self.value/" + var_name + "+" + addend + ")"
         elif link_type == 3:
             # ERCMultiply
             driver.use_self = True
-            return "(" + var_name + "*self.value + " + addend + ")"
+            return "(" + var_name + "*self.value+" + addend + ")"
         elif link_type == 4:
             # ERCSubtract
             driver.use_self = True
-            return "(" + "self.value - " + var_name + " + " + addend + ")"
+            return "(" + "self.value-" + var_name + "+" + addend + ")"
         elif link_type == 5:
             # ERCAdd
             driver.use_self = True
-            return "(" + "self.value + " + var_name + " + " + addend + ")"
+            return "(" + "self.value+" + var_name + "+" + addend + ")"
         elif link_type == 6:
             # ERCKeyed
             # TODO: Figure out a way to represent in Blender.
@@ -248,8 +248,8 @@ class DtbShapeKeys:
         rna_ui[key_block_name] = {
                                     "min": 0.0,
                                     "max": 1.0,
-                                    "soft_min":0.0,
-                                    "soft_max":1.0,
+                                    "soft_min": 0.0,
+                                    "soft_max": 1.0,
                                 }
 
         # Add driver
