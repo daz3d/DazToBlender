@@ -1266,7 +1266,7 @@
 			oFile.write( aData )
 		}
 			
-		
+
 		oFile.close();
 	};
 	
@@ -1598,7 +1598,6 @@
 		for( var i = 0; i < oNode.getNumProperties(); i++ ){
 			var oProperty = oNode.getProperty( i );
 			var sPropName = oProperty.getName();
-			print( sPropName )
 			// Currently only checking YTranslate
 			if( sPropName == "YTranslate" ){
 				var nControllerCount = oProperty.getNumControllers();
@@ -1716,12 +1715,12 @@
 			
 			aHeadTailData[i] = [
 				oNode.getName(),
-				vecHead.x * nSkeletonScale + vecOffset.x,
-				vecHead.y * nSkeletonScale + vecOffset.y,
-				vecHead.z * nSkeletonScale + vecOffset.z,
-				vecTail.x * nSkeletonScale + vecOffset.x,
-				vecTail.y * nSkeletonScale + vecOffset.y,
-				vecTail.z * nSkeletonScale + vecOffset.z,
+				( vecHead.x + vecOffset.x ) * nSkeletonScale,
+				( vecHead.y + vecOffset.y ) * nSkeletonScale,
+				( vecHead.z + vecOffset.z ) * nSkeletonScale,
+				( vecTail.x + vecOffset.x ) * nSkeletonScale,
+				( vecTail.y + vecOffset.y ) * nSkeletonScale,
+				( vecTail.z + vecOffset.z ) * nSkeletonScale,
 				vecSecondAxis.x,
 				vecSecondAxis.y,
 				vecSecondAxis.z

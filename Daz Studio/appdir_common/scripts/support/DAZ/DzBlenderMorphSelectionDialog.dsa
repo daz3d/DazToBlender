@@ -468,15 +468,16 @@
 
     /*********************************************************************/
     // Bool : Check if Morph is invalid.
-    function ignoreMorph( oMorphProperty ){
-        var sMorphName = getPropertyName( oMorphProperty )
-        var aIgnoreCases = ["x", "y", "z"]
+    function ignoreMorph( oMorphProperty )
+    {
+        var sMorphName = getPropertyName( oMorphProperty );
+        var aIgnoreCases = ["x", "y", "z"];
         for( var k = 0; k < aIgnoreCases.length; k ++ ){
             var sCase = aIgnoreCases[k]
             if( sMorphName.toLowerCase()[0] == sCase){
                 return true
-            };
-        };
+            }
+        }
         var nControllerCount = oMorphProperty.getNumControllers();
         for( var j = 0; j < nControllerCount; j += 1 ){
             var oErcLink = new DzERCLink();
@@ -485,8 +486,8 @@
                 var oControllerProp = oErcLink.getProperty();
                 if(oControllerProp.getDoubleValue() == 0){
                     return true
-                };
-            };
+                }
+            }
             //var oControllerProp = oErcLink.getProperty();
         };
         return false

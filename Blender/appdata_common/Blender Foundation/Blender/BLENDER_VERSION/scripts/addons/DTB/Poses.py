@@ -28,7 +28,7 @@ class Posing:
             
 
         if asset == "POSE":
-            pass
+            Global.setOpsMode('POSE')
         
         if asset == "ENV":
             self.load_bone_limits(asset)
@@ -333,7 +333,7 @@ class Posing:
         bpy.ops.pose.transforms_clear()
         Global.setOpsMode('OBJECT')
 
-    #TODO Refactor and update to Reenable
+
     def pose_copy(self,dur):
         self.pose_data_dict = {}
         if os.path.exists(dur) == False:
