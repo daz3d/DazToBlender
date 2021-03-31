@@ -524,11 +524,9 @@ def boneRotation_onoff(context,flg_on):
 def getRootPath():
     global root
     if root == "":
-        if os.name == 'nt':
-            hdir = os.path.expanduser('~')
-        else:
-            hdir = os.environ['HOME']
+        hdir = os.path.expanduser('~')
         hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Exports")
+        print("Files Should be Exporting to : {0}".format(hdir))
         if os.path.exists(hdir):
             root = hdir
         else:
