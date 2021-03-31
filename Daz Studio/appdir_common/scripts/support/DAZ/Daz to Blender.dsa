@@ -1852,14 +1852,15 @@
 		}
 		return sPropertyName;
 	};
+
 	/*********************************************************************/
 	// String : Returns the morph rules to be used at Export
-	function getMorphString(s_aMorphsToExport){
+	function getMorphString(s_aMorphsToExport)
+	{
         var aMorphNamesToExport;
         var sMorphString
 
-        if ( s_aMorphsToExport.length == 0 )
-        {
+        if ( s_aMorphsToExport.length == 0 ){
             return "";
         }
         aMorphNamesToExport = [];
@@ -1900,9 +1901,11 @@
 				}
 				aLinks.push( oLink );
 			}
-			if( aLinks.length > 0 ){
-				s_oMorphLinks[getPropertyName( oMorphProperty )] = aLinks;
-			}
+			var oMorphLinkObj = {
+					"Label": oMorphProperty.getLabel(),
+					"Links": aLinks
+			};
+			s_oMorphLinks[getPropertyName( oMorphProperty )] = oMorphLinkObj;
 		}
 		
 		return;		
