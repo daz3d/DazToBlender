@@ -140,34 +140,34 @@ class DtbShapeKeys:
 
     def get_target_expression(self, var_name, morph_link, driver):
         link_type = morph_link["Type"]
-        scalar = str(morph_link["Scalar"])
+        scalar = str(round(morph_link["Scalar"], 2))
         addend = str(morph_link["Addend"])
 
         var_name = self.get_var_correction(var_name, morph_link)
 
         if link_type == 0:
             # ERCDeltaAdd
-            return "(" + var_name + "*" + scalar + " + " + addend + ")"
+            return "(" + var_name + "*" + scalar + "+" + addend + ")"
         elif link_type == 1:
             # ERCDivideInto
             driver.use_self = True
-            return "(" + var_name + "/self.value + " + addend + ")"
+            return "(" + var_name + "/self.value+" + addend + ")"
         elif link_type == 2:
             # ERCDivideBy
             driver.use_self = True
-            return "(" + "self.value/" + var_name + " + " + addend + ")"
+            return "(" + "self.value/" + var_name + "+" + addend + ")"
         elif link_type == 3:
             # ERCMultiply
             driver.use_self = True
-            return "(" + var_name + "*self.value + " + addend + ")"
+            return "(" + var_name + "*self.value+" + addend + ")"
         elif link_type == 4:
             # ERCSubtract
             driver.use_self = True
-            return "(" + "self.value - " + var_name + " + " + addend + ")"
+            return "(" + "self.value-" + var_name + "+" + addend + ")"
         elif link_type == 5:
             # ERCAdd
             driver.use_self = True
-            return "(" + "self.value + " + var_name + " + " + addend + ")"
+            return "(" + "self.value+" + var_name + "+" + addend + ")"
         elif link_type == 6:
             # ERCKeyed
             # TODO: Figure out a way to represent in Blender.
@@ -232,24 +232,23 @@ class DtbShapeKeys:
         dtu_content = input_file.read()
         return json.loads(dtu_content)["MorphLinks"]
     
-    def add_custom_shape_key_prop(self, key_block, body_mesh_obj):
+    def add_custom_shape_key_prop(self, key_block, body_mesh_obj, morph_label):
         body_mesh_name = body_mesh_obj.data.name
-        key_block_name = key_block.name
         # Skip Basis shape key
-        if key_block_name == "Basis":
+        if key_block.name == "Basis":
             return
 
         # Create a custom property and set limits
-        body_mesh_obj[key_block_name] = 0.0
+        body_mesh_obj[morph_label] = 0.0
         rna_ui = body_mesh_obj.get('_RNA_UI')
         if rna_ui is None:
             body_mesh_obj['_RNA_UI'] = {}
             rna_ui = body_mesh_obj.get('_RNA_UI')
-        rna_ui[key_block_name] = {
+        rna_ui[morph_label] = {
                                     "min": 0.0,
                                     "max": 1.0,
-                                    "soft_min":0.0,
-                                    "soft_max":1.0,
+                                    "soft_min": 0.0,
+                                    "soft_max": 1.0,
                                 }
 
         # Add driver
@@ -265,7 +264,7 @@ class DtbShapeKeys:
         target = link_var.targets[0]
         target.id_type = 'OBJECT'
         target.id = body_mesh_obj
-        rna_data_path = "[\"" + key_block_name + "\"]"
+        rna_data_path = "[\"" + morph_label + "\"]"
         target.data_path = rna_data_path
     
     def make_body_mesh_drivers(self, body_mesh_obj):
@@ -279,17 +278,28 @@ class DtbShapeKeys:
         shape_key_blocks = shape_key.key_blocks
         for key_block in shape_key_blocks:
             key_name = key_block.name[len(mesh_name + "__"):]
-            # Continue if the key is not found in the morph links list
-            if key_name not in morph_links_list:
+            
+            # Continue for Basis key block or not found in the morph links list
+            if not key_name or key_name not in morph_links_list:
+                continue
+            
+            morph_label = morph_links_list[key_name]["Label"]
+            morph_links = morph_links_list[key_name]["Links"]
+            
+            # If morph_links is empty add a custom property
+            if not morph_links:
                 # Create custom property for this shape key and drive it
-                self.add_custom_shape_key_prop(key_block, body_mesh_obj)
+                self.add_custom_shape_key_prop(
+                                                key_block,
+                                                body_mesh_obj,
+                                                morph_label
+                                            )
                 continue
 
             # Add driver
             driver = key_block.driver_add("value").driver
             driver.type = 'SCRIPTED'
 
-            morph_links = morph_links_list[key_name]
             expression = ""
             var_count = 0
             for link_index, morph_link in enumerate(morph_links):
@@ -323,8 +333,12 @@ class DtbShapeKeys:
             # Delete the driver and continue if there are no variables
             if var_count == 0:
                 key_block.driver_remove("value")
-                # Create custom property for this shape key and drive it
-                self.add_custom_shape_key_prop(key_block, body_mesh_obj)
+                # Create custom property if no drivers and drive it
+                self.add_custom_shape_key_prop(
+                                                key_block,
+                                                body_mesh_obj,
+                                                morph_label
+                                            )
                 continue
             
             # Trim the extra '+' char
