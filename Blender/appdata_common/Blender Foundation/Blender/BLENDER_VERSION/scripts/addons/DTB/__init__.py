@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2, 3, 0, 2),
+    "version": (2, 3, 0, 3),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -363,10 +363,10 @@ classes = (
     
     DtbPanels.DTB_PT_MAIN,
     DtbPanels.DTB_PT_POSE,
+    DtbPanels.DTB_PT_MORPHS,
     DtbPanels.DTB_PT_MATERIAL,
     DtbPanels.DTB_PT_GENERAL,
     DtbPanels.DTB_PT_COMMANDS,
-    DtbPanels.DTB_PT_MORPHS,
     DtbOperators.IMP_OT_POSE,
     DtbOperators.IMP_OT_FBX,
     DtbOperators.IMP_OT_ENV,
