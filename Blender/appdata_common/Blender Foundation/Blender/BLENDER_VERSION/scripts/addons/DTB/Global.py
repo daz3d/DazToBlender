@@ -32,6 +32,7 @@ _HOMETOWN = ""
 _ASSETNAME = ""
 already_use_newmtl = []
 _ENVROOT = ""
+shape_key_custom_props = []
 
 G3_GEOIDX = 3
     #####Female#######
@@ -52,6 +53,12 @@ max_vs = [
 
 IS_EMERGENCY = False
 EYLSCOUNT =464
+
+def load_shape_key_custom_props(property_name):
+    shape_key_custom_props.append(property_name)
+
+def get_shape_key_custom_props():
+    return shape_key_custom_props
 
 def getMyMax3():
     return max_vs[getSex()][get_geo_idx()]

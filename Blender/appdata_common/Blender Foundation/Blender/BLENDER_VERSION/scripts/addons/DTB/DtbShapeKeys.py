@@ -266,6 +266,9 @@ class DtbShapeKeys:
         target.id = body_mesh_obj
         rna_data_path = "[\"" + morph_label + "\"]"
         target.data_path = rna_data_path
+
+        # Add to the Global list, so it can be used in the Daz To Blender Panel
+        Global.load_shape_key_custom_props(morph_label)
     
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name

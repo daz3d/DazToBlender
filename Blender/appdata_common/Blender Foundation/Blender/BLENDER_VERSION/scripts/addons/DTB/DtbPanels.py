@@ -191,3 +191,15 @@ class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
                 row.operator('command.search', icon='VIEWZOOM')
         else:
             row.operator('command.search', icon='HAND')
+
+class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_morphs_daz"
+    bl_label = "Morphs List"
+
+    def draw(self, context):
+        layout = self.layout
+        morph_prop_names = Global.get_shape_key_custom_props()
+        mesh_obj = Global.getBody()
+        layout.label(text=mesh_obj.name)
+        for morph_prop_name in morph_prop_names:
+            layout.prop(mesh_obj, '["' + morph_prop_name + '"]')
