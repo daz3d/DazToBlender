@@ -55,6 +55,7 @@
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
+	var s_bIncludeMorphs
 	
 	
 	
@@ -1027,6 +1028,12 @@
 		wIncludeAnimationsCbx.checked = true;
 		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 		
+
+		// Checkbox to include morph data
+		var wIncludeMorphsCbx = new DzCheckBox( wSettingsDialog );
+		wIncludeMorphsCbx.text = "Include Morphs";
+		wIncludeMorphsCbx.checked = false;
+		wSettingsDialog.addWidget( wIncludeMorphsCbx );
 		// When user Cancels the dialog
 		if( !wSettingsDialog.exec() ){
 			return false;
@@ -1035,7 +1042,7 @@
 		// Set settings variables from the Dialog
 		s_nSubDivLevel = wSubDivGroup.selected;
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
-		
+		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		// When user Accepts the dialog
 		return true;
 	};
@@ -1259,7 +1266,7 @@
 			oFile.write( aData )
 		}
 			
-		
+
 		oFile.close();
 	};
 	
@@ -1583,6 +1590,32 @@
 		
 		return vecFirstAxis;
 	};
+	/*********************************************************************/
+	// DzVec3 : Checks if there is an offset for Parent bone
+	// TODO: Check if any other bones are changed with FBMs
+	function getBoneOffset( oNode ){
+		var nOffset = new DzVec3( 0, 0, 0)
+		for( var i = 0; i < oNode.getNumProperties(); i++ ){
+			var oProperty = oNode.getProperty( i );
+			var sPropName = oProperty.getName();
+			// Currently only checking YTranslate
+			if( sPropName == "YTranslate" ){
+				var nControllerCount = oProperty.getNumControllers();
+				for( var j = 0; j < nControllerCount; j += 1 ){
+					var oErcLink = new DzERCLink();
+					oErcLink = oProperty.getController( j );
+					var oControllerProp = oErcLink.getProperty();
+					sControllerName = getPropertyName(oControllerProp);
+					if( sControllerName.indexOf( "FBM" ) != -1 ){
+						if( oControllerProp.getDoubleValue() != 0 ){
+							nOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
+						};
+					};
+				};
+			};
+		};
+		return nOffset
+	};
 
 	/*********************************************************************/
 	// Float : Get length of the bone
@@ -1641,7 +1674,7 @@
 		var nYRotMax;
 		var nZRotMin;
 		var nZRotMax;
-		var vecOffset = new DzVec3( 0, 0, 0 );
+		var vecOffset
 
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
@@ -1651,12 +1684,9 @@
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
 		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
 		
-		// Currently Does not work with animation
+		
 		// To account for offset on the hip bone.
-		vecPos = aNodes[0].getLocalPos();
-		if( vecPos.y != 0 ){
-			vecOffset = vecPos
-		};
+		vecOffset = getBoneOffset(aNodes[0])
 		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
 		
 		for( var i = 0; i < nNodes; i += 1 ){
@@ -1685,12 +1715,12 @@
 			
 			aHeadTailData[i] = [
 				oNode.getName(),
-				vecHead.x * nSkeletonScale + vecOffset.x,
-				vecHead.y * nSkeletonScale + vecOffset.y,
-				vecHead.z * nSkeletonScale + vecOffset.z,
-				vecTail.x * nSkeletonScale + vecOffset.x,
-				vecTail.y * nSkeletonScale + vecOffset.y,
-				vecTail.z * nSkeletonScale + vecOffset.z,
+				( vecHead.x + vecOffset.x ) * nSkeletonScale,
+				( vecHead.y + vecOffset.y ) * nSkeletonScale,
+				( vecHead.z + vecOffset.z ) * nSkeletonScale,
+				( vecTail.x + vecOffset.x ) * nSkeletonScale,
+				( vecTail.y + vecOffset.y ) * nSkeletonScale,
+				( vecTail.z + vecOffset.z ) * nSkeletonScale,
 				vecSecondAxis.x,
 				vecSecondAxis.y,
 				vecSecondAxis.z
@@ -1969,14 +1999,15 @@
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
 				
-				// Define Subscripts
-				aExportableProperties = executeSubScript(
-									s_sMorphDialog, 
-									[oFigure, s_sPresetPath, s_sDazBridgeName] 
-								);
-				
-				s_sMorphRules = getMorphString( aExportableProperties );
-				loadMorphLinks( aExportableProperties );
+				// Morph Export
+				if( s_bIncludeMorphs ){
+					aExportableProperties = executeSubScript(
+						s_sMorphDialog, 
+						[oFigure, s_sPresetPath, s_sDazBridgeName] 
+					);
+					s_sMorphRules = getMorphString( aExportableProperties );
+					loadMorphLinks( aExportableProperties );
+				};
 				
 				
 				// Write data

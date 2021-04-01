@@ -290,19 +290,19 @@ def find_BODY(dobj):
         for modifier in dobj.modifiers:
             if modifier.type == "ARMATURE" and modifier.object is not None:
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-
-                    if len(dobj.vertex_groups) > 163 and len(dobj.data.vertices) >= 16384:  # Female 16556 Male 16384
-                        mtls = ['Torso', 'Face', 'Lips', 'Teeth', 'Ears', 'Legs', 'EyeSocket', 'Mouth', 'Arms',
-                                'Pupils', 'EyeMoisture', 'Fingernails', 'Cornea', 'Irises', 'Sclera', 'Toenails','EylsMoisture']
-                        point = len(mtls)
-                        for slot in dobj.material_slots:
-                            for m in mtls:
-                                if m in slot.name:
-                                    point -= 1
-                                    break
-                        if point < 5:
-                            _BODY = dobj.name
-                            return True
+                    figure_name =  dobj.name.replace(".Shape","")
+                    figure_name = figure_name.split(".")[0]
+                    if figure_name in [
+                                        'Genesis8Female',
+                                        'Genesis8Male',
+                                        'Genesis8_1Male',
+                                        'Genesis8_1Female',
+                                        'Genesis3Male',
+                                        'Genesis3Female'
+                                        ]:
+                        _BODY = dobj.name
+                        return True
+                             
     return False
 
 def getChildren(obj):
@@ -331,7 +331,7 @@ def find_Both(obj):
     return False
 
 
-#TODO: Fix Logic of Combination of Tear and
+#TODO: Fix Logic of Combination of Tears
 def find_EYLS(dobj):
     global _EYLS
     global keep_EYLS
@@ -419,72 +419,24 @@ def decide_HERO():
     global _ISG3
     global Geo_Idx
     global _SIZE
-    bool_amtr = [False, False]
+    
     clear_variables()
+
     for dobj in Util.myacobjs():
         if find_AMTR(dobj):
-            bool_amtr[0] = True
-            break
-        if find_RGFY(dobj):
-            bool_amtr[1] = True
-            break
-    if bool_amtr[0] == False:
-        _AMTR = ""
-    if bool_amtr[1] == False:
-        _RGFY = ""
-    if _AMTR == "" and _RGFY == "":
-        return
-    mf = 0
-    bool_body = [False, False, False,False]
-
-    for z in range(2):
-        for dobj in Util.myccobjs():
-            if z==0 and find_BODY(dobj):
-                bool_body[0] = True
-                lon = len(dobj.data.vertices)
-                _BVCount = lon
-                for i in range(2):
-                    for vc in max_vs[i][0]:
-                        if lon==vc or lon==vc+EYLSCOUNT:
-                            mf = (1 if i == 1 else 2)
-                            isGen = False
-                            break
-                    for vc in max_vs[i][G3_GEOIDX]:
-                        if lon == vc and _ISG3 == 2:
-                            _ISG3 = 0
-                            mf = (1 if i == 1 else 2)
-                            isMan = mf==1
-                            addG3Database(isMan)
-                            Geo_Idx = G3_GEOIDX
-                            isGen = True
-                            break
-                break
-            elif z>0 and bool_body[1]==False and find_EYLS(dobj):
-                bool_body[1] = True
-            elif z>0 and bool_body[2]==False and find_HAIR(dobj):
-                bool_body[2] = True
-            elif z>0 and bool_body[3]==False and find_TEAR(dobj):
-                bool_body[3] = True
-    if bool_body[0] == False:
-        _BODY = ""
-    if bool_body[1] == False:
-        _EYLS = ""
-    if bool_body[2] == False:
-        _HAIR = ""
-    if bool_body[3] == False:
-        _TEAR = ""
-    if _BODY == "":
-        return
-    if mf == 0:
-        getmf = getMf()
-        if getmf[2]==False:
-            _BODY = ""
-        else:
-            isMan = getmf[0]
-            isGen = getmf[1]
-    else:
-        isMan = mf==1
+            continue
+        if find_EYLS(dobj):
+            continue
+        if find_HAIR(dobj):
+            continue
+        if find_TEAR(dobj):
+            continue
+        if find_BODY(dobj):
+            continue
+    
         
+ 
+   
         
 def addG3Database(isman):
     sql = ""
@@ -577,11 +529,9 @@ def boneRotation_onoff(context,flg_on):
 def getRootPath():
     global root
     if root == "":
-        if os.name == 'nt':
-            hdir = os.path.expanduser('~')
-        else:
-            hdir = os.environ['HOME']
+        hdir = os.path.expanduser('~')
         hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Exports")
+        print("Files Should be Exporting to : {0}".format(hdir))
         if os.path.exists(hdir):
             root = hdir
         else:
