@@ -232,18 +232,17 @@ class DtbShapeKeys:
         dtu_content = input_file.read()
         return json.loads(dtu_content)["MorphLinks"]
     
-    def add_custom_shape_key_prop(self, key_block, body_mesh_obj, morph_label):
-        body_mesh_name = body_mesh_obj.data.name
+    def add_custom_shape_key_prop(self, key_block, mesh_obj, morph_label):
         # Skip Basis shape key
         if key_block.name == "Basis":
             return
 
         # Create a custom property and set limits
-        body_mesh_obj[morph_label] = 0.0
-        rna_ui = body_mesh_obj.get('_RNA_UI')
+        mesh_obj[morph_label] = 0.0
+        rna_ui = mesh_obj.get('_RNA_UI')
         if rna_ui is None:
-            body_mesh_obj['_RNA_UI'] = {}
-            rna_ui = body_mesh_obj.get('_RNA_UI')
+            mesh_obj['_RNA_UI'] = {}
+            rna_ui = mesh_obj.get('_RNA_UI')
         rna_ui[morph_label] = {
                                     "min": 0.0,
                                     "max": 1.0,
@@ -263,13 +262,21 @@ class DtbShapeKeys:
         # Set variable target
         target = link_var.targets[0]
         target.id_type = 'OBJECT'
-        target.id = body_mesh_obj
+        target.id = mesh_obj
         rna_data_path = "[\"" + morph_label + "\"]"
         target.data_path = rna_data_path
 
         # Add to the Global list, so it can be used in the Daz To Blender Panel
-        Global.load_shape_key_custom_props(morph_label)
+        Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
     
+    def get_control_shape_key(self, key_name, body_mesh_name, body_key_blocks):
+        # Get the body_block that matches the given key_name
+        for body_block in body_key_blocks:
+            body_key_name = body_block.name[len(body_mesh_name + "__"):]
+            if key_name == body_key_name:       
+                return body_key_name
+        return None
+
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
         shape_key = body_mesh_obj.data.shape_keys
@@ -360,17 +367,24 @@ class DtbShapeKeys:
 
         other_key_blocks = other_shape_key.key_blocks
         body_key_blocks = body_shape_key.key_blocks
+        
+        # Get morph_links_list for adding custom properties 
+        morph_links_list = self.load_morph_link_list()
 
         # Add drivers to the key blocks that have same name as in body mesh
         # Driver copies the value of the controller key block
         for other_block in other_key_blocks:
             other_key_name = other_block.name[len(other_mesh_name + "__"):]
-            for body_block in body_key_blocks:
-                body_key_name = body_block.name[len(body_mesh_name + "__"):]
-                if other_key_name != body_key_name:
-                    continue
-                
-                # Add driver
+            if not other_key_name:
+                continue
+
+            body_key_name = self.get_control_shape_key(
+                                                        other_key_name,
+                                                        body_mesh_name,
+                                                        body_key_blocks
+                                                    )
+            if body_key_name:
+                # Add driver targetting the body shape key that controls this
                 driver = other_block.driver_add("value").driver
                 driver.type = 'SUM'
 
@@ -386,6 +400,23 @@ class DtbShapeKeys:
                 block_id = body_mesh_name + "__" + body_key_name
                 rna_data_path = "key_blocks[\"" + block_id + "\"].value"
                 target.data_path = rna_data_path
+            else:
+                # Continue if other_key_name not found in morph_links_list
+                if other_key_name not in morph_links_list:
+                    continue
+
+                morph_label = morph_links_list[other_key_name]["Label"]
+                morph_links = morph_links_list[other_key_name]["Links"]
+
+                # If morph_links is empty add a custom property
+                if not morph_links:
+                    # Create custom property for this shape key and drive it
+                    self.add_custom_shape_key_prop(
+                                                    other_block,
+                                                    other_mesh_obj,
+                                                    morph_label
+                                                )
+                    continue
     
     def make_driver(self, other_mesh_obj, body_mesh_obj):
         if other_mesh_obj == body_mesh_obj:
