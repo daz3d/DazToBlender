@@ -32,7 +32,7 @@ _HOMETOWN = ""
 _ASSETNAME = ""
 already_use_newmtl = []
 _ENVROOT = ""
-shape_key_custom_props = []
+shape_key_custom_props = {}
 
 G3_GEOIDX = 3
     #####Female#######
@@ -50,12 +50,17 @@ max_vs = [
     [[16384,65118,259762],[17454,69398,276882],[17543,69498,276982],[17246,68056,270644]],
 ]
 
-
 IS_EMERGENCY = False
 EYLSCOUNT =464
 
-def load_shape_key_custom_props(property_name):
-    shape_key_custom_props.append(property_name)
+def load_shape_key_custom_props(mesh_name, property_name):
+    if mesh_name not in shape_key_custom_props:
+        shape_key_custom_props[mesh_name] = [property_name]
+        return
+
+    property_names = shape_key_custom_props[mesh_name]
+    property_names.append(property_name)
+    shape_key_custom_props[mesh_name] = property_names
 
 def get_shape_key_custom_props():
     return shape_key_custom_props
