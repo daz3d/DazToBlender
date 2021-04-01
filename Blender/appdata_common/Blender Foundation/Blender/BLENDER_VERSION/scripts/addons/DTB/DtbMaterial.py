@@ -414,6 +414,9 @@ class DtbShaders:
                             # Check if Info is a Hex Color
                             if isinstance(property_info,str):
                                 property_info = self.convert_color(property_info,shader_node)
+                            if input_key == "Normal Map: Value":
+                                if isinstance(property_info,list):
+                                    property_info = 1
                             shader_node.inputs[input_key].default_value = property_info
 
                         if property_type == "Texture":
