@@ -1903,6 +1903,17 @@
         sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
         return sMorphString;
     };
+	
+	/*********************************************************************/
+	// Object : Returns the Keyed Data
+	function getErcKeyed( oErc, nIdx )
+	{
+		var oKey = {}
+		oKey["Rotate"] = oErc.getKey( nIdx );
+		oKey["Value"] = oErc.getKeyValue( nIdx );
+		
+		return oKey
+	};
 
 	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
@@ -1925,6 +1936,17 @@
 					"Scalar": oErcLink.scalar,
 					"Addend": oErcLink.addend
 				};
+				if( oErcLink.type == 6 ){
+					oLink["Key Type"] = oErcLink.keyInterpolation;
+					var oKeys = {}
+					for( var k = 0; k < oErcLink.getNumKeyValues(); k++ ){
+						oKey = getErcKeyed( oErcLink, k );
+						
+						sKey = String( "%1 %2" ).arg( "Key" ).arg( k );
+						oKeys[sKey] = oKey;
+					}
+					oLink["Keys"] = oKeys;
+				}
 				var oOwnerNode = oControllerProp.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
 					oLink["Bone"] = oOwnerNode.name
