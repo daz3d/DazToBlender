@@ -195,7 +195,7 @@ class DtbShapeKeys:
                             continue
                     key_0 = str(abs(keyed[key]["Rotate"]))
                 if keyed[key]["Value"] == 1:
-                    key_1 = str(abs(keyed[key]["Rotate"])
+                    key_1 = str(abs(keyed[key]["Rotate"]))
                     
             dist = str((float(key_1) - float(key_0)))  
             normalized_dist = str((1 - 0)) 
