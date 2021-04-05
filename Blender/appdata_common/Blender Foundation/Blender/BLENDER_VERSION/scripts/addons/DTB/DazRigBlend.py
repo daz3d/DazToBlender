@@ -275,6 +275,7 @@ class DazRigBlend:
                     return mb[1]
         return roll
 
+    # To Do fix, roll as it is being incorrectly calculated in Shoulders and Arms
     def set_bone_head_tail(self):
         # Read bone's head, tail and a vector to calculate roll
         input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneHeadTail.csv"), "r")

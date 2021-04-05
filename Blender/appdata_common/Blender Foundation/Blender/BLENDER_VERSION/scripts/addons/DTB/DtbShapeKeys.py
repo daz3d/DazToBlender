@@ -36,11 +36,11 @@ class DtbShapeKeys:
         #   and Blender.
         if bone_order == 'XYZ':
             if "XRotate" in property_name:
-                return 'ROT_Z'
-            elif "YRotate" in property_name:
-                return 'ROT_X'
-            elif "ZRotate" in property_name:
                 return 'ROT_Y'
+            elif "YRotate" in property_name:
+                return 'ROT_Z'
+            elif "ZRotate" in property_name:
+                return 'ROT_X'
         elif bone_order == 'XZY':
             if "XRotate" in property_name:
                 return 'ROT_Y'
@@ -98,11 +98,11 @@ class DtbShapeKeys:
 
         if bone_order == 'XYZ':
             if "XRotate" in property_name:
-                correction_factor = 1
+                correction_factor = -1
             elif "YRotate" in property_name and is_right:
                 correction_factor = -1
             elif "ZRotate" in property_name and is_right:
-                correction_factor = -1
+                correction_factor = 1
         elif bone_order == 'XZY':
             if "XRotate" in property_name:
                 correction_factor = -1
@@ -138,11 +138,27 @@ class DtbShapeKeys:
         var_name = "(" + var_name + "*" + str(correction_factor) + ")"
         return var_name
 
+    # Converts difference to a 0 to 1 range  
+    # TO DO: Convert to Follow the rate similiar to Daz Studio
+    def erc_keyed(self, var, min, max, normalized_dist, dist):
+        if dist < 0:
+            if max <= var <= min:
+                return abs((var - min)/dist)
+            elif max >= var:
+                return 1
+            else:
+                return 0
+        if min <= var <= max:
+            return abs((var - min * normalized_dist) /dist)
+        elif max <= var:
+            return 1
+        else:
+            return 0
+    
     def get_target_expression(self, var_name, morph_link, driver):
         link_type = morph_link["Type"]
         scalar = str(round(morph_link["Scalar"], 2))
         addend = str(morph_link["Addend"])
-
         var_name = self.get_var_correction(var_name, morph_link)
 
         if link_type == 0:
@@ -170,16 +186,48 @@ class DtbShapeKeys:
             return "(" + "self.value+" + var_name + "+" + addend + ")"
         elif link_type == 6:
             # ERCKeyed
-            # TODO: Figure out a way to represent in Blender.
-            return "(" + var_name + ")"
+            # Add expression to Blender
+            bpy.app.driver_namespace["erc_keyed"] = self.erc_keyed
             
+            keyed = morph_link["Keys"]
+            
+            # Currently Skip the 3rd Key if Key 0 has two
+            for i in range(len(keyed)):
+                key = list(keyed)[i]
+                if keyed[key]["Value"] == 0:
+                    if len(keyed) > (i + 1):
+                        next_key = list(keyed)[i + 1]
+                        if (len(keyed) != 2) and (keyed[next_key]["Value"] == 0) and (keyed[next_key]["Rotate"] == 0):
+                            continue
+                    key_0 = str(keyed[key]["Rotate"])
+                if keyed[key]["Value"] == 1:
+                    key_1 = str(keyed[key]["Rotate"])
+                    
+            # Temporily Run lForearmBend as absolute as incorrect roll is applied.
+            bone_name = morph_link["Bone"]
+            if bone_name == "lForearmBend":
+                key_0 = str(abs(float(key_0)))
+                key_1 = str(abs(float(key_1)))
+
+            dist = str((float(key_1) - float(key_0)))  
+            normalized_dist = str((1 - 0)) 
+                
+            return "erc_keyed(" + var_name + "," + key_0 + "," + key_1 + "," + normalized_dist + "," + dist + ")"
+            
+           
+           
+
         return var_name
     
+    
+
+  
+
     def get_morph_link_control_type(self, morph_link):
-        if morph_link["Type"] == 6:
-            # skip links that are 'ERCKeyed' for now
-            return 'CONTROL_BY_NONE'
-        elif morph_link["Bone"] == "None":
+        # if morph_link["Type"] == 6:
+        #     # skip links that are 'ERCKeyed' for now
+        #     return 'CONTROL_BY_NONE'
+        if morph_link["Bone"] == "None":
             return 'CONTROL_BY_MORPH'
         else:
             return 'CONTROL_BY_BONE'
@@ -416,7 +464,7 @@ class DtbShapeKeys:
                                                     other_mesh_obj,
                                                     morph_label
                                                 )
-                    continue
+                    continue 
     
     def make_driver(self, other_mesh_obj, body_mesh_obj):
         if other_mesh_obj == body_mesh_obj:

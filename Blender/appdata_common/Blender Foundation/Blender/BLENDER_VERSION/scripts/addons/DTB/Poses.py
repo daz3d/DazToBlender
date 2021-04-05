@@ -436,7 +436,8 @@ class Posing:
         elif rotation_order == "ZYX":
             # YZ switch (Y <-> Z)
             temp = rotations[1]
-            rotations[2] = rotations[1]
+            rotations[1] = rotations[2]
+            rotations[2] = temp
 
             # X invert (-X)
             rotations[0] = -rotations[0]
@@ -496,7 +497,7 @@ class Posing:
                     for i in range(len(position)):
                         if bname == "hip":
                             if self.get_offset() != 0:
-                                position[i] = 0
+                                position[i] = position[i] - self.get_offset()
 
                         position[i] = position[i] * Global.get_size()
                     
