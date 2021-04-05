@@ -1921,20 +1921,22 @@
 	{
 		// Load all the controller links on the properties
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
-			var oMorphProperty = aExportableProperties[i].property;
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
 			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
 			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
 				oErcLink = oMorphProperty.getController( j );
 				var oControllerProp = oErcLink.getProperty();
-
+				
 				var oLink = {
 					"Bone": "None",
 					"Property": getPropertyName( oControllerProp ),
 					"Type": oErcLink.type,
 					"Scalar": oErcLink.scalar,
-					"Addend": oErcLink.addend
+					"Addend": oErcLink.addend,
+					
 				};
 				if( oErcLink.type == 6 ){
 					oLink["Key Type"] = oErcLink.keyInterpolation;
@@ -1955,7 +1957,10 @@
 			}
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
-					"Links": aLinks
+					"Links": aLinks,
+					"Minimum": oMorphInfo.min,
+					"Maximum": oMorphInfo.max,
+					"isHidden": oMorphInfo.hidden
 			};
 			s_oMorphLinks[getPropertyName( oMorphProperty )] = oMorphLinkObj;
 		}

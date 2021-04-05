@@ -198,6 +198,11 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        w_mgr = context.window_manager
+        row = layout.row(align=True)
+        row.alignment = 'EXPAND'
+        row.prop(w_mgr, "search_morph_list")
+        morph_filter = w_mgr.search_morph_list
         morph_custom_props = Global.get_shape_key_custom_props()
         # For each mesh shape add custom shape key properties if any
         for custom_prop in reversed(morph_custom_props):
@@ -205,4 +210,5 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
             mesh_obj = bpy.data.objects[mesh_name]
             layout.label(text=mesh_name)
             for morph_prop_name in reversed(custom_prop["props"]):
-                layout.prop(mesh_obj, '["' + morph_prop_name + '"]')
+                if len(morph_filter) == 0 or morph_filter.lower() in morph_prop_name.lower() or morph_filter == "Type Keyword Here":
+                    layout.prop(mesh_obj, '["' + morph_prop_name + '"]')

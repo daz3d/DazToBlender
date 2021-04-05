@@ -355,7 +355,11 @@ def init_props():
         ],
         default = '0.01'
     )
-   
+    w_mgr.search_morph_list = StringProperty(
+        name="",
+        default="Type Keyword Here",
+        description="Search_shape_keys",
+    )
 
 
 
