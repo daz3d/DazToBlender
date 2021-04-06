@@ -940,6 +940,11 @@
 			// Create Directories
 			oDir.setPath( sPath );
 			if( !oDir.exists() ){
+				if( i == 3 ){
+					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sPath ), 
+											qsTr( "Your Export Path" ), 
+											qsTr( "&Continue" ) );
+				}
 				oDir.mkdir( sPath );
 			};
 		};
@@ -1616,7 +1621,7 @@
 		};
 		return nOffset
 	};
-
+	
 	/*********************************************************************/
 	// Float : Get length of the bone
 	function getBoneNodeLength( oNode )
@@ -1675,7 +1680,6 @@
 		var nZRotMin;
 		var nZRotMax;
 		var vecOffset
-
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
 		var aSkeletonData = new Array( 1 );
