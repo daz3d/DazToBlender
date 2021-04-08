@@ -940,6 +940,11 @@
 			// Create Directories
 			oDir.setPath( sPath );
 			if( !oDir.exists() ){
+				if( i == 3 ){
+					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sPath ), 
+											qsTr( "Your Export Path" ), 
+											qsTr( "&Continue" ) );
+				}
 				oDir.mkdir( sPath );
 			};
 		};
@@ -1620,7 +1625,7 @@
 		};
 		return nOffset
 	};
-
+	
 	/*********************************************************************/
 	// Float : Get length of the bone
 	function getBoneNodeLength( oNode )
@@ -1679,7 +1684,6 @@
 		var nZRotMin;
 		var nZRotMax;
 		var vecOffset
-
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
 		var aSkeletonData = new Array( 1 );
@@ -1936,20 +1940,22 @@
 	{
 		// Load all the controller links on the properties
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
-			var oMorphProperty = aExportableProperties[i].property;
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
 			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
 			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
 				oErcLink = oMorphProperty.getController( j );
 				var oControllerProp = oErcLink.getProperty();
-
+				
 				var oLink = {
 					"Bone": "None",
 					"Property": getPropertyName( oControllerProp ),
 					"Type": oErcLink.type,
 					"Scalar": oErcLink.scalar,
-					"Addend": oErcLink.addend
+					"Addend": oErcLink.addend,
+					
 				};
 				if( oErcLink.type == 6 ){
 					oLink["Key Type"] = oErcLink.keyInterpolation;
@@ -1970,7 +1976,10 @@
 			}
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
-					"Links": aLinks
+					"Links": aLinks,
+					"Minimum": oMorphInfo.min,
+					"Maximum": oMorphInfo.max,
+					"isHidden": oMorphInfo.hidden
 			};
 			s_oMorphLinks[getPropertyName( oMorphProperty )] = oMorphLinkObj;
 		}

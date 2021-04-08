@@ -355,7 +355,11 @@ def init_props():
         ],
         default = '0.01'
     )
-   
+    w_mgr.search_morph_list = StringProperty(
+        name="",
+        default="Type Keyword Here",
+        description="Search_shape_keys",
+    )
 
 
 
@@ -367,6 +371,7 @@ classes = (
     DtbPanels.DTB_PT_MATERIAL,
     DtbPanels.DTB_PT_GENERAL,
     DtbPanels.DTB_PT_COMMANDS,
+    DtbPanels.DTB_PT_MORE_INFO,
     DtbOperators.IMP_OT_POSE,
     DtbOperators.IMP_OT_FBX,
     DtbOperators.IMP_OT_ENV,
