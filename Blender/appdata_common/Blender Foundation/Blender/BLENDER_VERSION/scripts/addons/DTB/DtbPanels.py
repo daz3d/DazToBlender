@@ -225,7 +225,8 @@ class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
         box = l.box()
         row = l.row(align=True)
         row.alignment = 'EXPAND'
-        box.operator("wm.url_open", text="Create a Support Ticket").url = "https://helpdaz.zendesk.com/hc/en-us/requests/new?ticket_form_id=23788"
-        box.operator("wm.url_open", text="Meet the Bridge Team").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
-        box.operator("wm.url_open", text="Found a bug? Post it here").url = "https://github.com/daz3d/DazToBlender/issues"
-        box.operator("wm.url_open", text="Past Versions").url = "https://github.com/daz3d/DazToBlender/releases"
+        box.operator("wm.url_open", text="Create a Support Ticket", icon = "URL").url = "https://helpdaz.zendesk.com/hc/en-us/requests/new?ticket_form_id=23788"
+        box.operator("wm.url_open", text="Meet the Bridge Team", icon = "URL").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
+        box.operator("wm.url_open", text="Report a Bug", icon = "URL").url = "https://github.com/daz3d/DazToBlender/issues"
+        box.operator("wm.url_open", text="Past Versions", icon = "URL").url = "https://github.com/daz3d/DazToBlender/releases"
+   

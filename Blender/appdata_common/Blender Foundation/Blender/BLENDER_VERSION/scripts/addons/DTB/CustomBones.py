@@ -239,7 +239,7 @@ class CBones:
                 pb.custom_shape_scale = 0.15
             elif plower == 'hip':
                 pb.custom_shape = Util.allobjs().get('square1')
-                pb.custom_shape_scale = 1
+                pb.custom_shape_scale = 1.1
             elif 'breast' in plower:
                 pb.custom_shape = Util.allobjs()['octagon1']
                 pb.custom_shape_scale = 0.2
