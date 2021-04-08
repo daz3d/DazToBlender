@@ -16,6 +16,9 @@ class DtbShapeKeys:
     root = Global.getRootPath()
     flg_rigify = False
 
+    var_name_index = 0
+    var_name_range = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
     def __init__(self, flg_rigify):
         self.flg_rigify = flg_rigify
 
@@ -133,7 +136,7 @@ class DtbShapeKeys:
                 correction_factor = 1
 
         # Include radians to degree convesion factor
-        correction_factor = math.degrees(correction_factor)
+        correction_factor = round(math.degrees(correction_factor), 2)
 
         var_name = "(" + var_name + "*" + str(correction_factor) + ")"
         return var_name
@@ -163,7 +166,8 @@ class DtbShapeKeys:
 
         if link_type == 0:
             # ERCDeltaAdd
-            return "(" + var_name + "*" + scalar + "+" + addend + ")"
+            delta_add = str(float(scalar) + float(addend))
+            return "(" + var_name + "*" + delta_add + ")"
         elif link_type == 1:
             # ERCDivideInto
             driver.use_self = True
@@ -224,10 +228,10 @@ class DtbShapeKeys:
         else:
             return 'CONTROL_BY_BONE'
     
-    def make_bone_var(self, link_index, morph_link, driver):
+    def make_bone_var(self, morph_link, driver):
         # Add Variable
         link_var = driver.variables.new()
-        link_var.name = "var" + str(link_index)
+        link_var.name = self.get_next_var_name()
         link_var.type = 'TRANSFORMS'
         
         # Set variable target
@@ -239,10 +243,10 @@ class DtbShapeKeys:
         
         return link_var
 
-    def make_morph_var(self, link_index, morph_link, driver, shape_key, mesh_name):
+    def make_morph_var(self, morph_link, driver, shape_key, mesh_name):
         # Add variable
         link_var = driver.variables.new()
-        link_var.name = "var" + str(link_index)
+        link_var.name = self.get_next_var_name()
         link_var.type = 'SINGLE_PROP'
         
         # Set variable target
@@ -321,6 +325,19 @@ class DtbShapeKeys:
                 return body_key_name
         return None
 
+    def reset_var_names(self):
+        self.var_name_index = 0
+
+    def get_next_var_name(self):
+        range_len = len(self.var_name_range)
+        next_index = self.var_name_index % range_len
+        suffix_index = (int)(self.var_name_index / range_len)
+        var_name = self.var_name_range[next_index]
+        if suffix_index > 0:
+            var_name = var_name + str(suffix_index)
+        self.var_name_index += 1
+        return var_name
+
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
         shape_key = body_mesh_obj.data.shape_keys
@@ -360,6 +377,7 @@ class DtbShapeKeys:
 
             expression = ""
             var_count = 0
+            self.reset_var_names()
             for link_index, morph_link in enumerate(morph_links):
                 # Determine if the controller is a Bone or other shape key
                 control_type = self.get_morph_link_control_type(morph_link)
@@ -375,7 +393,6 @@ class DtbShapeKeys:
                         # If the controller morph is not in listed shape keys
                         continue
                     var = self.make_morph_var(
-                                                link_index,
                                                 morph_link,
                                                 driver,
                                                 shape_key,
@@ -383,10 +400,15 @@ class DtbShapeKeys:
                                             )
                     var_count += 1
                 elif control_type == 'CONTROL_BY_BONE':
-                    var = self.make_bone_var(link_index, morph_link, driver)
+                    var = self.make_bone_var(morph_link, driver)
                     var_count += 1
 
-                expression += self.get_target_expression(var.name, morph_link, driver) + "+"
+                exp = self.get_target_expression(var.name, morph_link, driver)
+                if len(expression + exp + "+") > 255:
+                    # Driver script expression max lenght is 255
+                    # break when the limit is reached to avoid errors
+                    break
+                expression += exp + "+"
             
             # Delete the driver and continue if there are no variables
             if var_count == 0:
