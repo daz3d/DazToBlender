@@ -199,6 +199,8 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         morph_custom_props = Global.get_shape_key_custom_props()
+        if len(morph_custom_props) == 0:
+            return
         # For each mesh shape add custom shape key properties if any
         for custom_prop in reversed(morph_custom_props):
             mesh_name = custom_prop["mesh"]

@@ -213,15 +213,7 @@ class DtbShapeKeys:
             normalized_dist = str((1 - 0)) 
                 
             return "erc_keyed(" + var_name + "," + key_0 + "," + key_1 + "," + normalized_dist + "," + dist + ")"
-            
-           
-           
-
         return var_name
-    
-    
-
-  
 
     def get_morph_link_control_type(self, morph_link):
         # if morph_link["Type"] == 6:

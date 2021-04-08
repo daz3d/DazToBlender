@@ -1576,13 +1576,17 @@
 	{
 		var vecFirstAxis = new DzVec3( 0, 0, 0 );
 		var nSign = getLookAtDirection( oNode );
+		var nNodeScale = oNode.getScaleControl().getValue();
 		
 		if( oNode.getRotationOrder().firstAxis == 0 ){
-			vecFirstAxis.x = nBoneLength * nSign;
+			nXScale = oNode.getXScaleControl().getValue();
+			vecFirstAxis.x = nBoneLength * nSign * nXScale * nNodeScale;
 		} else if( oNode.getRotationOrder().firstAxis == 1 ){
-			vecFirstAxis.y = nBoneLength * nSign;
+			nYScale = oNode.getYScaleControl().getValue();
+			vecFirstAxis.y = nBoneLength * nSign * nYScale * nNodeScale;
 		} else if( oNode.getRotationOrder().firstAxis == 2 ){
-			vecFirstAxis.z = nBoneLength * nSign;
+			nZScale = oNode.getZScaleControl().getValue();
+			vecFirstAxis.z = nBoneLength * nSign * nZScale * nNodeScale;
 		}
 		
 		var quatOrientation = oNode.getOrientation();
@@ -1684,10 +1688,15 @@
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
 		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
 		
-		
 		// To account for offset on the hip bone.
 		vecOffset = getBoneOffset(aNodes[0])
 		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
+
+		oBaseNode.update();
+		oBaseNode.finalize();
+		var oFigure = new DzFigure();
+		var oFigure = oBaseNode.getSkeleton();
+		var oSkinBinding = oFigure.getSkinBinding();
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
@@ -1709,7 +1718,13 @@
 			
 			nBoneLength = getBoneNodeLength( oNode );
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
+
 			vecHead = oNode.getOrigin( false );
+			oBoneBinding = oSkinBinding.findBoneBinding( oNode );
+			if( oBoneBinding ){
+				vecHead = oBoneBinding.getScaledOrigin();
+			}
+			
 			vecTail = vecHead.add( vecPrimaryAxis );
 			vecSecondAxis = getNodeSecondAxis( oNode );
 			
