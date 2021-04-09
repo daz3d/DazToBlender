@@ -204,9 +204,13 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
         row.prop(w_mgr, "search_morph_list")
         morph_filter = w_mgr.search_morph_list
         morph_custom_props = Global.get_shape_key_custom_props()
+        if len(morph_custom_props) == 0:
+            return
         # For each mesh shape add custom shape key properties if any
         for custom_prop in reversed(morph_custom_props):
             mesh_name = custom_prop["mesh"]
+            if mesh_name not in bpy.data.objects:
+                continue
             mesh_obj = bpy.data.objects[mesh_name]
             layout.label(text=mesh_name)
             for morph_prop_name in reversed(custom_prop["props"]):
@@ -223,7 +227,8 @@ class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
         box = l.box()
         row = l.row(align=True)
         row.alignment = 'EXPAND'
-        box.operator("wm.url_open", text="Create a Support Ticket").url = "https://helpdaz.zendesk.com/hc/en-us/requests/new?ticket_form_id=23788"
-        box.operator("wm.url_open", text="Meet the Bridge Team").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
-        box.operator("wm.url_open", text="Found a bug? Post it here").url = "https://github.com/daz3d/DazToBlender/issues"
-        box.operator("wm.url_open", text="Past Versions").url = "https://github.com/daz3d/DazToBlender/releases"
+        box.operator("wm.url_open", text="Create a Support Ticket", icon = "URL").url = "https://helpdaz.zendesk.com/hc/en-us/requests/new?ticket_form_id=23788"
+        box.operator("wm.url_open", text="Meet the Bridge Team", icon = "URL").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
+        box.operator("wm.url_open", text="Report a Bug", icon = "URL").url = "https://github.com/daz3d/DazToBlender/issues"
+        box.operator("wm.url_open", text="Past Versions", icon = "URL").url = "https://github.com/daz3d/DazToBlender/releases"
+   

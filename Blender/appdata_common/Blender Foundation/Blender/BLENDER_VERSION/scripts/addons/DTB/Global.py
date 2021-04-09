@@ -597,6 +597,7 @@ def clear_variables():
     global now_ary
     global pst_ary
     global _ENVROOT
+    global shape_key_custom_props
     isMan = False
     isGen = False
     _AMTR = ""
@@ -613,6 +614,7 @@ def clear_variables():
     _BVCount  = 0
     now_ary = []
     pst_ary = []
+    shape_key_custom_props = []
     #for scene in bpy.data.scenes:
     #    scene.unit_settings.scale_length = 1
     
