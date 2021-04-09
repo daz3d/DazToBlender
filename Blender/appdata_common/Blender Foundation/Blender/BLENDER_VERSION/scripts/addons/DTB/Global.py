@@ -1,10 +1,12 @@
 import bpy
 import os
 import math
+import json
 from copy import deepcopy
 from . import DataBase
 from . import Versions
 from . import Util
+
 isMan = False
 root = ""
 isGen = False
@@ -27,8 +29,10 @@ _SIZE = 0
 root =""
 _ISG3 = 0
 _HOMETOWN = ""
+_ASSETNAME = ""
 already_use_newmtl = []
 _ENVROOT = ""
+shape_key_custom_props = []
 
 G3_GEOIDX = 3
     #####Female#######
@@ -46,9 +50,28 @@ max_vs = [
     [[16384,65118,259762],[17454,69398,276882],[17543,69498,276982],[17246,68056,270644]],
 ]
 
-
 IS_EMERGENCY = False
 EYLSCOUNT =464
+
+def load_shape_key_custom_props(mesh_name, property_name):
+    for custom_prop in shape_key_custom_props:
+        # mesh_name already exists, append the property_name
+        if custom_prop["mesh"] == mesh_name:
+            if property_name not in custom_prop["props"]:
+                custom_prop["props"].append(property_name)
+                return
+            else:
+                return
+    
+    # Create a new mesh_name entry and add property_name
+    shape_key_custom_prop = {
+                                "mesh": mesh_name,
+                                "props": [property_name]
+                            }
+    shape_key_custom_props.append(shape_key_custom_prop)
+
+def get_shape_key_custom_props():
+    return shape_key_custom_props
 
 def getMyMax3():
     return max_vs[getSex()][get_geo_idx()]
@@ -77,7 +100,6 @@ def getSubdivLevel():
         return 1
     else:
         return 0
-
 
 
 def get_root():
@@ -276,19 +298,19 @@ def find_BODY(dobj):
         for modifier in dobj.modifiers:
             if modifier.type == "ARMATURE" and modifier.object is not None:
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-
-                    if len(dobj.vertex_groups) > 163 and len(dobj.data.vertices) >= 16384:  # Female 16556 Male 16384
-                        mtls = ['Torso', 'Face', 'Lips', 'Teeth', 'Ears', 'Legs', 'EyeSocket', 'Mouth', 'Arms',
-                                'Pupils', 'EyeMoisture', 'Fingernails', 'Cornea', 'Irises', 'Sclera', 'Toenails','EylsMoisture']
-                        point = len(mtls)
-                        for slot in dobj.material_slots:
-                            for m in mtls:
-                                if m in slot.name:
-                                    point -= 1
-                                    break
-                        if point < 5:
-                            _BODY = dobj.name
-                            return True
+                    figure_name =  dobj.name.replace(".Shape","")
+                    figure_name = figure_name.split(".")[0]
+                    if figure_name in [
+                                        'Genesis8Female',
+                                        'Genesis8Male',
+                                        'Genesis8_1Male',
+                                        'Genesis8_1Female',
+                                        'Genesis3Male',
+                                        'Genesis3Female'
+                                        ]:
+                        _BODY = dobj.name
+                        return True
+                             
     return False
 
 def getChildren(obj):
@@ -317,7 +339,7 @@ def find_Both(obj):
     return False
 
 
-#TODO: Fix Logic of Combination of Tear and
+#TODO: Fix Logic of Combination of Tears
 def find_EYLS(dobj):
     global _EYLS
     global keep_EYLS
@@ -383,13 +405,13 @@ def find_ENVROOT(dobj):
                 frombtm.append(obj)
     if (len(fromtop) == 1 and len(frombtm) == 1) == False:
         return
-    if fromtop[0]!=frombtm[0]:
+    if fromtop[0] != frombtm[0]:
         return
-    if fromtop[0].type=='ARMATURE' or fromtop[0].type=='EMPTY':
+    if fromtop[0].type == 'ARMATURE' or fromtop[0].type == 'EMPTY':
         _ENVROOT = fromtop[0].name
 
 def getEnvRoot():
-    if _ENVROOT !="" and (_ENVROOT in Util.allobjs()):
+    if _ENVROOT != "" and (_ENVROOT in Util.allobjs()):
         return Util.allobjs().get(_ENVROOT)
 
 def decide_HERO():
@@ -405,72 +427,24 @@ def decide_HERO():
     global _ISG3
     global Geo_Idx
     global _SIZE
-    bool_amtr = [False, False]
+    
     clear_variables()
+
     for dobj in Util.myacobjs():
         if find_AMTR(dobj):
-            bool_amtr[0] = True
-            break
-        if find_RGFY(dobj):
-            bool_amtr[1] = True
-            break
-    if bool_amtr[0] == False:
-        _AMTR = ""
-    if bool_amtr[1] == False:
-        _RGFY = ""
-    if _AMTR == "" and _RGFY == "":
-        return
-    mf = 0
-    bool_body = [False, False, False,False]
-
-    for z in range(2):
-        for dobj in Util.myccobjs():
-            if z==0 and find_BODY(dobj):
-                bool_body[0] = True
-                lon = len(dobj.data.vertices)
-                _BVCount = lon
-                for i in range(2):
-                    for vc in max_vs[i][0]:
-                        if lon==vc or lon==vc+EYLSCOUNT:
-                            mf = (1 if i == 1 else 2)
-                            isGen = False
-                            break
-                    for vc in max_vs[i][G3_GEOIDX]:
-                        if lon == vc and _ISG3 == 2:
-                            _ISG3 = 0
-                            mf = (1 if i == 1 else 2)
-                            isMan = mf==1
-                            addG3Database(isMan)
-                            Geo_Idx = G3_GEOIDX
-                            isGen = True
-                            break
-                break
-            elif z>0 and bool_body[1]==False and find_EYLS(dobj):
-                bool_body[1] = True
-            elif z>0 and bool_body[2]==False and find_HAIR(dobj):
-                bool_body[2] = True
-            elif z>0 and bool_body[3]==False and find_TEAR(dobj):
-                bool_body[3] = True
-    if bool_body[0] == False:
-        _BODY = ""
-    if bool_body[1] == False:
-        _EYLS = ""
-    if bool_body[2] == False:
-        _HAIR = ""
-    if bool_body[3] == False:
-        _TEAR = ""
-    if _BODY == "":
-        return
-    if mf == 0:
-        getmf = getMf()
-        if getmf[2]==False:
-            _BODY = ""
-        else:
-            isMan = getmf[0]
-            isGen = getmf[1]
-    else:
-        isMan = mf==1
+            continue
+        if find_EYLS(dobj):
+            continue
+        if find_HAIR(dobj):
+            continue
+        if find_TEAR(dobj):
+            continue
+        if find_BODY(dobj):
+            continue
+    
         
+ 
+   
         
 def addG3Database(isman):
     sql = ""
@@ -563,22 +537,27 @@ def boneRotation_onoff(context,flg_on):
 def getRootPath():
     global root
     if root == "":
-        if os.name == 'nt':
-            hdir = os.path.expanduser('~')
-        else:
-            hdir = os.environ['HOME']
-        fname = "DTB"
-        hdir += getFileSp() + "Documents" + getFileSp() + "DTB" + getFileSp()
-        if os.path.exists(hdir)==False or os.path.isdir(hdir) == False:
-            if os.name == 'nt':
-                hdir = "C:\\Documents\\DTB\\"
-            else:
-                hdir = "/Documents/DTB/"
+        hdir = os.path.expanduser('~')
+        hdir = os.path.join(hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Exports")
+        print("Files Should be Exporting to : {0}".format(hdir))
         if os.path.exists(hdir):
             root = hdir
         else:
             root = ""
     return root
+
+def load_asset_name():
+    global _ASSETNAME
+    for file in os.listdir(getHomeTown()):
+        if file.endswith(".dtu"):
+            dtu = os.path.join(getHomeTown(), file)
+            break
+    with open(dtu, "r") as file:
+        _ASSETNAME = json.load(file)["Asset Name"]
+
+def get_asset_name():
+    return _ASSETNAME
+
 
 def clear_already_use_newmtl():
     global already_use_newmtl
@@ -606,6 +585,7 @@ def clear_variables():
     global _AMTR
     global _BODY
     global _EYLS
+    global _TEAR
     global _HAIR
     global _RGFY
     global keep_EYLS
@@ -617,6 +597,7 @@ def clear_variables():
     global now_ary
     global pst_ary
     global _ENVROOT
+    global shape_key_custom_props
     isMan = False
     isGen = False
     _AMTR = ""
@@ -633,6 +614,7 @@ def clear_variables():
     _BVCount  = 0
     now_ary = []
     pst_ary = []
+    shape_key_custom_props = []
     #for scene in bpy.data.scenes:
     #    scene.unit_settings.scale_length = 1
     
@@ -986,145 +968,91 @@ def ifNeedToSnapKnee(r_l):
     return iks[r_l].head[2] > poles[r_l].head[2]
 
 
-def judgeSize():
-    max = 0
-    for z in range(2):
-        if z>0 and max>0:
-            break
+def get_size():
+    return float(bpy.context.window_manager.scene_scale)
+
+
+def change_size(root):
+    if get_size() < 1:
+        # Scale Import
+        for i in range(3): 
+            og_scale = root.scale[i]
+            root.scale[i] = og_scale * get_size()
+        setOpsMode("OBJECT")
+        Versions.active_object(root)
+        Versions.select(root, True)
+        bpy.ops.object.transform_apply(scale=True)
+        deselect()
+
         for obj in Util.myacobjs():
-            for i in range(3):
-                if z == 0:
-                    if obj.dimensions[i]>max:
-                        max = obj.dimensions[i]
-                else:
-                    if obj.location[i] > max:
-                        max = obj.location[i]
-    if max==0:
-        if bpy.context.window_manager.size_100:
-            max = 71
-    global _SIZE
-    if max <70:
-        _SIZE = 1
+            if obj.type == 'MESH':
+                if obj.parent == root:
+                    Versions.select(obj, True)
+                    Versions.active_object(obj)
+                    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                    deselect()
+            elif obj.type=='LIGHT' or obj.type=='CAMERA':
+                for i in range(3):
+                    og_scale = obj.scale[i]
+                    obj.scale[i] = og_scale * get_size()
+                Versions.select(obj, True)
+                Versions.active_object(obj)
+                bpy.ops.object.transform_apply(scale=True)
+                deselect()
+        # Scale Daz_Pub
+        for d in Util.colobjs('DP'):
+            if d.type=='CAMERA' or d.type=='LIGHT':
+                og_location = (140, 100, 150)
+                for i in range(3):
+                    d.location[i] = og_location[i] * get_size()
+                Versions.select(obj, True)
+                Versions.active_object(obj)
+                bpy.ops.object.transform_apply(scale=True)
+                deselect()
+
+def float_by_size(float):
+    return float * get_size()
+
+
+def scale_settings():
+    scene = bpy.context.scene
+    scene.tool_settings.use_keyframe_insert_auto = False
+    scene.unit_settings.system = 'METRIC'
+    scene.unit_settings.scale_length = 1.0
+    if get_size() == 0.01:
+        scene.unit_settings.length_unit = 'CENTIMETERS'
     else:
-        _SIZE= 100
-
-def want_real():
-    return bpy.context.window_manager.size_100==False
-
-def getSize():
-    if _SIZE==0:
-        judgeSize()
-    return _SIZE
-
-def scale_environment():
-    for scene in bpy.data.scenes:
-        scene.tool_settings.use_keyframe_insert_auto = False
-        scene.unit_settings.system = 'METRIC'
-        scene.unit_settings.scale_length = 1.0/getSize()
-    lens = [0.01*getSize(),1000*getSize(),50.0+math.floor(0.3*getSize())]
-    bpy.context.space_data.clip_start = lens[0]
-    bpy.context.space_data.clip_end = lens[1]
-    bpy.context.space_data.lens = lens[2]
-    size_1_100 =  [[(0.2721, -0.2184, 0.9022),(-0.7137, -0.5870, -0.2612,-0.2790),3],
-                   [(7.15, -4.35, 100.0),(-0.7150, -0.5860, -0.2601, -0.2788) ,430]]
-    idx = 0 if getSize()==1 else 1
+        scene.unit_settings.length_unit = 'METERS'
+    
+    # Change View Clipping
+    bpy.context.space_data.clip_start = get_size()
+    bpy.context.space_data.clip_end = 10000.00 * get_size()
+    bpy.context.space_data.lens = 50
+    
+    
+    location = [float_by_size(7.15), float_by_size(-4.35), float_by_size(100.0)]
+    rotation = [0.6888, 0.6246, 0.2473, 0.2727]
+    distance = float_by_size(430)
+    
     for area in bpy.context.screen.areas:
         if area.type == "VIEW_3D":
             rv3d = area.spaces[0].region_3d
             if rv3d is not None:
-                rv3d.view_location = size_1_100[idx][0]
-                rv3d.view_rotation = size_1_100[idx][1]
-                rv3d.view_distance = size_1_100[idx][2]
+                rv3d.view_location = location
+                rv3d.view_rotation = rotation
+                rv3d.view_distance = distance
                 rv3d.view_camera_zoom = 0
+            # Set Camera Position
+            rv3d.update()
+            bpy.context.scene.camera.matrix_world = rv3d.view_matrix
+            bpy.context.scene.camera.matrix_world.invert()
+          
+    # Set Camera Clipping
+    bpy.context.scene.camera.data.sensor_width = 64
+    bpy.context.scene.camera.data.clip_start = bpy.context.space_data.clip_start
+    bpy.context.scene.camera.data.clip_end = bpy.context.space_data.clip_end
     bpy.context.preferences.inputs.use_mouse_depth_navigate = True
-    normal_and_bump_to_size()
-
-def normal_and_bump_to_size():
-    objs = Util.myacobjs()
-    for obj in objs:
-        if obj==getBody():
-            continue
-        for slot in obj.material_slots:
-            mat = bpy.data.materials.get(slot.name)
-            if mat is None or mat.node_tree is None:
-                print(mat,mat.node_tree)
-                continue
-            ROOT = mat.node_tree.nodes
-
-            for n in ROOT:
-                if n.type=='BUMP':
-                    n.inputs['Strength'].default_value = 0.01 * getSize()
-                    n.inputs['Distance'].default_value = 0.01 * getSize()
-                elif n.type=='NORMAL_MAP':
-                    n.inputs['Strength'].default_value = 0.01 * getSize()
-
-def changeSize(size, mub_ary):
-    global _SIZE
-    if _SIZE==0:
-        getSize()
-    flg_env = False
-    if getAmtr() is not None and (get_Amtr_name() in Util.myacobjs()):
-        armature = getAmtr()
-    elif getRgfy() is not None and (get_Rgfy_name() in Util.myacobjs()):
-        armature = getRgfy()
-    elif getEnvRoot() is not None and (_ENVROOT in Util.myacobjs()):
-        armature = getEnvRoot()
-        flg_env = True
-    else:
-        return
-    change_size = 1 if size == 100 else 0.01
-    setOpsMode("OBJECT")
-    for i in range(3):
-        if armature.scale[i] != change_size:
-            armature.scale[i] = change_size
-    deselect()
-    if mub_ary !=[]:
-        for obj in Util.myacobjs():
-            if obj.name in mub_ary:
-                Versions.active_object(obj)
-                Versions.select(obj, True)
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-                Versions.active_object_none()
-                Versions.select(obj, False)
-    if flg_env==False:
-        Versions.active_object(armature)
-        Versions.select(armature, True)
-        bpy.ops.object.transform_apply(scale=True)
-    deselect()
-    if flg_env==False:
-        for obj in Util.myacobjs():
-            if isRiggedObject(obj):
-                Versions.select(obj,True)
-                Versions.active_object(obj)
-                bpy.ops.object.transform_apply(scale=True)
-            elif obj.type=='LIGHT' or obj.type=='CAMERA':
-                for i in range(3):
-                    if obj.scale[i] != change_size:
-                        obj.scale[i] = change_size
-                Versions.select(obj, True)
-                Versions.active_object(obj)
-                bpy.ops.object.transform_apply(scale=True)
-            deselect()
-    find = False
-    for d in Util.colobjs('DP'):
-        if d.type=='CAMERA' or d.type=='LIGHT':
-            find = True
-            for i in range(3):
-                if d.scale[i] !=change_size:
-                    d.location[i] = d.location[i]*change_size
-                    d.scale[i] = change_size
-    _SIZE = size
-    if getBody() is not None:
-        Versions.select(getBody(), True)
-        from . import DtbMaterial
-        DtbMaterial.default_material()
-
-    #scale_environment(size)
-    deselect()
-    # Versions.select(armature,True)
-    # Versions.active_object(armature)
-    # setOpsMode("POSE")
-    #Versions.view_from_camera()
+        
 
 def heigou_vgroup():
     vgs = getBody().vertex_groups
@@ -1234,7 +1162,7 @@ def finger(zindex):
 
 def getCon():
     import sqlite3
-    cadr = os.path.dirname(__file__) + getFileSp() + "img" + getFileSp() + "dtb.sqlite"
+    cadr = os.path.join(os.path.dirname(__file__), "img", "dtb.sqlite")
     con = sqlite3.connect(cadr)
     return con
 

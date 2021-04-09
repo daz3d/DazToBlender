@@ -42,7 +42,7 @@ class CBones:
             [[0.6, 0, -1], [1, 0, 0.2], [0, 0,0.9], [-1, 0, 0.2], [-0.6, 0, -1]],
             [[-0.5, 0, -1], [-1, 0, -0.5], [-1, 0, 0.5], [-0.5, 0, 1], [0.5, 0, 1], [1, 0, 0.5], [1, 0, -0.5],[0.5, 0, -1]],
             [[-0.5, 0, -1], [-1, 0, -0.5], [-1, 0, 0.5], [-0.5, 0, 1], [0.5, 0, 1], [1, 0, 0.5], [1, 0, -0.5],[0.5, 0, -1]],
-            [[-0.5, 0.5, 0], [0.5, 0.5, 0], [0.5, -0.5, 0], [-0.5, -0.5, 0]],
+            [[1, 0, 1], [-1, 0, 1], [-1, 0, -1], [1, 0, -1]],
             [[-0.5, 0.5, 0], [0.5, 0.5, 0], [0.5, -0.5, 0], [-0.5, -0.5, 0]],
             [[-0.1, 2, 0], [0.1, 2, 0], [0.1, -2, 0], [-0.1, -2, 0]],
             [[-0.1, 2, 0], [0.1, 2, 0], [0.1, -2, 0], [-0.1, -2, 0]]
@@ -239,7 +239,7 @@ class CBones:
                 pb.custom_shape_scale = 0.15
             elif plower == 'hip':
                 pb.custom_shape = Util.allobjs().get('square1')
-                pb.custom_shape_scale = 1.2
+                pb.custom_shape_scale = 1.1
             elif 'breast' in plower:
                 pb.custom_shape = Util.allobjs()['octagon1']
                 pb.custom_shape_scale = 0.2
@@ -275,7 +275,7 @@ class CBones:
                 pb.use_custom_shape_bone_size = True
                 if pb.custom_shape_scale == 1.0:
                     pb.custom_shape_scale = 0.3
-
+            pb.custom_shape_transform = pb
     def find_bone_roop(self,bone_group,rootbone):
         for b in bone_group:
             if len(b.children) > 0:

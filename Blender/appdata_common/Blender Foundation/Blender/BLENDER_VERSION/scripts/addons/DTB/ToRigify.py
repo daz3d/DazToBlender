@@ -318,7 +318,7 @@ class ToRigify:
             add = 1
             if i==1:
                 add = -1
-            add = add * (0.01 * Global.getSize())
+            add = add * (0.01 * Global.get_size())
             Global.getRgfy().pose.bones[nper[i]].location[1] += add
         #bpy.ops.pose.armature_apply(selected = False)
         # nper = 'tweak_spine.001'
@@ -473,8 +473,8 @@ class ToRigify:
                 mch_ti = ['MCH-shin_ik.L', 'MCH-shin_ik.R']
                 for mt in mch_ti:
                     if bone.name == mt:
-                        if bone.head[1] > -0.002*Global.getSize():
-                            bone.head[1] = -0.002 * Global.getSize()
+                        if bone.head[1] > -0.002*Global.get_size():
+                            bone.head[1] = -0.002 * Global.get_size()
                 if '.L' in bone.name:
                     bone.roll = math.radians(-8)
                 else:
@@ -902,7 +902,7 @@ class ToRigify:
 
         Versions.select(self.METARIG, True)
         for i in range(3):
-            self.METARIG.scale[i] = Global.getSize()
+            self.METARIG.scale[i] = Global.get_size()
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
         return ""

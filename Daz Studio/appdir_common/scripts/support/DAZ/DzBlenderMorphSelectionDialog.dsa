@@ -1,0 +1,762 @@
+// DAZ Studio version 4.15.0.2 filetype DAZ Script
+
+(function( aArgs ){
+    // Imported Arguments
+    var s_oNode;
+    var s_sDazBridgeName = "";
+    var s_sPresetPath = "";
+
+    // Returned Values
+    var s_sMorphRules = "";
+
+    // Static Arrays
+    var s_aMorphList = [];
+    var s_aMorphsToExport = [];
+    
+    // Static Objects
+    var s_oMorphs = {};
+    var s_oMorphsForNode = {};
+    var s_oSelectedInTree = {};
+    var s_oAvailObjects = {};
+
+    // Static Widgets
+    var s_wMorphTreeWidget = null;
+    var s_wMorphListWidget = null;
+    var s_wMorphExportListWidget = null;
+    var s_wFilterEdit = null;
+    var s_wPresetCombo = null;
+
+    /*********************************************************************/
+    // bool : ...
+    function containsObject( obj, list ) 
+    {
+        for( var i = 0; i < list.length; i++ ){
+            if( list[i] === obj ){
+                return true;
+            }
+        }
+        return false;
+    };
+
+    /*********************************************************************/
+    // void : ...
+    // TODO: Find a better method to setup of Variables
+    function initilizeArgs()
+    {
+        for( var i = 0, nArgs = aArgs.length; i < nArgs; i += 1 ){
+            vArg = aArgs[i];
+            sType = typeof( vArg );
+            if( sType == "object" ){
+                s_oNode = vArg
+            }
+            else{
+                if( vArg.indexOf( "Documents" ) > 0 ){
+                    s_sPresetPath = vArg;
+                }
+                else{
+                    s_sDazBridgeName = vArg;
+                }
+            }
+        }
+
+    };
+
+    /*********************************************************************/
+    // void : ...
+    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax )
+    {
+        this.name = sName;
+        this.label = sLabel;
+        this.path = sPath;
+        this.type = sType;
+        this.property = oProperty;
+        this.parent = sParent;
+        this.hidden = bHidden;
+        this.min = nMin;
+        this.max = nMax;
+    };
+    
+    /*********************************************************************/
+    // void : ...
+    function morphSelectionDialog( wDlg )
+    {
+        // Get the current style
+        var oStyle = App.getStyle();
+        // Get the general margin
+        var nMargin = oStyle.pixelMetric( "DZ_GeneralMargin" )
+
+        // Set the dialog title 
+        wDlg.caption = "Select Morphs";
+
+        var wMainWgt = new DzWidget( wDlg );
+
+        // Create Layouts
+        var lytMain = new DzVBoxLayout( wMainWgt );
+        lytMain.margin = nMargin;
+        lytMain.spacing = nMargin;
+        var lytSettings = new DzHBoxLayout( lytMain );
+        lytSettings.margin = nMargin;
+        lytSettings.spacing = nMargin;
+        var lytMorphs = new DzHBoxLayout( lytMain );
+        lytMorphs.margin = nMargin;
+        lytMorphs.spacing = nMargin;
+        var lytTree = new DzVBoxLayout( lytMorphs );
+        lytTree.margin = nMargin;
+        lytTree.spacing = nMargin;
+        var lytMorphList = new DzVBoxLayout( lytMorphs );
+        lytMorphList.margin = nMargin;
+        lytMorphList.spacing = nMargin;
+        var lytSelectedList = new DzVBoxLayout( lytMorphs );
+        lytSelectedList.margin = nMargin;
+        lytSelectedList.spacing = nMargin;
+        
+        // Left tree with morph structure
+        s_wMorphTreeWidget = new DzListView( wMainWgt );
+        s_wMorphTreeWidget.resizeMode = DzListView.Maximum;   
+        s_wMorphTreeWidget.widthMode = DzListView.NoColumn; 
+        s_wMorphTreeWidget.addColumn("");
+        s_wMorphTreeWidget.rootIsDecorated = true;
+        s_wMorphTreeWidget.treeStepSize = 20;
+       
+        
+        // Center list showing morphs for selected tree items        
+	    s_wMorphListWidget = new DzListView( wMainWgt );
+        s_wMorphListWidget.resizeMode = DzListView.Maximum;  
+        s_wMorphListWidget.widthMode = DzListView.NoColumn; 
+        s_wMorphListWidget.addColumn( "" );
+        s_wMorphListWidget.selectionMode = DzListView.Extended;
+
+
+        // Right list showing morphs that will export
+	    s_wMorphExportListWidget = new DzListView( wMainWgt );
+        s_wMorphExportListWidget.resizeMode = DzListView.Maximum; 
+        s_wMorphExportListWidget.widthMode = DzListView.NoColumn;
+        s_wMorphExportListWidget.addColumn( "" );
+        s_wMorphExportListWidget.selectionMode = DzListView.Extended;
+        
+
+        // Quick filter box
+	    var wFilterLabel = new DzLabel( wMainWgt );
+        wFilterLabel.text = 'filter';
+        s_wFilterEdit = new DzLineEdit( wMainWgt );
+        
+
+        // Presets
+        var wChoosePresetLabel = new DzLabel( wMainWgt );
+        wChoosePresetLabel.text = "Choose Preset";
+        var wSavePresetButton = new DzPushButton( wMainWgt );
+        wSavePresetButton.text = "Save Preset";
+        s_wPresetCombo = new DzComboBox( wMainWgt );
+        lytSettings.addWidget( wChoosePresetLabel );
+        lytSettings.addWidget( s_wPresetCombo );
+        lytSettings.addWidget( wSavePresetButton );
+        lytSettings.addStretch();    
+
+       
+        // Left Tree 
+        var wMorphGrpLabel = new DzLabel( wMainWgt );
+        wMorphGrpLabel.text = 'Morph Groups';
+        var wAvailMorphLabel = new DzLabel( wMainWgt );
+        wAvailMorphLabel.text = 'Select to see available morphs';
+        lytTree.addWidget( wMorphGrpLabel );
+        lytTree.addWidget( wAvailMorphLabel );
+        lytTree.addWidget( s_wMorphTreeWidget );
+
+        // Button for extra 
+        var wExtraGroupBox = DzGroupBox( wMainWgt );
+        wExtraGroupBox.title = "Extra Options";
+        var lytExtra = new DzGridLayout( lytTree );
+        lytExtra.margin = nMargin;
+        lytExtra.spacing = nMargin;
+        lytExtra.addWidget( wExtraGroupBox );
+        var wAddConnectedMorphs = new DzPushButton( wExtraGroupBox );
+        wAddConnectedMorphs.text = "Add Connected Morphs";
+       
+        // Center List of morphs based on tree selection
+        var wMorphSelGrpLabel = new DzLabel( wMainWgt );
+        wMorphSelGrpLabel.text = 'Morphs in Group';
+        var wAvailSelMorphLabel = new DzLabel( wMainWgt );
+        wAvailSelMorphLabel.text = 'Select and click Add for Export';
+        lytMorphList.addWidget( wMorphSelGrpLabel );
+        lytMorphList.addWidget( wAvailSelMorphLabel );
+        var lytFilter = new DzVBoxLayout( lytMorphList );
+        lytFilter.margin = nMargin;
+        lytFilter.spacing = nMargin;
+        lytFilter.addWidget( wFilterLabel );
+        lytFilter.addWidget( s_wFilterEdit );
+        lytMorphList.addWidget( s_wMorphListWidget );
+    
+        // Button for adding morphs
+        var wAddMorphsButton = new DzPushButton( wMainWgt );
+        wAddMorphsButton.text = "Add For Export";
+        lytMorphList.addWidget( wAddMorphsButton );
+        
+        // Right List of morphs that will export
+        var wMorphExportLabel = new DzLabel( wMainWgt );
+        wMorphExportLabel.text = 'Morphs to Export';
+        lytSelectedList.addWidget( wMorphExportLabel );
+        lytSelectedList.addWidget( s_wMorphExportListWidget );
+        
+        // Button for clearing morphs from export
+        var wRemoveMorphsButton = new DzPushButton( wMainWgt );
+        wRemoveMorphsButton.text = "Remove From Export";
+        lytSelectedList.addWidget( wRemoveMorphsButton );
+        
+        wDlg.addWidget( wMainWgt );
+        wDlg.setFixedWidth( 800 );
+        wDlg.setFixedHeight( 800 );
+        refreshPresetsCombo();
+
+        // Create Connections
+        connect( s_wMorphTreeWidget, "currentChanged(DzListViewItem*)",itemSelectionChanged );
+        connect( s_wFilterEdit, "textChanged(const QString&)", filterChanged );
+        wAddConnectedMorphs.released.connect( loadConnectedMorphs );
+        wSavePresetButton.released.connect( handleSavePreset );
+        wAddMorphsButton.released.connect( handleAddMorphsButton );
+        wRemoveMorphsButton.released.connect( handleRemoveMorphsButton );
+    };
+
+
+    /*********************************************************************/
+    // Void : Build out the Left morphs tree based on the current selection
+    function prepareDialog()
+    {
+        var oSelectedNode;
+        var oParentNode;
+        var oParentFigureNode;
+
+        oSelectedNode = s_oNode;
+        // For item like clothing, create the morph list from the character
+        oParentNode = oSelectedNode;
+        if (oParentNode = oSelectedNode.getNodeParent()){
+            if(oParentNode.inherits( "DzFigure" )){
+                oParentFigureNode = oParentNode.getSkeleton();
+                oSelectedNode = oParentFigureNode;
+            }
+        }
+        
+        s_oMorphs = {};
+	    getAvailableMorphs( oSelectedNode );
+        for ( var i = 0; i < oSelectedNode.getNumNodeChildren(); i++ ){
+            oChildNode = oSelectedNode.getNodeChild( i );
+            getAvailableMorphs( oChildNode );
+        }
+        updateMorphsTree();
+        handlePresetChanged("LastUsed.csv");
+    };
+
+    /*********************************************************************/
+    // void : When the filter text is changed, update the center list
+    function filterChanged()
+    {
+        var sNewFilter;
+        var oMorphInfo;
+
+        s_wMorphListWidget.clear();
+        sNewFilter =  s_wFilterEdit.text.toLowerCase();
+        s_wMorphListWidget.clear();
+        for(var i = 0; i < s_oSelectedInTree.length; i++){
+            oMorphInfo = s_oSelectedInTree[i]
+            if( sNewFilter == "" || sNewFilter.isEmpty() || oMorphInfo.label.toLowerCase().indexOf(sNewFilter) != -1 )
+            {   
+                oItem = DzListViewItem( s_wMorphListWidget );
+                oItem.setText( 0 ,oMorphInfo.label );
+                oItem.addDataItem( "name", oMorphInfo.name );
+            }
+        }
+
+        s_wMorphListWidget.sort();
+    };
+
+    /*********************************************************************/
+    // array : ...
+    function getAvailableMorphs( oNode )
+    {
+        var oObject;
+        var oShape;
+        var oProperty;
+        var oPresentation;
+        var sPropName;
+        var sPropLabel;
+        var oMorphInfo;
+        var sPath;
+        var sParent;
+
+
+        aNewMorphList = [];
+        oObject = oNode.getObject();
+        if( oObject != null ){
+            oShape = oObject.getCurrentShape();
+        }
+        for( var i = 0; i < oNode.getNumProperties(); i++ ){
+            oProperty = oNode.getProperty( i );
+            sPropName = oProperty.getName();
+            sPropLabel = oProperty.getLabel();
+            oPresentation = oProperty.getPresentation();
+            if (oPresentation != undefined){
+                sPath = oNode.getLabel() + "/" + oProperty.getPath();
+                sParent = sPath.split( "/" )[0];
+                oMorphInfo = new morphInfo(
+                    sPropName,
+                    sPropLabel,
+                    sPath,
+                    oPresentation.type,
+                    oProperty,
+                    sParent,
+                    oProperty.isHidden(),
+                    oProperty.getMin(),
+					oProperty.getMax()
+                );
+                
+                if( !( oMorphInfo.name in s_oMorphs ) ){
+                    s_oMorphs[oMorphInfo.name] = oMorphInfo;
+                    if( !( oMorphInfo.parent in s_oAvailObjects ) ){
+                        s_oAvailObjects[oMorphInfo.parent] = {};
+                    }
+                    if( !( oMorphInfo.name in s_oAvailObjects[oMorphInfo.parent] ) ){
+                        s_oAvailObjects[oMorphInfo.parent][oMorphInfo.name] = oMorphInfo;
+                    }
+                }
+            }
+        }
+        if( oObject ){
+            for( var i = 0; i < oObject.getNumModifiers(); i++ ){
+                oModifer = oObject.getModifier( i );
+                sModName = oModifer.getName();
+                sModLabel = oModifer.getLabel();
+                if(oModifer.inherits( "DzMorph" ) ){
+                    for( var j = 0; j < oModifer.getNumProperties(); j++ ){
+                        oProperty = oModifer.getProperty( j );
+                        sPropName = oProperty.getName();
+                        sPropLabel = oProperty.getLabel();
+                        oPresentation = oProperty.getPresentation();
+                        if (oPresentation != undefined){
+                            sPath = oNode.getLabel() + "/" + oProperty.getPath();
+                            sParent = sPath.split( "/" )[0];
+                            oMorphInfo = new morphInfo(
+                                sModName,
+                                sPropLabel,
+                                sPath,
+                                oPresentation.type,
+                                oProperty,
+                                sParent,
+                                oProperty.isHidden(),
+                                oProperty.getMin(),
+                                oProperty.getMax()
+                            );
+                            if( !( oMorphInfo.name in s_oMorphs ) ){
+                                s_oMorphs[oMorphInfo.name] = oMorphInfo;
+                                if( !( oMorphInfo.parent in s_oAvailObjects ) ){
+                                    s_oAvailObjects[oMorphInfo.parent] = {};
+                                }
+                                if( !( oMorphInfo.name in s_oAvailObjects[oMorphInfo.parent] ) ){
+                                    s_oAvailObjects[oMorphInfo.parent][oMorphInfo.name] = oMorphInfo;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    /*********************************************************************/
+    // Void : Build out the left tree
+    function updateMorphsTree()
+    {
+        var sPath;
+        var sPathPart;
+        var sMorph;
+        var oParentItem;
+        var sID;
+
+        s_wMorphTreeWidget.clear();
+       
+        s_oMorphsForNode = {};
+        for( sParent in s_oAvailObjects ){
+            for( sMorph in s_oAvailObjects[sParent] ){
+                sPath = s_oMorphs[sMorph].path;
+                sType = s_oMorphs[sMorph].path;
+                aPathParts = sPath.split( "/" );
+                oParentItem = null;
+                for( var i = 0; i < aPathParts.length; i++ ){
+                    sPathPart = aPathParts[i];
+                    if( i != 0 ){
+                        nPaths = aPathParts.length;
+                        if( i >= 6 ){
+                            sPathPart_helper += aPathParts[i - 1] + aPathParts[i - 2]
+                        }
+                        else{
+                            sPathPart_helper += aPathParts[i - 1]
+                        }
+                    }
+                    else{
+                        sPathPart_helper = ""
+                    }
+                    // Used to Match to correct node.
+                    sID = sParent + sPathPart_helper + sPathPart;
+                    
+                    if( sPathPart == "" ){
+                        continue;
+                    }
+                    oParentItem = findTreeItem( oParentItem, sPathPart, sID );
+                    if( !( sID in s_oMorphsForNode ) ){
+                        s_oMorphsForNode[sID] = []
+                    }
+                    s_oMorphsForNode[sID].push( s_oMorphs[sMorph] );
+                }
+            }
+        }
+    };
+
+    /*********************************************************************/
+    // Void : This function could be better named.  It will find the node matching the property path
+    // but it will also create the structure of that path in the tree as needed as it searches
+    function findTreeItem( oParent, sName, sID )
+    {
+        if ( oParent == null ){
+            oItem = s_wMorphTreeWidget.findItem( sName, 0 );
+            if( oItem != null ){
+                if ( oItem.text( 0 ) == sName ){
+                    return oItem;
+                }
+            }
+            
+            oNewItem = new DzListViewItem( s_wMorphTreeWidget );
+            oNewItem.addDataItem("id", sID );
+            oNewItem.setText( 0, sName );
+            oNewItem.open = true;
+            oNewItem.expandable = true;
+            return oNewItem;
+        }
+        else{
+            oItem = oParent.firstChild();
+            while(oItem){
+                if( oItem.text( 0 ) == sName ){
+                    return oItem;
+                }
+                oItem = oItem.nextSibling();
+            }
+            oNewItem = new DzListViewItem( oParent );
+            oNewItem.setText( 0, sName );
+            oNewItem.open = true;
+            oNewItem.expandable = true;
+            oNewItem.addDataItem("id", sID );
+            oParent.insertItem( oNewItem );
+            return oNewItem;
+        }
+    };
+
+    /*********************************************************************/
+    // Void : For selection changes in the Left Tree
+    function itemSelectionChanged()
+    {
+        s_oSelectedInTree = {};
+        selectMorphsInNode( s_wMorphTreeWidget.currentItem() );
+        filterChanged();
+    };
+
+    /*********************************************************************/
+    // Void : Updates the list of selected morphs in the Left Tree
+    // including any children
+    function selectMorphsInNode( oSelectedItem )
+    {
+        sId = oSelectedItem.getDataItem( "id" );
+        if ( sId in s_oMorphsForNode ){
+            s_oSelectedInTree = s_oMorphsForNode[sId];
+        }
+    };
+
+    /*********************************************************************/
+    // Void : Add Morphs for export
+    function handleAddMorphsButton()
+    {
+        for( var i = 0; i < s_oSelectedInTree.length; i++ ){
+            oMorphInfo = s_oSelectedInTree[i]
+            oItem = s_wMorphListWidget.findItem( oMorphInfo.label, 0 );
+            if( oItem != null ){
+                if(oItem.selected){
+                    sMorphName = oItem.getDataItem( "name" );
+                    if(sMorphName in s_oMorphs 
+                        && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                        s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+                    }
+                }
+            }
+        }
+        refreshExportMorphList();
+        refreshPresetsCombo();
+    };
+
+    /*********************************************************************/
+    // Bool : Check if Morph is invalid.
+    function ignoreMorph( oMorphProperty )
+    {
+        var sMorphName = getPropertyName( oMorphProperty );
+        var aIgnoreCases = ["x", "y", "z"];
+        for( var k = 0; k < aIgnoreCases.length; k++ ){
+            var sCase = aIgnoreCases[k]
+            if( sMorphName.toLowerCase()[0] == sCase ){
+                return true;
+            }
+        }
+        var nControllerCount = oMorphProperty.getNumControllers();
+        for( var j = 0; j < nControllerCount; j++ ){
+            var oErcLink = new DzERCLink();
+            oErcLink = oMorphProperty.getController( j );
+            if( oErcLink.type == 3 ){ //Multiply
+                var oControllerProp = oErcLink.getProperty();
+                if( oControllerProp.getDoubleValue() == 0 ){
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    /*********************************************************************/
+    // String : Get the property name even if name is Value
+    function getPropertyName( oProperty )
+	{
+		var sPropertyName = oProperty.name;
+		var oOwnerProperty = oProperty.getOwner();
+		if( oOwnerProperty.inherits( "DzMorph" ) ){
+			sPropertyName = oOwnerProperty.name;
+		}
+		return sPropertyName;
+	};
+    /*********************************************************************/
+    // Void : Load morphs controlling the morphs in the export list
+	function loadConnectedMorphs()
+    {    
+		// Load all the controller links on the properties
+		for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+			var oMorphProperty = s_aMorphsToExport[i].property;
+			var nControllerCount = oMorphProperty.getNumSlaveControllers();
+			for( var j = 0; j < nControllerCount; j ++ ){
+				oSlaveControler = oMorphProperty.getSlaveController( j );
+                var oControlMorphProp = oSlaveControler.getOwner()
+                if( ignoreMorph( oControlMorphProp ) ){
+                    continue;
+                }
+                sMorphName = getPropertyName( oControlMorphProp )
+                oMorphInfo= s_oMorphs[sMorphName]
+                if( sMorphName in s_oMorphs 
+                    && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                    s_aMorphsToExport.push( s_oMorphs[sMorphName] )
+                }
+		    }
+        }
+		refreshExportMorphList();
+        refreshPresetsCombo();
+			
+	};
+	
+    /*********************************************************************/
+    // Void : Remove morph from export list
+    function handleRemoveMorphsButton()
+    {
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            oMorphInfo = s_aMorphsToExport[i]
+            oItem = s_wMorphExportListWidget.findItem( oMorphInfo.label, 0 );
+            if( oItem != null ){
+                if( oItem.selected ){
+                    sMorphName = oItem.getDataItem( "name" );
+                    s_aMorphsToExport.splice( i, 1 );
+                    i--;
+                };
+            };
+        };
+        refreshExportMorphList();
+        refreshPresetsCombo();
+    };
+
+    /*********************************************************************/
+    // Void : Brings up a dialog for choosing a preset name
+    function handleSavePreset()
+    {
+        var sFile;
+        var sFilters;
+
+        sFilters = "CSV Files (*.csv)";
+        sFile = FileDialog.doFileDialog(
+                                         false, 
+                                         qsTr( "Save Preset" ), 
+                                         s_sPresetPath, 
+                                         sFilters )
+        if( sFile != null ){
+            savePresetFile( sFile );
+        }
+    };
+
+    /*********************************************************************/
+    // Void : Saves out a preset.  If the path isn't supplied, it's saved as the last selection
+    function savePresetFile( sFilePath )
+    {
+        var oDir;
+        var oFile;
+
+        oDir = new DzDir( "" );
+        oDir.setPath( s_sPresetPath );
+        if (sFilePath == null){
+            sFilePath = s_sPresetPath + "LastUsed.csv";
+        }
+        oFile = new DzFile( sFilePath );
+        if( !oFile.open( DzFile.WriteOnly ) ){
+			print( String( "Unable to open \"%1\" for writing." ).arg( sFilePath ) );
+			return;
+		}
+
+        oData = getMorphCSVString();
+        if (oData.constructor === Array){
+			for( var i = 0; i < oData.length; i += 1 ){
+				oFile.writeLine( oData[i] );
+			}
+		}	
+		else{
+			oFile.write( oData )
+		}
+        oFile.close();
+        refreshPresetsCombo();
+
+    };
+
+    /*********************************************************************/
+    // Void : Refresh the Right export list
+    function refreshExportMorphList()
+    {
+        s_wMorphExportListWidget.clear();
+        
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            oMorphInfo = s_aMorphsToExport[i]
+            oItem = DzListViewItem( s_wMorphExportListWidget )
+            oItem.setText( 0 ,oMorphInfo.label );
+            oItem.addDataItem( "name", oMorphInfo.name );
+        }
+        savePresetFile( null );
+    };
+
+    /*********************************************************************/
+    // Void : Refresh the list of preset csvs from the files in the folder
+    function refreshPresetsCombo()
+    {
+        // Need to understand disconnecting signals
+        disconnect( s_wPresetCombo, "currentIndexChanged(const QString&)", handlePresetChanged );
+        var oDir;
+        var sPath;
+
+        s_wPresetCombo.clear();
+        s_wPresetCombo.addItem( "None" );
+
+        oDir = new DzDir( "" );
+        oDir.setPath( s_sPresetPath );
+        aPaths = oDir.entryList( "*csv" );
+        for( var i = 0; i < aPaths.length; i++ ){
+            sPath = aPaths[i]
+            s_wPresetCombo.addItem( sPath )
+        }
+        connect( s_wPresetCombo, "currentIndexChanged(const QString&)", handlePresetChanged );
+    };
+
+    /*********************************************************************/
+    // Void : Call when the preset combo is changed by the user
+    function handlePresetChanged( sCustomName )
+    {
+        s_aMorphsToExport = [];
+        if( sCustomName != undefined ){
+            sPresetFilePath = s_sPresetPath + sCustomName;
+        }
+        else{
+            sPresetName = s_wPresetCombo.currentText; 
+            sPresetFilePath = s_sPresetPath + sPresetName;
+        }
+        oFile = new DzFile( sPresetFilePath );
+        if( !oFile.open( DzFile.ReadOnly ) ){
+			print( String( "Unable to open \"%1\" for Reading." ).arg( sPresetFilePath ) );
+			return;
+		}
+
+        aMorphLines = oFile.readLines();
+        for( var i = 0; i < aMorphLines.length; i++ ){
+            sMorphLine = aMorphLines[i]
+            if( sMorphLine.indexOf( "\"Export\"" ) > 0 ){
+                aItems = sMorphLine.split(",");
+                sMorphName = aItems[0].replace("\"", "").replace("\"", "");
+                if ( sMorphName in s_oMorphs 
+                    && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                    s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+                }
+            }
+        }
+
+        refreshExportMorphList();
+        oFile.close();
+    };
+
+    /*********************************************************************/
+    // String : Get the morph string in the format for the Daz FBX Export
+    function getMorphString()
+    {
+        var aMorphNamesToExport;
+        var sMorphString
+
+        if ( s_aMorphsToExport.length == 0 )
+        {
+            return "";
+        }
+        aMorphNamesToExport = [];
+        sMorphString = "";
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            oMorphInfo = s_aMorphsToExport[i]
+            aMorphNamesToExport.push( oMorphInfo.name );
+        }
+        sMorphString = aMorphNamesToExport.join("\n1\n");
+        sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
+        return sMorphString;
+    };
+
+    /*********************************************************************/
+    // String : Get the morph string in the format used for presets
+    function getMorphCSVString()
+    {
+        var sMorphString;
+
+        s_aMorphList = [];
+        sMorphString = "";
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            oMorphInfo = s_aMorphsToExport[i]
+            s_aMorphList.push(oMorphInfo.name);
+            sMorphString += "\"" + oMorphInfo.name + "\",\"Export\"\n";
+        }
+        sMorphString += "\".CTRLVS\", \"Ignore\"\n";
+        sMorphString += "\"Anything\", \"Bake\"\n";
+        return sMorphString;
+    };
+
+    /*********************************************************************/
+    function main()
+    {
+        var wDlg = new DzBasicDialog();
+        initilizeArgs();
+        morphSelectionDialog( wDlg );
+        prepareDialog();
+        // When user Cancels the dialog
+		if( !wDlg.exec() ){
+            return false;
+		}
+        return true
+        
+    };
+
+    /*********************************************************************/
+    if( main() )
+    {
+        return s_aMorphsToExport;
+    }
+    else{
+        return [];
+    }
+
+    
+})( getArguments() );
+

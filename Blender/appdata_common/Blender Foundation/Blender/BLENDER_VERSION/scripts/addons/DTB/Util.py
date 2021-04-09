@@ -2,10 +2,12 @@
 import bpy
 import os
 import math
+import json
 from . import DataBase
 from . import Versions
 from . import Global
 import re
+from mathutils import Euler
 
 _CURRENT_COL = ""
 
@@ -22,6 +24,14 @@ def colobjs(col_name):
         return col.objects
     return bpy.context.scene.collection.objects
 
+def all_armature():
+    objs =  bpy.data.objects
+    armatures = []
+    for obj in objs:
+        if obj.type == "ARMATURE":
+            armature = obj
+            armatures.append(armature)
+    return armatures
 
 def allobjs():
     return bpy.data.objects
@@ -87,7 +97,7 @@ def getUsersCollection(object):
 
 def getUsersCollectionName(object):
     rtn = getUsersCollection(object)
-    if rtn !=None:
+    if rtn != None:
         return rtn.name
     else:
         return ""
@@ -248,216 +258,4 @@ def getMatName(src_name):
                 find = True
         if find==False:
             break
-
-class Posing:
-    def pose_copy(self,dur):
-        if os.path.exists(dur) == False:
-            return
-        with open(dur, errors='ignore', encoding='utf-8') as f:
-            ls = f.readlines()
-        ptn = ['"url" : ','"keys" : ']
-        xyz = ["/x/value","/y/value","/z/value"]
-        v3ary = []
-        v3 = []
-        for l in ls:
-            for i in range(2):
-                f = l.find(ptn[i])
-                if f >=0:
-                    l = l[f+len(ptn[i]):]
-                else:
-                    continue
-                if '#' in l:
-                    continue
-                if i == 0:
-                    k = "@selection/"
-                    f = l.find(k)
-                    if f >= 0:
-                        l = l[f+len(k):]
-                        f = l.find("rotation")
-                        if f>=0:
-                            v3 = []
-                            v3.append(l[:f-2])
-                            for kidx,k in enumerate(xyz):
-                                if k in l:
-                                    v3.append(kidx)
-                                    break
-                elif i == 1 and len(v3) == 2:
-                    a = l.find(",")
-                    if a > 0:
-                        l = l[a+1:]
-                        a = l.find("]")
-                        if a > 0:
-                            l = l[:a]
-                            v3.append(float(l.strip()))
-                            v3ary.append(v3)
-        self.make_pose(v3ary)
-
-    def order_1ary(self, ary, bname):
-        new_ary = []
-        pb = Global.getAmtr().pose.bones.get(bname)
-        if pb is None:
-            return ary
-        odr = pb.rotation_mode
-        k3 = ['X', 'Y', 'Z']
-        for od in odr:
-            for kidx, k in enumerate(k3):
-                if od == k:
-                    for ar in ary:
-                        if ar[1] == kidx:
-                            new_ary.append(ar)
-                            break
-
-        if len(new_ary) == 3:
-            return new_ary
-        return ary
-
-    def order_v3ary(self, v3ary):
-        all_ary = []
-        ary = []
-
-        old_bname = ""
-        for v3 in v3ary:
-            if old_bname != v3[0] and len(ary) == 3:
-                all_ary.append(self.order_1ary(ary, old_bname))
-                ary = []
-            ary.append(v3)
-            old_bname = v3[0]
-        if len(ary) == 3:
-            all_ary.append(self.order_1ary(ary, old_bname))
-        newv3ary = []
-        for al in all_ary:
-            for a in al:
-                newv3ary.append(a)
-        return newv3ary
-
-    def make_pose(self, v3ary):
-        bone_limits = DataBase.get_bone_limits_dict()
-        pbs = Global.getAmtr().pose.bones
-        # cur.append(['hip', 'ZYX'])#YXZ#'ZXY'#YXZ
-        # cur.append(['root', 'ZZZ'])
-        v3ary = self.order_v3ary(v3ary)
-        for bone_limit_key in bone_limits:
-            bone_limit = bone_limits[bone_limit_key]
-            order = bone_limit[1]
-            bname = bone_limit[0]
-            for v3 in v3ary:
-                if v3[0].startswith("-"):
-                    v3[0] = v3[0][1:]
-                if v3[0] != bname:
-                    continue
-                flg_zi = False
-                z_invert = ['neckUpper', 'chestUpper', 'chestLower', 'neckLower', 'abdomenUpper', 'abdomenLower']
-                for zi in z_invert:
-                    if zi == v3[0]:
-                        flg_zi = True
-                        break
-                if (order == 'YZX' or order == 'XYZ' or order == 'ZYX') and flg_zi == False:
-                    if v3[1] == 2:
-                        v3[2] = 0 - v3[2]
-                xy_invert = ['rCollar', 'rShldrBend', 'rForearmBend', 'rForearmTwist', 'rShldrTwist', 'rThumb2',
-                                'rThumb3',
-                            'rThumb1', 'rHand', 'rThighTwist', 'lThighTwist']
-                for xyi in xy_invert:
-                    if bname == xyi:
-                        if v3[1] != 2:
-                            v3[2] = 0 - v3[2]
-                if order == 'XZY' or order == 'XYZ':
-                    if v3[1] == 0:
-                        v3[1] = 1
-                    elif v3[1] == 1:
-                        v3[1] = 0
-                if order == 'ZYX':  # YZ switch
-                    if v3[1] == 1:
-                        v3[1] = 2
-                    elif v3[1] == 2:
-                        v3[1] = 1
-                if v3[1] < 3:
-                    x_invert = ['rIndex', 'rMid', 'rPinky', 'rRing','pelvis']
-                    for xi in x_invert:
-                        if xi in bname:
-                            if v3[1] == 0:
-                                v3[2] = 0 - v3[2]
-                    # if bname=='hip':
-                    #     if v3[1]==2:
-                    #         v3[1] = 1
-                    #     elif v3[1]==1:
-                    #         v3[1] = 0
-                    #         v3[2] = 0 - v3[2]
-                    #     elif v3[1]==0:
-                    #         v3[1] = 2
-                    #         v3[2] = 0 - v3[2]
-
-                    # if v3[1]==2:
-                    #    v3[1] = 0
-                    #    v3[2] = 0-v3[2]
-                    # elif v3[1]==1:
-                    #    v3[1] = 2
-                    # elif v3[1]==0:
-                    #    v3[1] = 1
-
-                    # if v3[1] == 1:
-                    #     v3[1] = 2
-                    # elif v3[1] == 2:
-                    #     v3[1] = 1
-                    y_invert = ['Shin']#,'hip']
-                    for yi in y_invert:
-                        if yi in bname:
-                            if v3[1] == 1:
-                                v3[2] = 0 - v3[2]
-
-                    z_invert2 = ['F______oot', 'lThumb1']
-                    for zi in z_invert2:
-                        if zi in bname:
-                            if v3[1] == 2:
-                                v3[2] = 0 - v3[2]
-
-                if v3[0] in pbs:
-                    if v3[1]>6:
-                        if Global.getSize()==1:
-                            v3[2] = v3[2]/100.0
-                        if v3[1]==8:
-                            pbs[v3[0]].location[v3[1] - 7] = 0-v3[2]
-                        else:
-                            pbs[v3[0]].location[v3[1] - 7] = v3[2]
-                    else:
-                        pbs[v3[0]].rotation_euler[v3[1]] = math.radians(v3[2])
-
-    def setpose(self):
-        v3ary = []
-        Versions.active_object(Global.getAmtr())
-        Global.setOpsMode("POSE")
-        hometown = Global.getHomeTown()
-        # idx = -1
-        # print("hometown = ",hometown)
-        # if len(hometown)>3 and hometown.startswith("FIG"):
-        #     idx = int(hometown[3:])
-        # if idx<0:
-        #     return
-        padr = hometown+ "/FIG.csv"
-        if os.path.exists(padr) == False:
-            return
-        with open(padr, errors='ignore', encoding='utf-8') as f:
-            ls = f.readlines()
-        for l in ls:
-            ss = l.split(",")
-            if ss[1].startswith('Genesis'):
-                ss[1] = 'root'
-                ss[2] = 'B'
-            if ss[2]!='B':
-                continue
-            for pb in Global.getAmtr().pose.bones:
-                if ss[1] == pb.name:
-                    for i in range(3):
-                        v3 = [ss[1], i, float(ss[6 + i])]
-                        v3ary.append(v3)
-                        if ss[1]=='root' or ss[1]=='hip':
-                            add = i
-                            if add==1:
-                                add = 2
-                            elif add==2:
-                                add = 1
-                                []
-                            v3 = ["-"+ss[1], add+7, float(ss[3 + i])]
-                            v3ary.append(v3)
-                    break
-        self.make_pose(v3ary)
+    

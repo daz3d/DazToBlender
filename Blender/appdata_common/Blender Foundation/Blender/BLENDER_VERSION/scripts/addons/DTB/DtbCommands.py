@@ -8,13 +8,60 @@ from . import MatDct
 from . import DtbMaterial
 from . import Util
 from . import Global
+from . import Poses
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty
 from bpy.types import Operator
 
+
+class SEARCH_OT_Commands(bpy.types.Operator):
+    bl_idname = "command.search"
+    bl_label = 'Command'
+
+    def execute(self, context):
+        search_morph(context)
+        return {'FINISHED'}
+
+
+def search_morph_(self, context):
+    search_morph(context)
+
+def search_morph(context):
+    w_mgr = context.window_manager
+    key = w_mgr.search_prop
+    nozero = False
+    if key.startswith("!"):
+        nozero = True
+        key = key[1:]
+    if len(key) < 2:
+        return
+    if key.startswith("#"):
+        WCmd.Command(key[1:], context)
+        return
+    cobj = bpy.context.object
+    mesh = cobj.data
+    for z in range(2):
+        find = False
+        max = len(mesh.shape_keys.key_blocks)
+        for kidx, kb in enumerate(mesh.shape_keys.key_blocks):
+            if kidx <= Versions.get_active_object().active_shape_key_index:
+                continue
+            if nozero and kb.value == 0.0:
+                continue
+            if (key.lower() in kb.name.lower()):
+                Versions.get_active_object().active_shape_key_index = kidx
+                find = True
+                break
+        if z == 0 and find == False:
+            if max > 1:
+                Versions.get_active_object().active_shape_key_index = 1
+        else:
+            break
+
+
 get_obj_name = ""
 class ImportFilesCollection(bpy.types.PropertyGroup):
-    name = StringProperty(
+    name : StringProperty(
         name="File Path",
         description="Filepath used for importing the file",
         maxlen=1024,
@@ -29,12 +76,12 @@ class IMP_OT_dir(bpy.types.Operator, ImportHelper):
     bl_description = 'processing select directry'
     bl_label = "Select Directory"
 
-    filepath = StringProperty(
+    filepath : StringProperty(
             name="input file",
             subtype= 'DIR_PATH'
             )
-    filename_ext = ""#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif"
-    filter_glob =  StringProperty(
+    filename_ext : ""#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif"
+    filter_glob :  StringProperty(
             default="",#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif",
             options={'HIDDEN'},
             )
@@ -55,12 +102,12 @@ bpy.utils.register_class(IMP_OT_dir)
 class IMP_OT_object(Operator, ImportHelper):
     bl_idname = "imp.object"
     bl_label = "Import Daz G8 Object"
-    filename_ext = ".obj"
-    filter_glob = StringProperty(
+    filename_ext : ".obj"
+    filter_glob : StringProperty(
         default="*.obj",
         options={'HIDDEN'},
     )
-    files = bpy.props.CollectionProperty(type=ImportFilesCollection)
+    files : bpy.props.CollectionProperty(type=ImportFilesCollection)
 
     def execute(self, context):
         dirname = os.path.dirname(self.filepath)
@@ -88,18 +135,18 @@ bpy.utils.register_class(IMP_OT_object)
 class IMP_OT_dazG8_pose(Operator, ImportHelper):
     bl_idname = "import_daz_g8.pose"
     bl_label = "Import Daz G8 Pose"
-    filename_ext = ".duf"
-    filter_glob = StringProperty(
+    filename_ext : ".duf"
+    filter_glob : StringProperty(
         default="*.duf",
         options={'HIDDEN'},
     )
-    files = bpy.props.CollectionProperty(type=ImportFilesCollection)
+    files : bpy.props.CollectionProperty(type=ImportFilesCollection)
 
     def execute(self, context):
         dirname = os.path.dirname(self.filepath)
         for i, f in enumerate(self.files, 1):
             durPath = (os.path.join(dirname, f.name))
-            up = Util.Posing()
+            up = Poses.Posing("POSE")
             up.pose_copy(durPath)
         return {'FINISHED'}
 
