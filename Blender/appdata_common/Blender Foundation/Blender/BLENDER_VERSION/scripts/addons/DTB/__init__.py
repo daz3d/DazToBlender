@@ -38,6 +38,7 @@ from . import DtbIKBones
 from bpy.props import EnumProperty
 from bpy.props import BoolProperty
 from bpy.props import StringProperty
+from bpy.app.handlers import persistent
 import threading
 import time
 skinkeys = [
@@ -394,7 +395,33 @@ classes = (
    
 )
 
+# Converts difference to a 0 to 1 range  
+# TO DO: Convert to Follow the rate similiar to Daz Studio
+def erc_keyed(var, min, max, normalized_dist, dist):
+    if dist < 0:
+        if max <= var <= min:
+            return abs((var - min)/dist)
+        elif max >= var:
+            return 1
+        else:
+            return 0
+    if min <= var <= max:
+        return abs((var - min * normalized_dist) /dist)
+    elif max <= var:
+        return 1
+    else:
+        return 0
+
+@persistent
+def load_handler(dummy):
+    dns = bpy.app.driver_namespace
+    # register your drivers
+    dns["erc_keyed"] = erc_keyed
+
+
 def register():
+    load_handler(None)
+    bpy.app.handlers.load_post.append(load_handler)
     for cls in classes:
         bpy.utils.register_class(cls)
     init_props()
