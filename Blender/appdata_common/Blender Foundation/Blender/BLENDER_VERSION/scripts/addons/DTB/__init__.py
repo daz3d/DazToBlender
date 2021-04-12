@@ -336,6 +336,7 @@ def init_props():
     w_mgr.ifk3 = BoolProperty(name="fik3", default=False, update=DtbIKBones.ifk_update3)
     w_mgr.new_morph = BoolProperty(name="_new_morph",default=False)
     w_mgr.skip_isk = BoolProperty(name = "_skip_isk",default = False)
+    w_mgr.update_viewport = BoolProperty(name="update_viewport", description ="Updates the Viewport, Scene Settings, and Camera for your Scale", default=True)
     w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
     w_mgr.combine_materials = BoolProperty(name="combine_materials", default=True)
     w_mgr.add_pose_lib = BoolProperty(name="add_pose_lib", default=True)

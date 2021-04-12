@@ -1033,6 +1033,7 @@ def scale_settings():
     location = [float_by_size(7.15), float_by_size(-4.35), float_by_size(100.0)]
     rotation = [0.6888, 0.6246, 0.2473, 0.2727]
     distance = float_by_size(430)
+    cam_ob = bpy.context.scene.camera
     
     for area in bpy.context.screen.areas:
         if area.type == "VIEW_3D":
@@ -1042,16 +1043,18 @@ def scale_settings():
                 rv3d.view_rotation = rotation
                 rv3d.view_distance = distance
                 rv3d.view_camera_zoom = 0
-            # Set Camera Position
             rv3d.update()
-            bpy.context.scene.camera.matrix_world = rv3d.view_matrix
-            bpy.context.scene.camera.matrix_world.invert()
-          
-    # Set Camera Clipping
-    bpy.context.scene.camera.data.sensor_width = 64
-    bpy.context.scene.camera.data.clip_start = bpy.context.space_data.clip_start
-    bpy.context.scene.camera.data.clip_end = bpy.context.space_data.clip_end
-    bpy.context.preferences.inputs.use_mouse_depth_navigate = True
+            viewport_data = rv3d
+            
+    if cam_ob != None:
+        # Set Camera Position
+        cam_ob.matrix_world = viewport_data.view_matrix
+        cam_ob.matrix_world.invert()
+        # Set Camera Clipping
+        cam_ob.data.sensor_width = 64
+        cam_ob.data.clip_start = bpy.context.space_data.clip_start
+        cam_ob.data.clip_end = bpy.context.space_data.clip_end
+        bpy.context.preferences.inputs.use_mouse_depth_navigate = True
         
 
 def heigou_vgroup():
