@@ -11,7 +11,6 @@ from . import Global
 
 sys.path.append(os.path.dirname(__file__))
 
-
 class DtbShapeKeys:
     root = Global.getRootPath()
     flg_rigify = False
@@ -141,22 +140,6 @@ class DtbShapeKeys:
         var_name = "(" + var_name + "*" + str(correction_factor) + ")"
         return var_name
 
-    # Converts difference to a 0 to 1 range  
-    # TO DO: Convert to Follow the rate similiar to Daz Studio
-    def erc_keyed(self, var, min, max, normalized_dist, dist):
-        if dist < 0:
-            if max <= var <= min:
-                return abs((var - min)/dist)
-            elif max >= var:
-                return 1
-            else:
-                return 0
-        if min <= var <= max:
-            return abs((var - min * normalized_dist) /dist)
-        elif max <= var:
-            return 1
-        else:
-            return 0
     
     def get_target_expression(self, var_name, morph_link, driver):
         link_type = morph_link["Type"]
@@ -190,8 +173,6 @@ class DtbShapeKeys:
             return "(" + "self.value+" + var_name + "+" + addend + ")"
         elif link_type == 6:
             # ERCKeyed
-            # Add expression to Blender
-            bpy.app.driver_namespace["erc_keyed"] = self.erc_keyed
             
             keyed = morph_link["Keys"]
             
