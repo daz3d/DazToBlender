@@ -1096,7 +1096,8 @@
 		var oAssetMgr = App.getAssetMgr();
 		var sContentType = oAssetMgr.getTypeForNode( oNode );
 		if( sClassName == "DzFigure" ){
-			if( sContentType == "Actor/Character" ){
+			if( sContentType == "Actor/Character" 
+				|| sContentType == "Actor" ){
 				s_aFigures.push( oNode );
 				return
 			}
@@ -1110,7 +1111,8 @@
 			for( var j = 0; j < aChildren.length; j += 1 ){
 				oChildNode = aChildren[j]
 				sContentType = checkChildType( oChildNode );
-				if( sContentType == "Actor/Character"){
+				if( sContentType == "Actor/Character"
+					|| sContentType == "Actor"){
 					aChildFigures.push( oChildNode )
 				}
 			}
@@ -1837,8 +1839,11 @@
 		var oDtuJson = {};
 		var aChildren = oNode.getNodeChildren( true );
 		var nChildren = aChildren.length;
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
 		
 		oDtuJson["Asset Name"] = oNode.getLabel();
+		oDtuJson["Asset Type"] = sContentType;
 		oDtuJson["Materials"] = [];
 		aFigureMats = writeMaterials( oNode );
 		oDtuJson["Materials"].push( aFigureMats );

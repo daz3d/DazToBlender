@@ -270,24 +270,9 @@ def find_RGFY(dobj):
 
 def find_AMTR(dobj):
     global _AMTR
-    global _ISG3
-    _ISG3 = 0
     if dobj.type == 'ARMATURE':
-        abones = dobj.data.bones
-        point = 0
-        if('lHeel' in abones) or ('rHeel' in abones):#G3
-            _ISG3 = 1
-        if len(abones) > 160:
-            for bn in db.tbl_basic_bones:
-                for pb in abones:
-                    if bn[0] == pb.name:
-                        point += 1
-        if point > 150:
-            _AMTR = dobj.name
-            _RGFY = ""
-            if _ISG3==1:
-                _ISG3 = 2
-            return True
+        _AMTR = dobj.name
+        return True
     return False
 
 def find_BODY(dobj):
@@ -306,7 +291,10 @@ def find_BODY(dobj):
                                         'Genesis8_1Male',
                                         'Genesis8_1Female',
                                         'Genesis3Male',
-                                        'Genesis3Female'
+                                        'Genesis3Female',
+                                        'Genesis2Female',
+                                        'Genesis2Male',
+                                        'Genesis'
                                         ]:
                         _BODY = dobj.name
                         return True
@@ -429,20 +417,22 @@ def decide_HERO():
     global _SIZE
     
     clear_variables()
-
+    
     for dobj in Util.myacobjs():
         if find_AMTR(dobj):
             continue
-        if find_EYLS(dobj):
-            continue
-        if find_HAIR(dobj):
-            continue
-        if find_TEAR(dobj):
-            continue
         if find_BODY(dobj):
             continue
-    
         
+    # Removed until found necessary
+    
+    # if find_EYLS(dobj):
+    #     continue
+    # if find_HAIR(dobj):
+    #     continue
+    # if find_TEAR(dobj):
+    #     continue
+    
  
    
         
@@ -1034,7 +1024,7 @@ def scale_settings():
     rotation = [0.6888, 0.6246, 0.2473, 0.2727]
     distance = float_by_size(430)
     cam_ob = bpy.context.scene.camera
-    
+
     for area in bpy.context.screen.areas:
         if area.type == "VIEW_3D":
             rv3d = area.spaces[0].region_3d
