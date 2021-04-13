@@ -1677,8 +1677,9 @@
 	/*********************************************************************/
 	// DzVec3 : Checks if there is an offset for Parent bone
 	// TODO: Check if any other bones are changed with FBMs
-	function getBoneOffset( oNode ){
-		var nOffset = new DzVec3( 0, 0, 0)
+	function getBoneOffset( oNode )
+	{
+		var vecOffset = new DzVec3( 0, 0, 0)
 		for( var i = 0; i < oNode.getNumProperties(); i++ ){
 			var oProperty = oNode.getProperty( i );
 			var sPropName = oProperty.getName();
@@ -1690,15 +1691,15 @@
 					oErcLink = oProperty.getController( j );
 					var oControllerProp = oErcLink.getProperty();
 					sControllerName = getPropertyName(oControllerProp);
-					if( sControllerName.indexOf( "FBM" ) != -1 ){
-						if( oControllerProp.getDoubleValue() != 0 ){
-							nOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
-						};
+					if( oControllerProp.getDoubleValue() != 0 ){
+						vecOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
 					};
+					
 				};
 			};
 		};
-		return nOffset
+		print(vecOffset)
+		return vecOffset
 	};
 	
 	/*********************************************************************/

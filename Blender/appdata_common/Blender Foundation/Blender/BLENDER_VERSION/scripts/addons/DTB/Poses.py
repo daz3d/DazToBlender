@@ -494,11 +494,10 @@ class Posing:
                     rotation = transform_data[bname]["Rotation"]
                     
                     # Position
+                    if bname == "hip":
+                        if self.get_offset() != 0:
+                            position[1] = position[1] - self.get_offset()
                     for i in range(len(position)):
-                        if bname == "hip":
-                            if self.get_offset() != 0:
-                                position[i] = position[i] - self.get_offset()
-
                         position[i] = position[i] * Global.get_size()
                     
                     pbs[bname].location[0] = float(position[0])
