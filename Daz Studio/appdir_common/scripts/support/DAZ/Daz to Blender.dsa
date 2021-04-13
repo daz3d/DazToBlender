@@ -16,6 +16,8 @@
 	
 	var s_sFig = "FIG";
 	var s_sEnv = "ENV";
+
+	var s_aToReparent = [];
 	
 	var s_oMeshTypes = {
 		"Figure" :3,
@@ -1072,6 +1074,78 @@
 			}
 		}
 	};
+
+	/*********************************************************************/
+	// string : ...
+	function checkChildType( oChildNode )
+	{
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oChildNode );
+		return sContentType
+	};
+
+	/*********************************************************************/
+	// TODO: Add a UI to allow the user to choose how they wish to export every asset
+	// void : Check the node and what type of export it is. 
+	function findRootNodes( oNode )
+	{
+		var oParent;
+		var oOrgParent;
+		var aChildFigures = [];
+		var sClassName = oNode.className();
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
+		if( sClassName == "DzFigure" ){
+			if( sContentType == "Actor/Character" ){
+				s_aFigures.push( oNode );
+				return
+			}
+			else{
+				s_aEnvProp.push( oNode );
+				return
+			}
+		}
+		if( sClassName == "DzGroupNode" ){
+			aChildren = oNode.getNodeChildren( true );
+			for( var j = 0; j < aChildren.length; j += 1 ){
+				oChildNode = aChildren[j]
+				sContentType = checkChildType( oChildNode );
+				if( sContentType == "Actor/Character"){
+					aChildFigures.push( oChildNode )
+				}
+			}
+			if( aChildFigures.length > 0 ){
+				for( var i = 0; i < aChildFigures.length; i++ ){
+					var oChild = aChildFigures[i]
+					s_aFigures.push( oChild )
+					oParent = oChild.getNodeParent();
+					if( oParent == oNode ){
+						oNode.removeNodeChild( oChild, inPlace = true );
+					}
+					else{
+						oOrgParent = oParent
+						while( oParent != null ){
+							oParent.removeNodeChild( oChild, inPlace = true );
+							oParent = oChild.getNodeParent();
+						}
+						oParent = oOrgParent;
+					}
+					var aParentChain = new Array ( oParent, oChild );
+					s_aToReparent.push( aParentChain );
+				}
+				return
+			}
+			else{
+				s_aEnvProp.push( oNode );
+				return
+			}
+
+		}
+		else{
+			s_aEnvProp.push( oNode );
+			return
+		} 
+	};
 	
 	/*********************************************************************/
 	// void : ...
@@ -1092,28 +1166,27 @@
 						aChildren[j].setVisible( true );
 					}
 				}
-				
 				continue;
 			}
-			
+	
 			if( oNode.isRootNode() && oNode.isVisible() ){
-				if( 
-				(oNode.name.startsWith( "Genesis8Female" )
-				|| oNode.name.startsWith( "Genesis8Male" )
-				|| oNode.name.startsWith( "Genesis8_1Male" )
-				|| oNode.name.startsWith( "Genesis8_1Female" )
-				|| oNode.name.startsWith( "Genesis3Male" )
-				|| oNode.name.startsWith( "Genesis3Female" ))
-					&& oNode.name.indexOf( "Eyelash" ) < 0
-					&& oNode.name.indexOf( "Tear" ) < 0
-				){
-					s_aFigures.push( oNode );
-				} else {
-					s_aEnvProp.push( oNode );
-				}
+				findRootNodes( oNode )
 			}
 		}
 	};
+	/*********************************************************************/
+	// void : ...
+	function reparentFigure( oFigure )
+	{
+		var aPair
+		for( var i = 0; i < s_aToReparent.length; i++ ){
+			aPair = s_aToReparent[i]
+			if( aPair[1] == oFigure ){
+				aPair[0].addNodeChild( oFigure, inPlace = true)
+				return
+			}
+		}
+	}
 	
 	/*********************************************************************/
 	// Number : ...
@@ -2070,6 +2143,7 @@
 				exportFBX( oFigure, s_sFig, i , bDebugFBX );
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
+				reparentFigure( oFigure );
 			}
 		}
 		
