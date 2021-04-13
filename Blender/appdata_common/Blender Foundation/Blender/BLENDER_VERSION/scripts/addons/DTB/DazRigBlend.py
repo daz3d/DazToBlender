@@ -468,7 +468,7 @@ class DazRigBlend:
                         Versions.mix_mode(cr)
                         cr.target_space = 'LOCAL'
                         cr.owner_space = 'LOCAL'
-
+    # TODO: Split up logic
     def finishjob(self):
         DtbMaterial.default_material()
         Versions.make_sun()
@@ -482,7 +482,8 @@ class DazRigBlend:
             Global.deselect()
         Versions.active_object_none()
         Global.change_size(Global.getAmtr())
-        Global.scale_settings()
+        if bpy.context.window_manager.update_viewport:
+            Global.scale_settings()
         Versions.select(Global.getAmtr(), True)
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')

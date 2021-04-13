@@ -169,7 +169,10 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
         w_mgr = context.window_manager
         row = box.row(align=True)
         row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
-        l.prop(w_mgr, "scene_scale", text = "")
+        box = l.box()
+        col = box.column(align=True)
+        col.prop(w_mgr, "update_viewport", text="Update Viewport and Units", toggle=False)
+        col.prop(w_mgr, "scene_scale", text = "")       
         l.operator('refresh.alldaz', icon='BOIDS')
         l.operator('remove.alldaz', icon='BOIDS')
         
