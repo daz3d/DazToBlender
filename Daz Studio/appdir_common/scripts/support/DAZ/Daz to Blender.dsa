@@ -40,9 +40,11 @@
 	var s_sPresetPath = "";
 	
 	var s_sMorphRules = "";
-	var s_aMorphExported = [];
 	var s_oMorphLinks = {};
-	
+	var s_oSkeletonData = {};
+	var s_oLimitsData = {};
+	var s_oHeadTailData = {};
+
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
 	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
@@ -1763,14 +1765,17 @@
 		var aLimitsData = new Array( nNodes );
 		var aHeadTailData = new Array( nNodes );
 		var aSkeletonData = new Array( 1 );
-		
+		var oLimitsData = {};
+		var oHeadTailData = {};
+		var oSkeletonData = {};
 		// To account for the scale on the skeleton due to morphs
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
 		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
-		
+		s_oSkeletonData["skeletonScale"] = ["skeletonScale", nSkeletonScale]
 		// To account for offset on the hip bone.
 		vecOffset = getBoneOffset(aNodes[0])
 		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
+		s_oSkeletonData["offset"] = ["offset", vecOffset.y]
 
 		oBaseNode.update();
 		oBaseNode.finalize();
@@ -1795,7 +1800,13 @@
 				nYRotMin, nYRotMax,
 				nZRotMin, nZRotMax
 				].join(",");
-			
+			s_oLimitsData[oNode.getName()] = [
+				oNode.getName(),
+				sRotOrder,
+				nXRotMin, nXRotMax,
+				nYRotMin, nYRotMax,
+				nZRotMin, nZRotMax
+				]
 			nBoneLength = getBoneNodeLength( oNode );
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 
@@ -1822,8 +1833,20 @@
 				]
 				.concat( getBoneTransformValues( oNode ) )
 				.join(",");
+			s_oHeadTailData[oNode.getName()] = [
+				oNode.getName(),
+				( vecHead.x + vecOffset.x ) * nSkeletonScale,
+				( vecHead.y + vecOffset.y ) * nSkeletonScale,
+				( vecHead.z + vecOffset.z ) * nSkeletonScale,
+				( vecTail.x + vecOffset.x ) * nSkeletonScale,
+				( vecTail.y + vecOffset.y ) * nSkeletonScale,
+				( vecTail.z + vecOffset.z ) * nSkeletonScale,
+				vecSecondAxis.x,
+				vecSecondAxis.y,
+				vecSecondAxis.z
+				]
+				.concat( getBoneTransformValues( oNode ) )
 		}
-		
 		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
 		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
 		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
@@ -1846,11 +1869,13 @@
 		oDtuJson["Asset Name"] = oNode.getLabel();
 		oDtuJson["Asset Type"] = sContentType;
 		oDtuJson["Materials"] = [];
+		oDtuJson["MorphLinks"] = s_oMorphLinks;
+		oDtuJson["SkeletonData"] = s_oSkeletonData;
+		oDtuJson["HeadTailData"] = s_oHeadTailData;
+		oDtuJson["LimitData"] = s_oLimitsData;
+
 		aFigureMats = writeMaterials( oNode );
 		oDtuJson["Materials"].push( aFigureMats );
-		oDtuJson['Morphs'] = s_aMorphExported;
-		oDtuJson["MorphLinks"] = s_oMorphLinks;
-		
 		if (nChildren > 0){
 			for ( var i = 0; i < nChildren; i++ ){
 				var oChild = aChildren[ i ]; 
@@ -1877,7 +1902,7 @@
 				return value;
 			}
 		};
-
+		
 		oDtufile.open( DzFile.WriteOnly );
 		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
 		oDtufile.close();

@@ -1,26 +1,28 @@
 from . import Global
 import os
+import json
 
+dtu_dict = dict()
 bone_limits_dict = dict()
 skeleton_data = dict()
 
-def load_bone_limits():
-    input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneLimits.csv"), "r")
-    lines = input_file.readlines()
-    input_file.close()
+def load_dtu():
+    for file in os.listdir(Global.getHomeTown()):
+        if file.endswith(".dtu"):
+            dtu = os.path.join(Global.getHomeTown(), file)
+            break
+    with open(dtu, "r") as data:
+        dtu_dict = json.load(data)
+        return  dtu_dict
 
-    for line in lines:
-        line_split = line.split(',')
-        bone_limit = []
-        bone_limit.append(line_split[0])
-        bone_limit.append(line_split[1])
-        bone_limit.append(float(line_split[2]))
-        bone_limit.append(float(line_split[3]))
-        bone_limit.append(float(line_split[4]))
-        bone_limit.append(float(line_split[5]))
-        bone_limit.append(float(line_split[6]))
-        bone_limit.append(float(line_split[7]))
-        bone_limits_dict[bone_limit[0]] = bone_limit
+def get_dtu_dict():
+    if len(dtu_dict.keys()) == 0:
+        dtu = load_dtu()
+    return dtu
+
+def load_bone_limits():
+    dtu_dict = get_dtu_dict()
+    bone_limits_dict = dtu_dict["LimitData"]
 
 def get_bone_limits_dict():
     if len(bone_limits_dict.keys()) == 0:
@@ -28,19 +30,15 @@ def get_bone_limits_dict():
     return bone_limits_dict
 
 def load_skeleton_data():
-    input_file = open(os.path.join(Global.getHomeTown(),"FIG_skeletonData.csv"), "r")
-    lines = input_file.readlines()
-    input_file.close()
-
-    for line in lines:
-        line_split = line.split(',')
-        skeleton_data[line_split[0]] = float(line_split[1])
+    dtu_dict = get_dtu_dict()
+    skeleton_data = dtu_dict["SkeletonData"]
 
 def get_skeleton_data():
     if len(skeleton_data) == 0:
         load_skeleton_data()
     return skeleton_data
 
+#TODO: Clear out Hardcoded Drivers
 class DB:
     def __init__(self):
         pass
