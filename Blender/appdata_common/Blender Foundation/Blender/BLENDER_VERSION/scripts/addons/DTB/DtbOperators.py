@@ -141,12 +141,15 @@ class IMP_OT_FBX(bpy.types.Operator):
         DtbIKBones.ik_access_ban = True
 
         # Instant of classes
-        drb = DazRigBlend.DazRigBlend()
-        dtb_shaders = DtbMaterial.DtbShaders()
-        anim = Animations.Animations()
-        pose = Poses.Posing("FIG")
+        dtu = DataBase.DtuLoader()
+        drb = DazRigBlend.DazRigBlend(dtu)
+        dtb_shaders = DtbMaterial.DtbShaders(dtu)
+        anim = Animations.Animations(dtu)
+        pose = Poses.Posing(dtu)
+        dsk = DtbShapeKeys.DtbShapeKeys(False, dtu)
         db = DataBase.DB()
         self.pbar(5,wm)
+
         anim.reset_total_key_count()
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
@@ -156,11 +159,11 @@ class IMP_OT_FBX(bpy.types.Operator):
         if Global.getAmtr() is not None and Global.getBody() is not None:
 
             # Set Custom Properties
-            Global.getAmtr()["Asset Name"] = Global.get_asset_name()
+            Global.getAmtr()["Asset Name"] = dtu.get_asset_name()
             Global.getAmtr()["Collection"] = Util.cur_col_name()
             reload_dropdowns("choose_daz_figure")
             pose.add_skeleton_data()
-
+            
             Global.deselect() # deselect all the objects
             pose.clear_pose() # Select Armature and clear transform
             drb.mub_ary_A() # Find and read FIG.dat file
@@ -208,7 +211,6 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.deselect()
 
             # Shape keys
-            dsk = DtbShapeKeys.DtbShapeKeys(False)
             dsk.make_drivers()
             Global.deselect()
             self.pbar(60,wm)

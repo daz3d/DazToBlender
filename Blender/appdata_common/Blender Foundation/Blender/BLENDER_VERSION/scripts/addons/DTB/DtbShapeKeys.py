@@ -18,9 +18,10 @@ class DtbShapeKeys:
     var_name_index = 0
     var_name_range = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    def __init__(self, flg_rigify):
+    def __init__(self, flg_rigify, dtu):
         self.flg_rigify = flg_rigify
-
+        self.bone_limits = dtu.get_bone_limits_dict() 
+        self.morph_links_dict = dtu.get_morph_links_dict()
     def make_drivers(self):
         body_obj = Global.getBody()
         for dobj in Util.myccobjs():
@@ -31,7 +32,7 @@ class DtbShapeKeys:
         bone_name = morph_link["Bone"]
         property_name = morph_link["Property"]
 
-        bone_limits = DataBase.get_bone_limits_dict()
+        bone_limits = self.bone_limits
         bone_order = bone_limits[bone_name][1]
         
         # Conversions for corresponding rotation properties betweem Daz Studio 
@@ -86,7 +87,7 @@ class DtbShapeKeys:
         if bone_name == "None":
             return var_name
 
-        bone_limits = DataBase.get_bone_limits_dict()
+        bone_limits = self.bone_limits
         bone_order = bone_limits[bone_name][1]
         
         prefix = bone_name[0:1]
@@ -251,11 +252,7 @@ class DtbShapeKeys:
     
     def load_morph_link_list(self):
         # Read all the morph links from the DTU
-        for file in os.listdir(Global.getHomeTown()):
-            if file.endswith(".dtu"):
-                input_file = open(Global.getHomeTown() + Global.getFileSp() + file)
-        dtu_content = input_file.read()
-        return json.loads(dtu_content)["MorphLinks"]
+        return self.morph_links_dict
     
     def add_custom_shape_key_prop(self, key_block, mesh_obj, morph_label, shape_key_min, shape_key_max):
         # Skip Basis shape key

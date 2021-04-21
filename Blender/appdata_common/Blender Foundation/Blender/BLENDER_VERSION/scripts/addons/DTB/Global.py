@@ -19,7 +19,7 @@ _RGFY = ""
 keep_EYLS = ""
 keep_TEAR = ""
 db = DataBase.DB()
-bone_limit_memory = []
+updated_bone_limits = []
 
 Geo_Idx = 0
 now_ary = []
@@ -174,8 +174,6 @@ def setOpsMode(arg):
             if Versions.get_active_object().mode != arg:
                 bpy.ops.object.mode_set(mode=arg)
 
-def add_bone_limit(line):
-    bone_limit_memory.append(line)
 
 def get_Amtr_name():
     if _AMTR!="" and (_AMTR in Util.allobjs()):
@@ -283,7 +281,7 @@ def find_BODY(dobj):
         for modifier in dobj.modifiers:
             if modifier.type == "ARMATURE" and modifier.object is not None:
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-                    figure_name =  dobj.name.replace(".Shape","")
+                    figure_name = dobj.name.replace(".Shape","")
                     figure_name = figure_name.split(".")[0]
                     if figure_name in [
                                         'Genesis8Female',
@@ -423,7 +421,7 @@ def decide_HERO():
             continue
         if find_BODY(dobj):
             continue
-        
+    
     # Removed until found necessary
     
     # if find_EYLS(dobj):
@@ -713,10 +711,6 @@ def toGeniVIndex(vidx):
 def get_geo_idx():
     return Geo_Idx
     
-def get_bone_limit():
-    if bone_limit_memory is None or len(bone_limit_memory)==0:
-        bone_limit_modify()
-    return bone_limit_memory
 
 def getRig_id():
     rig = getRgfy()
@@ -724,9 +718,8 @@ def getRig_id():
         if d.name=='rig_id':
             return d.data['rig_id']
             
-def bone_limit_modify():
-    bone_limits = DataBase.get_bone_limits_dict()
 
+def bone_limit_modify(bone_limits):
     for bone_limit_key in bone_limits:
         bone_limit = bone_limits[bone_limit_key]
         name = bone_limit[0]
@@ -743,7 +736,7 @@ def bone_limit_modify():
             bone_type = 'center'
         
         do_conversion = True
-
+    
         if do_conversion and order == 'XYZ':
             # YZ switch (Y <-> Z)
             for i in range(2):
@@ -790,7 +783,7 @@ def bone_limit_modify():
                 temp = 0 - bone_limit[7]
                 bone_limit[7] = 0 - bone_limit[6]
                 bone_limit[6] = temp
-        
+
         elif do_conversion and order == "YZX":
             # Bones that are pointed down with YZX order
             # TODO: remove hardcoding
@@ -829,8 +822,16 @@ def bone_limit_modify():
             temp = 0 - bone_limit[3]
             bone_limit[3] = 0 - bone_limit[2]
             bone_limit[2] = temp
+    store_bone_limits(bone_limits)
+    return bone_limits
 
-        add_bone_limit(bone_limit)
+def store_bone_limits(bone_limits):
+    global updated_bone_limits
+    updated_bone_limits = bone_limits
+
+
+def get_bone_limit():
+    return updated_bone_limits
 
 def toMergeWeight(dobj, ruler_idx, slave_idxs):
     setOpsMode('OBJECT')

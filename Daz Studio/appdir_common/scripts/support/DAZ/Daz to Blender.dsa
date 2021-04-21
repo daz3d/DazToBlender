@@ -1,14 +1,14 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
 
 (function(){
-	
-	var s_sDazBridgeName = "Daz To Blender"
+	var s_sBridge = "Blender"
+	var s_sDazBridgeName = String( "Daz To %1" ).arg( s_sBridge )
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
 	// To be able to use the IDE Input your absolute Path.
 	//s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
-	var s_sMorphDialog = "DzBlenderMorphSelectionDialog"
+	var s_sMorphDialog = String( "Dz%1MorphSelectionDialog" ).arg( s_sBridge )
 	s_oFileInfo.deleteLater();
 
 	var s_aFigures = [];
@@ -44,6 +44,7 @@
 	var s_oSkeletonData = {};
 	var s_oLimitsData = {};
 	var s_oHeadTailData = {};
+	var s_oPoseData = {};
 
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
@@ -676,7 +677,7 @@
 
 	/*********************************************************************/
 	// void : ...
-	function writePoseData( oBaseNode, sFilename, bIsFigure )
+	function loadPoseData( oBaseNode, bIsFigure )
 	{
 		s_aPoseData = [];
 		
@@ -712,9 +713,7 @@
 		var vecPos;
 		var quatRot;
 		var mtxScale;
-		var sLine;
-		var oData = {};
-		var oParent;
+		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sObjectType = getObjectType( oNode );
@@ -725,7 +724,7 @@
 			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			sLabel = oNode.getLabel();	
 			sName = oNode.name;		
-			oName = oData[sName] = {};
+			oName = s_oPoseData[sName] = {};
 			oName["Name"] = sName;
 			oName["Label"] = sLabel;
 			oName["Object Type"] = sObjectType;
@@ -751,8 +750,8 @@
 				mtxScale.m33
 			];	
 		}
-		sData = JSON.stringify( oData, undefined, 4 )
-		writeDataFile( sData, sFilename );
+	
+		
 	};
 	
 	/*********************************************************************/
@@ -1700,7 +1699,6 @@
 				};
 			};
 		};
-		print(vecOffset)
 		return vecOffset
 	};
 	
@@ -1713,8 +1711,8 @@
 	}
 
 	/*********************************************************************/
-	// Void : Write bone's limits along with rotation orders
-	function writeFigureBoneData( oBaseNode, sFilename )
+	// Void : load bone's limits along with rotation orders
+	function loadFigureBoneData( oBaseNode )
 	{
 		if( !oBaseNode.inherits("DzFigure") ){
 			return;
@@ -1762,20 +1760,13 @@
 		var nZRotMin;
 		var nZRotMax;
 		var vecOffset
-		var aLimitsData = new Array( nNodes );
-		var aHeadTailData = new Array( nNodes );
-		var aSkeletonData = new Array( 1 );
-		var oLimitsData = {};
-		var oHeadTailData = {};
-		var oSkeletonData = {};
+		
 		// To account for the scale on the skeleton due to morphs
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
-		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
-		s_oSkeletonData["skeletonScale"] = ["skeletonScale", nSkeletonScale]
+		s_oSkeletonData["skeletonScale"] = ["skeletonScale", nSkeletonScale];
 		// To account for offset on the hip bone.
 		vecOffset = getBoneOffset(aNodes[0])
-		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
-		s_oSkeletonData["offset"] = ["offset", vecOffset.y]
+		s_oSkeletonData["offset"] = ["offset", vecOffset.y];
 
 		oBaseNode.update();
 		oBaseNode.finalize();
@@ -1793,20 +1784,14 @@
 			nYRotMax = oNode.getYRotControl().getMax();
 			nZRotMin = oNode.getZRotControl().getMin();
 			nZRotMax = oNode.getZRotControl().getMax();
-			aLimitsData[i] = [
-				oNode.getName(),
-				sRotOrder,
-				nXRotMin, nXRotMax,
-				nYRotMin, nYRotMax,
-				nZRotMin, nZRotMax
-				].join(",");
 			s_oLimitsData[oNode.getName()] = [
 				oNode.getName(),
 				sRotOrder,
 				nXRotMin, nXRotMax,
 				nYRotMin, nYRotMax,
 				nZRotMin, nZRotMax
-				]
+				];
+
 			nBoneLength = getBoneNodeLength( oNode );
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 
@@ -1819,22 +1804,7 @@
 			vecTail = vecHead.add( vecPrimaryAxis );
 			vecSecondAxis = getNodeSecondAxis( oNode );
 			
-			aHeadTailData[i] = [
-				oNode.getName(),
-				( vecHead.x + vecOffset.x ) * nSkeletonScale,
-				( vecHead.y + vecOffset.y ) * nSkeletonScale,
-				( vecHead.z + vecOffset.z ) * nSkeletonScale,
-				( vecTail.x + vecOffset.x ) * nSkeletonScale,
-				( vecTail.y + vecOffset.y ) * nSkeletonScale,
-				( vecTail.z + vecOffset.z ) * nSkeletonScale,
-				vecSecondAxis.x,
-				vecSecondAxis.y,
-				vecSecondAxis.z
-				]
-				.concat( getBoneTransformValues( oNode ) )
-				.join(",");
 			s_oHeadTailData[oNode.getName()] = [
-				oNode.getName(),
 				( vecHead.x + vecOffset.x ) * nSkeletonScale,
 				( vecHead.y + vecOffset.y ) * nSkeletonScale,
 				( vecHead.z + vecOffset.z ) * nSkeletonScale,
@@ -1845,11 +1815,8 @@
 				vecSecondAxis.y,
 				vecSecondAxis.z
 				]
-				.concat( getBoneTransformValues( oNode ) )
+				.concat( getBoneTransformValues( oNode ) );
 		}
-		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
-		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
-		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
 	};
 	
 	/*********************************************************************/	
@@ -1873,7 +1840,8 @@
 		oDtuJson["SkeletonData"] = s_oSkeletonData;
 		oDtuJson["HeadTailData"] = s_oHeadTailData;
 		oDtuJson["LimitData"] = s_oLimitsData;
-
+		oDtuJson["PoseData"] = s_oPoseData;
+		
 		aFigureMats = writeMaterials( oNode );
 		oDtuJson["Materials"].push( aFigureMats );
 		if (nChildren > 0){
@@ -2162,8 +2130,8 @@
 				
 				// Write data
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
-				writeFigureBoneData( oFigure, sFileBasename );
-				writePoseData( oFigure, sFileBasename + ".transforms", true );
+				loadFigureBoneData( oFigure );
+				loadPoseData( oFigure, true );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
 				writeConfiguration( oFigure, sFileBasename );
 				
@@ -2217,9 +2185,9 @@
 				sPoseFilename = sFileBasename + ".transforms";
 				
 				if( bIsBone ){
-					writeFigureBoneData( oNode, sFileBasename );
+					loadFigureBoneData( oNode );
 				} else {
-					writePoseData( oNode, sPoseFilename, false );
+					loadPoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
 				updateName( oNode );

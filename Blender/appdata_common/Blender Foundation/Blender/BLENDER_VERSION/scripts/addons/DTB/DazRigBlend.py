@@ -17,10 +17,17 @@ class DazRigBlend:
     buttons = []
     del_empty = []
     mub_ary = []
+    bone_head_tail_dict = dict()
+    bone_limits = dict()
+    skeleton_data_dict = dict()
 
-    def __init__(self):
+    def __init__(self, dtu):
         self.head_vgroup_index = -1
         self.notEnglish = False
+        self.bone_limits = dtu.get_bone_limits_dict()
+        self.bone_limits = Global.bone_limit_modify(self.bone_limits)
+        self.bone_head_tail_dict = dtu.get_bone_head_tail_dict()
+        self.skeleton_data_dict = dtu.get_skeleton_data_dict()
 
     def convert_file(self, filepath):
         isacs = Global.isAcs()
@@ -44,7 +51,7 @@ class DazRigBlend:
             if Global.getAmtr().scale[0]<0.015:
                 for i in range(3):
                     obj.location[i] = obj.location[i] * 100
-                    obj.scale[i] = 100
+                    obj.scale[i] = 100 
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             if self.is_mub(obj):
                 pass
@@ -107,10 +114,13 @@ class DazRigBlend:
             Versions.select(dobj, True)
             Versions.active_object(dobj)
             dobj.rotation_euler.x += math.radians(90)
+            for i in range(3):
+                dobj.scale[i] *= self.skeleton_data_dict["skeletonScale"][1]
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             for i in range(3):
                 dobj.lock_location[i] = True
                 dobj.lock_rotation[i] = True
+                
                 dobj.lock_scale[i] = True
             Global.deselect()
         
@@ -197,15 +207,11 @@ class DazRigBlend:
         Global.setOpsMode('OBJECT')
 
     def bone_limit_modify(self):
-        if len(Global.get_bone_limit()) == 0:
-            Global.bone_limit_modify()
-
-        bone_limits = DataBase.get_bone_limits_dict()
         for bone in Global.getAmtr().pose.bones:
-            if bone.name.endswith("_IK") or bone.name not in bone_limits.keys():
+            if bone.name.endswith("_IK") or bone.name not in self.bone_limits.keys():
                 continue
 
-            bone_limit = bone_limits[bone.name]
+            bone_limit = self.bone_limits[bone.name]
 
             # Store Custom Properties
             bone["Daz Rotation Order"] = bone_limit[1]
@@ -263,15 +269,6 @@ class DazRigBlend:
 
     # To Do fix, roll as it is being incorrectly calculated in Shoulders and Arms
     def set_bone_head_tail(self):
-        # Read bone's head, tail and a vector to calculate roll
-        input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneHeadTail.csv"), "r")
-        lines = input_file.readlines()
-        input_file.close()
-        bone_head_tail_dict = dict()
-        for line in lines:
-            line_split = line.split(",")
-            bone_head_tail_dict[line_split[0]] = line_split[1:]
-
         # Switch to Edit mode
         armature_obj = Global.getAmtr()
         Versions.select(armature_obj,True)
@@ -281,8 +278,8 @@ class DazRigBlend:
 
         # Set head, tail and roll values for all the bones
         for bone in ob.data.edit_bones:
-            if bone.name in bone_head_tail_dict.keys():
-                head_and_tail = bone_head_tail_dict[bone.name]
+            if bone.name in self.bone_head_tail_dict.keys():
+                head_and_tail = self.bone_head_tail_dict[bone.name]
 
                 bone.use_connect = False
 
@@ -305,11 +302,11 @@ class DazRigBlend:
                 bone.align_roll(align_axis_vec)
 
     def makeBRotationCut(self,db):
-        bone_limits = DataBase.get_bone_limits_dict()
+        
         for bone in Global.getAmtr().pose.bones:
-            if bone.name not in bone_limits.keys():
+            if bone.name not in self.bone_limits.keys():
                 continue
-            bone_limit = bone_limits[bone.name]
+            bone_limit = self.bone_limits[bone.name]
             for i in range(3):
                 if bone_limit[2+i*2]==0 and bone_limit[2+i*2+1]==0:
                     bone.lock_rotation[i] = True
