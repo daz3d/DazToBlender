@@ -161,16 +161,74 @@
         lytTree.addWidget( wMorphGrpLabel );
         lytTree.addWidget( wAvailMorphLabel );
         lytTree.addWidget( s_wMorphTreeWidget );
+        
 
-        // Button for extra 
-        var wExtraGroupBox = DzGroupBox( wMainWgt );
+        // Buttons for Utlilties
+        var wMorphGroupBox = DzGroupBox( wMainWgt );
+        wMorphGroupBox.title = "Morph Utlities";
+        var lytMorphGroup = new DzVBoxLayout( wMorphGroupBox );
+        lytTree.addWidget( wMorphGroupBox );
+        lytMorphGroup.margin = nMargin;
+        lytMorphGroup.spacing = nMargin;
+        
+        var wJCMGroupBox = DzGroupBox( wMorphGroupBox );
+        wJCMGroupBox.title = "Add JCMs";
+        var lytJCM = new DzGridLayout( wJCMGroupBox );
+        lytJCM.margin = nMargin;
+        lytJCM.spacing = nMargin;
+
+        var wExpressGroupBox = DzGroupBox( wMorphGroupBox );
+        wExpressGroupBox.title = "Add Expressions";
+        var lytExpress = new DzGridLayout( wExpressGroupBox );
+        lytExpress.margin = nMargin;
+        lytExpress.spacing = nMargin;
+
+        var wFaceGroupBox = DzGroupBox( wMorphGroupBox );
+        wFaceGroupBox.title = "Add Facial Morphs";
+        var lytFace = new DzGridLayout( wFaceGroupBox );
+        lytFace.margin = nMargin;
+        lytFace.spacing = nMargin;
+
+        var wExtraGroupBox = DzGroupBox( wMorphGroupBox );
         wExtraGroupBox.title = "Extra Options";
-        var lytExtra = new DzGridLayout( lytTree );
+        var lytExtra = new DzGridLayout( wExtraGroupBox );
         lytExtra.margin = nMargin;
         lytExtra.spacing = nMargin;
-        lytExtra.addWidget( wExtraGroupBox );
+      
+        lytMorphGroup.addWidget( wJCMGroupBox );
+        lytMorphGroup.addWidget( wExpressGroupBox );
+        lytMorphGroup.addWidget( wFaceGroupBox );
+        lytMorphGroup.addWidget( wExtraGroupBox );
+
+        // Buttons
+        var wArmJCMButton = new DzPushButton( wJCMGroupBox );
+        wArmJCMButton.text = "Arms";
+        lytJCM.addWidget( wArmJCMButton, 0, 1);
+        var wLegsJCMButton = new DzPushButton( wJCMGroupBox );
+        wLegsJCMButton.text = "Legs";
+        lytJCM.addWidget( wLegsJCMButton, 0, 2);
+        var wTorsoJCMButton = new DzPushButton( wJCMGroupBox );
+        wTorsoJCMButton.text = "Torso";
+        lytJCM.addWidget( wTorsoJCMButton, 0, 3);
+        var wGen8ExpressBut = new DzPushButton( wExpressGroupBox );
+        wGen8ExpressBut.text = "Genesis 8";
+        lytExpress.addWidget( wGen8ExpressBut, 0, 1);
+        var wGen8_1ExpressBut = new DzPushButton( wExpressGroupBox );
+        wGen8_1ExpressBut.text = "Genesis 8.1";
+        lytExpress.addWidget( wGen8_1ExpressBut, 0, 2);
+        var wGen8FaceBut = new DzPushButton( wFaceGroupBox );
+        wGen8FaceBut.text = "Genesis 8";
+        lytFace.addWidget( wGen8FaceBut, 0, 1);
+        var wGen8_1FaceBut = new DzPushButton( wFaceGroupBox );
+        wGen8_1FaceBut.text = "Genesis 8.1";
+        lytFace.addWidget( wGen8_1FaceBut, 0, 2);
+        var wVismesbut = new DzPushButton( wExtraGroupBox );
+        wVismesbut.text = "Visemes";
+        lytExtra.addWidget( wVismesbut, 0, 1);
         var wAddConnectedMorphs = new DzPushButton( wExtraGroupBox );
-        wAddConnectedMorphs.text = "Add Connected Morphs";
+        wAddConnectedMorphs.text = "Find Connected Morphs";
+        lytExtra.addWidget( wAddConnectedMorphs, 1, 1, 1, 2);
+
        
         // Center List of morphs based on tree selection
         var wMorphSelGrpLabel = new DzLabel( wMainWgt );
@@ -210,6 +268,14 @@
         // Create Connections
         connect( s_wMorphTreeWidget, "currentChanged(DzListViewItem*)",itemSelectionChanged );
         connect( s_wFilterEdit, "textChanged(const QString&)", filterChanged );
+        wArmJCMButton.released.connect( handleArmJCMMorphsButton );
+        wLegsJCMButton.released.connect( handleLegsJCMMorphsButton );
+        wTorsoJCMButton.released.connect( handleTorsoJCMMorphsButton );
+        wGen8ExpressBut.released.connect( handleGen8ExpressMorphsButton );
+        wGen8_1ExpressBut.released.connect( handleGen8_1ExpressMorphsButton );
+        wGen8FaceBut.released.connect( handleGen8FaceMorphsButton );
+        wGen8_1FaceBut.released.connect( handleGen8_1FaceMorphsButton );
+        wVismesbut.released.connect( handleVismesMorphsButton);
         wAddConnectedMorphs.released.connect( loadConnectedMorphs );
         wSavePresetButton.released.connect( handleSavePreset );
         wAddMorphsButton.released.connect( handleAddMorphsButton );
@@ -506,7 +572,7 @@
             oErcLink = oMorphProperty.getController( j );
             if( oErcLink.type == 3 ){ //Multiply
                 var oControllerProp = oErcLink.getProperty();
-                if( oControllerProp.getDoubleValue() == 0 ){
+                if( oControllerProp.value == 0 ){
                     return true;
                 }
             }
@@ -541,6 +607,7 @@
                 }
                 sMorphName = getPropertyName( oControlMorphProp )
                 oMorphInfo= s_oMorphs[sMorphName]
+                print(sMorphName)
                 if( sMorphName in s_oMorphs 
                     && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
                     s_aMorphsToExport.push( s_oMorphs[sMorphName] )
@@ -634,6 +701,275 @@
             oItem.addDataItem( "name", oMorphInfo.name );
         }
         savePresetFile( null );
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleArmJCMMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+        aMorphsToAdd.push( "pJCMCollarTwist_n30_L" );
+        aMorphsToAdd.push( "pJCMCollarTwist_n30_R" );
+        aMorphsToAdd.push( "pJCMCollarTwist_p30_L" );
+        aMorphsToAdd.push( "pJCMCollarTwist_p30_R" );
+        aMorphsToAdd.push( "pJCMCollarUp_55_L" );
+        aMorphsToAdd.push( "pJCMCollarUp_55_R" );
+        aMorphsToAdd.push( "pJCMCollarUp_50_L" );
+        aMorphsToAdd.push( "pJCMCollarUp_50_R" );
+        aMorphsToAdd.push( "pJCMForeArmFwd_135_L" );
+        aMorphsToAdd.push( "pJCMForeArmFwd_135_R" );
+        aMorphsToAdd.push( "pJCMForeArmFwd_75_L" );
+        aMorphsToAdd.push( "pJCMForeArmFwd_75_R" );
+        aMorphsToAdd.push( "pJCMHandDwn_70_L" );
+        aMorphsToAdd.push( "pJCMHandDwn_70_R" );
+        aMorphsToAdd.push( "pJCMHandUp_80_L" );
+        aMorphsToAdd.push( "pJCMHandUp_80_R" );
+        aMorphsToAdd.push( "pJCMShldrDown_40_L" );
+        aMorphsToAdd.push( "pJCMShldrDown_40_R" );
+        aMorphsToAdd.push( "pJCMShldrDown_75_R" );
+        aMorphsToAdd.push( "pJCMShldrDown2_75_L" );
+        aMorphsToAdd.push( "pJCMShldrDown2_75_R" );
+        aMorphsToAdd.push( "pJCMShldrFront_n110_Bend_n40_L" );
+        aMorphsToAdd.push( "pJCMShldrFront_n110_Bend_p90_L" );
+        aMorphsToAdd.push( "pJCMShldrFront_p110_Bend_n90_R" );
+        aMorphsToAdd.push( "pJCMShldrFront_p110_Bend_p40_R" );
+        aMorphsToAdd.push( "pJCMShldrFwdDwn_110_75_L" );
+        aMorphsToAdd.push( "pJCMShldrFwdDwn_110_75_R" );
+        aMorphsToAdd.push( "pJCMShldrFwd_110_L" );
+        aMorphsToAdd.push( "pJCMShldrFwd_110_R" );
+        aMorphsToAdd.push( "pJCMShldrFwd_95_L" );
+        aMorphsToAdd.push( "pJCMShldrFwd_95_R" );
+        aMorphsToAdd.push( "pJCMShldrUp_90_L" );
+        aMorphsToAdd.push( "pJCMShldrUp_90_R" );
+        aMorphsToAdd.push( "pJCMShldrUp_35_L" );
+        aMorphsToAdd.push( "pJCMShldrUp_35_R" );
+
+        
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+        };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleLegsJCMMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+        aMorphsToAdd.push( "pJCMBigToeDown_45_L" );
+        aMorphsToAdd.push( "pJCMBigToeDown_45_R" );
+        aMorphsToAdd.push( "pJCMFootDwn_75_L" );
+        aMorphsToAdd.push( "pJCMFootDwn_75_R" );
+        aMorphsToAdd.push( "pJCMFootUp_40_L" );
+        aMorphsToAdd.push( "pJCMShinBend_155_L" );
+        aMorphsToAdd.push( "pJCMShinBend_155_R" );
+        aMorphsToAdd.push( "pJCMShinBend_90_L" );
+        aMorphsToAdd.push( "pJCMShinBend_90_R" );
+        aMorphsToAdd.push( "pJCMThighBack_35_L" );
+        aMorphsToAdd.push( "pJCMThighBack_35_R" );
+        aMorphsToAdd.push( "pJCMThighFwd_115_L" );
+        aMorphsToAdd.push( "pJCMThighFwd_115_R" );
+        aMorphsToAdd.push( "pJCMThighFwd_57_L" );
+        aMorphsToAdd.push( "pJCMThighFwd_57_R" );
+        aMorphsToAdd.push( "pJCMThighSide_85_L" );
+        aMorphsToAdd.push( "pJCMThighSide_85_R" );
+        aMorphsToAdd.push( "pJCMToesUp_60_L" );
+        aMorphsToAdd.push( "pJCMToesUp_60_R" );
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleTorsoJCMMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+        aMorphsToAdd.push( "pJCMAbdomen2Fwd_40" );
+        aMorphsToAdd.push( "pJCMAbdomen2Side_24_L" );
+        aMorphsToAdd.push( "pJCMAbdomen2Side_24_R" );
+        aMorphsToAdd.push( "pJCMAbdomenFwd_35" );
+        aMorphsToAdd.push( "pJCMAbdomenLowerFwd_Navel" );
+        aMorphsToAdd.push( "pJCMAbdomenUpperFwd_Navel" );
+        aMorphsToAdd.push( "pJCMHeadBack_27" );
+        aMorphsToAdd.push( "pJCMHeadFwd_25" );
+        aMorphsToAdd.push( "pJCMNeckBack_27" );
+        aMorphsToAdd.push( "pJCMNeckFwd_35" );
+        aMorphsToAdd.push( "pJCMNeckLowerSide_40_L" );
+        aMorphsToAdd.push( "pJCMNeckLowerSide_40_R" );
+        aMorphsToAdd.push( "pJCMNeckTwist_22_L" );
+        aMorphsToAdd.push( "pJCMNeckTwist_22_R" );
+        aMorphsToAdd.push( "pJCMNeckTwist_Reverse" );
+        aMorphsToAdd.push( "pJCMPelvisFwd_25" );
+        aMorphsToAdd.push( "pJCMChestFwd_35" );
+        aMorphsToAdd.push( "pJCMChestSide_20_L" );
+        aMorphsToAdd.push( "pJCMChestSide_20_R" );
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleGen8ExpressMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleGen8_1ExpressMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleGen8FaceMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+    /*********************************************************************/
+    // Void: ...
+    function handleGen8_1FaceMorphsButton()
+    {
+        var aMorphsToAdd = [];
+        aMorphsToAdd.push( "facs_jnt_EyeWideLeft" );
+        aMorphsToAdd.push( "facs_jnt_EyeWideRight" );
+        aMorphsToAdd.push( "facs_jnt_EyeBlinkLeft" );
+        aMorphsToAdd.push( "facs_jnt_EyeBlinkRight" );
+        aMorphsToAdd.push( "facs_bs_EyeSquintLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeSquintRight_div2" );
+        aMorphsToAdd.push( "facs_jnt_JawForward" );
+        aMorphsToAdd.push( "facs_jnt_JawLeft" );
+        aMorphsToAdd.push( "facs_jnt_JawOpen" );
+        aMorphsToAdd.push( "facs_bs_MouthClose_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFunnel_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPucker_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthSmileLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthSmileRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFrownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFrownRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthDimpleLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthDimpleRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthStretchLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthStretchRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRollLower_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRollUpper_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthShrugLower_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthShrugUpper_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPressLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPressRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLowerDownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLowerDownRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthUpperUpLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthUpperUpRight_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowDownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowDownRight_div2" );
+        aMorphsToAdd.push( "facs_ctrl_BrowInnerUp" );
+        aMorphsToAdd.push( "facs_bs_BrowOuterUpLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowOuterUpRight_div2" );
+        aMorphsToAdd.push( "facs_ctrl_CheekPuff" );
+        aMorphsToAdd.push( "facs_bs_CheekSquintLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_CheekSquintRight_div2" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerRight_div2" );
+        aMorphsToAdd.push( "facs_bs_TongueOut" );
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
+    };
+
+
+    /*********************************************************************/
+    // Void: ...
+    function handleVismesMorphsButton()
+    {
+        var aMorphsToAdd = [];
+
+        aMorphsToAdd.push( "eCTRLvSH" );
+        aMorphsToAdd.push( "eCTRLvW" );
+        aMorphsToAdd.push( "eCTRLvM" );
+        aMorphsToAdd.push( "eCTRLvF" );
+        aMorphsToAdd.push(" eCTRLMouthOpen" );
+        aMorphsToAdd.push( "eCTRLMouthWide-Narrow" ); 
+        aMorphsToAdd.push( "eCTRLTongueIn-Out" );
+        aMorphsToAdd.push( "eCTRLTongueUp-Down" );
+
+        for( var i = 0; i < aMorphsToAdd.length; i++ ){
+            sMorphName = aMorphsToAdd[i]
+            // Add the list for export
+            if(sMorphName in s_oMorphs 
+                && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
+                s_aMorphsToExport.push( s_oMorphs[sMorphName] );
+            }
+        }
+        refreshExportMorphList();
     };
 
     /*********************************************************************/

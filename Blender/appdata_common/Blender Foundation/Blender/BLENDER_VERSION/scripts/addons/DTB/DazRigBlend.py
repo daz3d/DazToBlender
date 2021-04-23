@@ -114,8 +114,8 @@ class DazRigBlend:
             Versions.select(dobj, True)
             Versions.active_object(dobj)
             dobj.rotation_euler.x += math.radians(90)
-            for i in range(3):
-                dobj.scale[i] *= self.skeleton_data_dict["skeletonScale"][1]
+            # for i in range(3):
+            #     dobj.scale[i] *= self.skeleton_data_dict["skeletonScale"][1]
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             for i in range(3):
                 dobj.lock_location[i] = True
