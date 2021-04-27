@@ -64,7 +64,7 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable )
+    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable, nCurrentValue )
     {
         this.name = sName;
         this.label = sLabel;
@@ -76,6 +76,7 @@
         this.min = nMin;
         this.max = nMax;
         this.disable = bDisable;
+        this.value = nCurrentValue;
     };
     
     /*********************************************************************/
@@ -398,7 +399,8 @@
                     oProperty.isHidden(),
                     oProperty.getMin(),
 					oProperty.getMax(),
-                    false
+                    false,
+                    oProperty.getValue()
                 );
                 
                 if( !( oMorphInfo.name in s_oMorphs ) ){
@@ -436,7 +438,8 @@
                                 oProperty.isHidden(),
                                 oProperty.getMin(),
                                 oProperty.getMax(),
-                                false
+                                false,
+                                oProperty.getValue()
                             );
                             if( !( oMorphInfo.name in s_oMorphs ) ){
                                 s_oMorphs[oMorphInfo.name] = oMorphInfo;

@@ -2066,7 +2066,9 @@
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
 			var oMorphInfo = aExportableProperties[i]
 			var oMorphProperty = oMorphInfo.property;
+			
 			if( oMorphInfo.disable == true){
+				oMorphProperty.setValue( 0 );
 				oMorphProperty.setOverrideControllers( true );
 			}
 		}
@@ -2078,9 +2080,10 @@
 	{
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
 			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
 			if( oMorphInfo.disable ){
-				var oMorphProperty = oMorphInfo.property;
 				oMorphProperty.setOverrideControllers( false );
+				oMorphProperty.setValue( oMorphInfo.value );
 			}
 		}
 	}
