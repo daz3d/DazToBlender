@@ -163,7 +163,7 @@ class DtbShapeKeys:
         elif link_type == 3:
             # ERCMultiply
             driver.use_self = True
-            return "(" + var_name + "*self.value+" + addend + ")"
+            return "(" + var_name + "*self.value+" + addend + "if self.value>0 else " + var_name + "+" + addend +")"
         elif link_type == 4:
             # ERCSubtract
             driver.use_self = True
@@ -316,6 +316,39 @@ class DtbShapeKeys:
         self.var_name_index += 1
         return var_name
 
+    # Add the next expression based on the type of ERC_Link it is
+    def combine_target_expression(self,exp, morph_links, link_index):
+        link_type = morph_links[link_index]["Type"]
+        next_index = link_index + 1
+        first_stage = [0, 4, 5, 6]
+        second_stage = [1, 2, 3]
+        
+        if len(morph_links) - 1 >= next_index:
+            next_link_type = morph_links[next_index]["Type"]
+            
+            if (link_type in first_stage) and (link_index == 0):
+                if next_link_type in first_stage:
+                    return "(" + exp + "+"
+                elif next_link_type in second_stage:
+                    return exp
+                else:
+                    return exp + "+"
+
+            elif (link_type in first_stage) and (link_index > 0):                
+                if next_link_type in first_stage:
+                    return exp + "+"
+                elif next_link_type in second_stage:
+                    return exp + ")"
+
+        elif (link_type in second_stage) and (link_index > 0):
+                return "*" + exp
+        
+        elif (next_index == len(morph_links)) and (len(morph_links) > 1): 
+            return exp + ")"
+            
+        else:
+            return exp + "+"
+
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
         shape_key = body_mesh_obj.data.shape_keys
@@ -386,8 +419,9 @@ class DtbShapeKeys:
                     # Driver script expression max lenght is 255
                     # break when the limit is reached to avoid errors
                     break
-                expression += exp + "+"
-            
+                expression += self.combine_target_expression(exp, morph_links, link_index)
+                
+                    
             # Delete the driver and continue if there are no variables
             if var_count == 0:
                 key_block.driver_remove("value")
@@ -401,8 +435,12 @@ class DtbShapeKeys:
                                             )
                 continue
             
-            # Trim the extra '+' char
+            # Trim the extra chars
             if expression.endswith("+"):
+                expression = expression[:-1]
+            if expression.startswith("*"):
+                expression = expression[1:]
+            if expression.endswith("))") and var_count == 1:
                 expression = expression[:-1]
             driver.expression = expression
 

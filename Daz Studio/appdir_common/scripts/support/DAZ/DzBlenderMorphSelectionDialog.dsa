@@ -25,6 +25,7 @@
     var s_wMorphExportListWidget = null;
     var s_wFilterEdit = null;
     var s_wPresetCombo = null;
+    var s_wDisableConnections = null;
 
     /*********************************************************************/
     // bool : ...
@@ -63,7 +64,7 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax )
+    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable )
     {
         this.name = sName;
         this.label = sLabel;
@@ -74,8 +75,21 @@
         this.hidden = bHidden;
         this.min = nMin;
         this.max = nMax;
+        this.disable = bDisable;
     };
     
+    /*********************************************************************/
+    // String : Get the property name even if name is Value
+    function getPropertyName( oProperty )
+	{
+		var sPropertyName = oProperty.name;
+		var oOwnerProperty = oProperty.getOwner();
+		if( oOwnerProperty.inherits( "DzMorph" ) ){
+			sPropertyName = oOwnerProperty.name;
+		}
+		return sPropertyName;
+	};
+
     /*********************************************************************/
     // void : ...
     function morphSelectionDialog( wDlg )
@@ -189,16 +203,23 @@
         lytFace.margin = nMargin;
         lytFace.spacing = nMargin;
 
-        var wExtraGroupBox = DzGroupBox( wMorphGroupBox );
-        wExtraGroupBox.title = "Extra Options";
-        var lytExtra = new DzGridLayout( wExtraGroupBox );
-        lytExtra.margin = nMargin;
-        lytExtra.spacing = nMargin;
+        var wOtherGroupBox = DzGroupBox( wMorphGroupBox );
+        wOtherGroupBox.title = "Other Morphs";
+        var lytOther = new DzGridLayout( wOtherGroupBox );
+        lytOther.margin = nMargin;
+        lytOther.spacing = nMargin;
+
+        var wAdvanceGroupBox = DzGroupBox( wMorphGroupBox );
+        wAdvanceGroupBox.title = "Advanced Options";
+        var lytAdv = new DzGridLayout( wAdvanceGroupBox );
+        lytAdv.margin = nMargin;
+        lytAdv.spacing = nMargin;
       
         lytMorphGroup.addWidget( wJCMGroupBox );
         lytMorphGroup.addWidget( wExpressGroupBox );
         lytMorphGroup.addWidget( wFaceGroupBox );
-        lytMorphGroup.addWidget( wExtraGroupBox );
+        lytMorphGroup.addWidget( wOtherGroupBox );
+        lytMorphGroup.addWidget( wAdvanceGroupBox );
 
         // Buttons
         var wArmJCMButton = new DzPushButton( wJCMGroupBox );
@@ -222,14 +243,19 @@
         var wGen8_1FaceBut = new DzPushButton( wFaceGroupBox );
         wGen8_1FaceBut.text = "Genesis 8.1";
         lytFace.addWidget( wGen8_1FaceBut, 0, 2);
-        var wVismesbut = new DzPushButton( wExtraGroupBox );
+        var wVismesbut = new DzPushButton( wOtherGroupBox );
         wVismesbut.text = "Visemes";
-        lytExtra.addWidget( wVismesbut, 0, 1);
-        var wAddConnectedMorphs = new DzPushButton( wExtraGroupBox );
+        lytOther.addWidget( wVismesbut, 0, 1);
+        s_wDisableConnections = new DzCheckBox( wAdvanceGroupBox );
+        s_wDisableConnections.text = "Disable Links";
+        s_wDisableConnections.checked = true;
+        s_wDisableConnections.whatsThis = qsTr( "Disables the connections between each morph to deal with morph a being applied on its parent morph")
+        lytAdv.addWidget( s_wDisableConnections, 0, 1 );
+        var wAddConnectedMorphs = new DzPushButton( wAdvanceGroupBox );
         wAddConnectedMorphs.text = "Find Connected Morphs";
-        lytExtra.addWidget( wAddConnectedMorphs, 1, 1, 1, 2);
-
-       
+        lytAdv.addWidget( wAddConnectedMorphs, 1, 1, 1, 2 );
+        
+        
         // Center List of morphs based on tree selection
         var wMorphSelGrpLabel = new DzLabel( wMainWgt );
         wMorphSelGrpLabel.text = 'Morphs in Group';
@@ -371,7 +397,8 @@
                     sParent,
                     oProperty.isHidden(),
                     oProperty.getMin(),
-					oProperty.getMax()
+					oProperty.getMax(),
+                    false
                 );
                 
                 if( !( oMorphInfo.name in s_oMorphs ) ){
@@ -408,7 +435,8 @@
                                 sParent,
                                 oProperty.isHidden(),
                                 oProperty.getMin(),
-                                oProperty.getMax()
+                                oProperty.getMax(),
+                                false
                             );
                             if( !( oMorphInfo.name in s_oMorphs ) ){
                                 s_oMorphs[oMorphInfo.name] = oMorphInfo;
@@ -572,25 +600,15 @@
             oErcLink = oMorphProperty.getController( j );
             if( oErcLink.type == 3 ){ //Multiply
                 var oControllerProp = oErcLink.getProperty();
-                if( oControllerProp.value == 0 ){
+                if( oControllerProp.getDoubleValue() == 0 ){
                     return true;
                 }
             }
+
         }
         return false;
     };
 
-    /*********************************************************************/
-    // String : Get the property name even if name is Value
-    function getPropertyName( oProperty )
-	{
-		var sPropertyName = oProperty.name;
-		var oOwnerProperty = oProperty.getOwner();
-		if( oOwnerProperty.inherits( "DzMorph" ) ){
-			sPropertyName = oOwnerProperty.name;
-		}
-		return sPropertyName;
-	};
     /*********************************************************************/
     // Void : Load morphs controlling the morphs in the export list
 	function loadConnectedMorphs()
@@ -607,7 +625,7 @@
                 }
                 sMorphName = getPropertyName( oControlMorphProp )
                 oMorphInfo= s_oMorphs[sMorphName]
-                print(sMorphName)
+                
                 if( sMorphName in s_oMorphs 
                     && !( containsObject( s_oMorphs[sMorphName], s_aMorphsToExport ) ) ){
                     s_aMorphsToExport.push( s_oMorphs[sMorphName] )
@@ -687,6 +705,29 @@
         refreshPresetsCombo();
 
     };
+    /*********************************************************************/
+    // Void : Check if the Morph Should be Disconnected
+    function checkMorphConnections( oMorphInfo )
+    {
+        if( s_wDisableConnections.checked == false ){
+            return
+        }
+        var oProperty = oMorphInfo.property;
+        var nControllerCount = oProperty.getNumControllers();
+        for( var j = 0; j < nControllerCount; j ++ ){
+            var oErcLink = new DzERCLink();
+            oErcLink = oProperty.getController( j );
+            var oControllerProp = oErcLink.getProperty();
+            var sControllerName = getPropertyName( oControllerProp )
+            for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+                var oMorphCheck = s_aMorphsToExport[i];
+                var sMorphName = oMorphCheck.name;
+                if( sMorphName == sControllerName ){
+                    oMorphInfo.disable = true;
+                }
+            }
+        }
+    }
 
     /*********************************************************************/
     // Void : Refresh the Right export list
@@ -695,8 +736,8 @@
         s_wMorphExportListWidget.clear();
         
         for( var i = 0; i < s_aMorphsToExport.length; i++ ){
-            oMorphInfo = s_aMorphsToExport[i]
-            oItem = DzListViewItem( s_wMorphExportListWidget )
+            var oMorphInfo = s_aMorphsToExport[i]
+            oItem = DzListViewItem( s_wMorphExportListWidget );
             oItem.setText( 0 ,oMorphInfo.label );
             oItem.addDataItem( "name", oMorphInfo.name );
         }
@@ -837,6 +878,22 @@
     {
         var aMorphsToAdd = [];
 
+        aMorphsToAdd.push( "eCTRLSurprised_HD" );
+        aMorphsToAdd.push( "eCTRLSmileOpenFullFace_HD" );
+        aMorphsToAdd.push( "eCTRLSmileFullFace_HD" );
+        aMorphsToAdd.push( "eCTRLShock_HD" );
+        aMorphsToAdd.push( "eCTRLFrown_HD" );
+        aMorphsToAdd.push( "eCTRLFlirting_HD" );
+        aMorphsToAdd.push( "eCTRLAngry_HD" );
+        aMorphsToAdd.push( "eCTRLAfraid_HD" );
+        aMorphsToAdd.push( "eJCMSurprise_HD_div2" );
+        aMorphsToAdd.push( "eJCMSmileOpenFullFace_HD_div2" );
+        aMorphsToAdd.push( "eJCMSmileFullFace_HD_div2" );
+        aMorphsToAdd.push( "eJCMShock_HD_div2" );
+        aMorphsToAdd.push( "eJCMFrown_HD_div2" );
+        aMorphsToAdd.push( "eJCMFlirting_HD_div2" );
+        aMorphsToAdd.push( "eJCMAngry_HD_div2" );
+        aMorphsToAdd.push( "eJCMAfraid_HD_div2" );
 
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
@@ -855,6 +912,14 @@
     {
         var aMorphsToAdd = [];
 
+        aMorphsToAdd.push( "facs_ctrl_Surprised" );
+        aMorphsToAdd.push( "facs_ctrl_SmileOpenFullFace" );
+        aMorphsToAdd.push( "facs_ctrl_SmileFullFace" );
+        aMorphsToAdd.push( "facs_ctrl_Shock" );
+        aMorphsToAdd.push( "facs_ctrl_Frown" );
+        aMorphsToAdd.push( "facs_ctrl_Flirting" );
+        aMorphsToAdd.push( "facs_ctrl_Angry" );
+        aMorphsToAdd.push( "facs_ctrl_Afraid" );
 
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
@@ -873,6 +938,133 @@
     {
         var aMorphsToAdd = [];
 
+        aMorphsToAdd.push( "eCTRLBrowUp-DownR" );
+        aMorphsToAdd.push( "eCTRLBrowUp-DownL" );
+        aMorphsToAdd.push( "eCTRLBrowUp-Down" );
+        aMorphsToAdd.push( "eCTRLBrowSqueezeR" );
+        aMorphsToAdd.push( "eCTRLBrowSqueezeL" );
+        aMorphsToAdd.push( "eCTRLBrowSqueeze" );
+        aMorphsToAdd.push( "eCTRLBrowOuterUp-DownR" );
+        aMorphsToAdd.push( "eCTRLBrowOuterUp-DownL" );
+        aMorphsToAdd.push( "eCTRLBrowOuterUp-Down" );
+        aMorphsToAdd.push( "eCTRLBrowInnerUp-DownR" );
+        aMorphsToAdd.push( "eCTRLBrowInnerUp-DownL" );
+        aMorphsToAdd.push( "eCTRLBrowInnerUp-Down" );
+        aMorphsToAdd.push( "PHMBrowCompression_HD_div2" );
+        aMorphsToAdd.push( "eCTRLJawSide-Side" );
+        aMorphsToAdd.push( "eCTRLJawOut-In" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloonPucker" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloon-SuckInR" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloon-SuckInL" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloon-SuckIn" );
+        aMorphsToAdd.push( "eCTRLCheekFlex-SlackR" );
+        aMorphsToAdd.push( "eCTRLCheekFlex-SlackL" );
+        aMorphsToAdd.push( "eCTRLCheekFlex-Slack" );
+        aMorphsToAdd.push( "eCTRLCheekEyeFlexR" );
+        aMorphsToAdd.push( "eCTRLCheekEyeFlexL" );
+        aMorphsToAdd.push( "eCTRLCheekEyeFlex" );
+        aMorphsToAdd.push( "eCTRLCheekCrease" );
+        aMorphsToAdd.push( "CTRLCheeksDimpleCreaseHD" );
+        aMorphsToAdd.push( "PHMCheeksDimpleCreaseR_HD_div2" );
+        aMorphsToAdd.push( "PHMCheeksDimpleCreaseL_HD_div2" );
+        aMorphsToAdd.push( "ePHMCheekCreaseR" );
+        aMorphsToAdd.push( "ePHMCheekCreaseL" );
+        aMorphsToAdd.push( "eCTRLEyesUpDown" );
+        aMorphsToAdd.push( "eCTRLEyesSquint-WidenR" );
+        aMorphsToAdd.push( "eCTRLEyesSquint-WidenL" );
+        aMorphsToAdd.push( "eCTRLEyesSquint-Widen" );
+        aMorphsToAdd.push( "eCTRLEyesSideSide" );
+        aMorphsToAdd.push( "eCTRLEyesRelaxR" );
+        aMorphsToAdd.push( "eCTRLEyesRelaxL" );
+        aMorphsToAdd.push( "eCTRLEyesRelax" );
+        aMorphsToAdd.push( "eCTRLEyesCrossed" );
+        aMorphsToAdd.push( "eCTRLEyesClosedR" );
+        aMorphsToAdd.push( "eCTRLEyesClosedL" );
+        aMorphsToAdd.push( "eCTRLEyesClosed" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperUp-DownR" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperUp-DownL" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperUp-Down" );
+        aMorphsToAdd.push( "eCTRLEyelidsLowerUpDownR" );
+        aMorphsToAdd.push( "eCTRLEyelidsLowerUpDownL" );
+        aMorphsToAdd.push( "eCTRLEyelidsLowerUpDown" );
+        aMorphsToAdd.push( "eCTRLTongueUp-Down" );
+        aMorphsToAdd.push( "eCTRLTongueSide-Side" );
+        aMorphsToAdd.push( "eCTRLTongueRaise-Lower" );
+        aMorphsToAdd.push( "eCTRLTongueNarrow-Wide" );
+        aMorphsToAdd.push( "eCTRLTongueIn-Out" );
+        aMorphsToAdd.push( "eCTRLTongueCurl" );
+        aMorphsToAdd.push( "eCTRLTongueBendTip" );
+        aMorphsToAdd.push( "eCTRLMouthWide-NarrowR" );
+        aMorphsToAdd.push( "eCTRLMouthWide-NarrowL" );
+        aMorphsToAdd.push( "eCTRLMouthWide-Narrow" );
+        aMorphsToAdd.push( "eCTRLMouthSmileSimpleR" );
+        aMorphsToAdd.push( "eCTRLMouthSmileSimpleL" );
+        aMorphsToAdd.push( "eCTRLMouthSmileSimple" );
+        aMorphsToAdd.push( "eCTRLMouthSmileOpen" );
+        aMorphsToAdd.push( "eCTRLMouthSmile" );
+        aMorphsToAdd.push( "eCTRLMouthSide-Side" );
+        aMorphsToAdd.push( "eCTRLMouthOpen" );
+        aMorphsToAdd.push( "eCTRLMouthFrown" );
+        aMorphsToAdd.push( "eCTRLMouthCornerUp-DownR" );
+        aMorphsToAdd.push( "eCTRLMouthCornerUp-DownL" );
+        aMorphsToAdd.push( "eCTRLMouthCornerUp-Down" );
+        aMorphsToAdd.push( "eCTRLMouthCornerForward-BackR" );
+        aMorphsToAdd.push( "eCTRLMouthCornerForward-BackL" );
+        aMorphsToAdd.push( "eCTRLMouthCornerForward-Back" );
+        aMorphsToAdd.push( "eCTRLMouthClosed" );
+        aMorphsToAdd.push( "eCTRLLipTopUp-DownR" );
+        aMorphsToAdd.push( "eCTRLLipTopUp-DownL" );
+        aMorphsToAdd.push( "eCTRLLipTopUp-Down" );
+        aMorphsToAdd.push( "eCTRLLipTopOut-InR" );
+        aMorphsToAdd.push( "eCTRLLipTopOut-InL" );
+        aMorphsToAdd.push( "eCTRLLipTopOut-In" );
+        aMorphsToAdd.push( "eCTRLLipsPuckerWide" );
+        aMorphsToAdd.push( "eCTRLLipsPucker-Pressed" );
+        aMorphsToAdd.push( "eCTRLLipsPartCenter" );
+        aMorphsToAdd.push( "eCTRLLipsPart" );
+        aMorphsToAdd.push( "eCTRLLipsClosed-BareTeeth" );
+        aMorphsToAdd.push( "eCTRLLipBottomUp-DownR" );
+        aMorphsToAdd.push( "eCTRLLipBottomUp-DownL" );
+        aMorphsToAdd.push( "eCTRLLipBottomUp-Down" );
+        aMorphsToAdd.push( "eCTRLLipBottomOut-InR" );
+        aMorphsToAdd.push( "eCTRLLipBottomOut-InL" );
+        aMorphsToAdd.push( "eCTRLLipBottomOut-In" );
+        aMorphsToAdd.push( "eCTRLNostrilsFlex" );
+        aMorphsToAdd.push( "eCTRLNoseWrinkle" );
+        aMorphsToAdd.push( "eCTRLNoseScrunch" );
+        aMorphsToAdd.push( "PHMNoseCompression_HD_div2" );
+        aMorphsToAdd.push( "eCTRLCheeksSuckInR" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloonR" );
+        aMorphsToAdd.push( "eCTRLCheeksSuckInL" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloonL" );
+        aMorphsToAdd.push( "eCTRLCheeksBalloonL" );
+        aMorphsToAdd.push( "eCTRLCheekSlackR" );
+        aMorphsToAdd.push( "eCTRLCheekFlexR" );
+        aMorphsToAdd.push( "eCTRLCheekSlackL" );
+        aMorphsToAdd.push( "eCTRLCheekFlexL" );
+        aMorphsToAdd.push( "eCTRLEyesWidenR" );
+        aMorphsToAdd.push( "eCTRLEyesSquintR" );
+        aMorphsToAdd.push( "eCTRLEyesWidenL" );
+        aMorphsToAdd.push( "eCTRLEyesSquintL" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperUpR" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperDownR" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperUpL" );
+        aMorphsToAdd.push( "eCTRLEyelidsUpperDownL" );
+        aMorphsToAdd.push( "eCTRLMouthWideR" );
+        aMorphsToAdd.push( "eCTRLMouthNarrowR" );
+        aMorphsToAdd.push( "eCTRLMouthWideL" );
+        aMorphsToAdd.push( "eCTRLMouthNarrowL" );
+        aMorphsToAdd.push( "eCTRLMouthSide-SideR" );
+        aMorphsToAdd.push( "eCTRLMouthSide-SideL" );
+        aMorphsToAdd.push( "eCTRLMouthOpenLipsClose" );
+        aMorphsToAdd.push( "eCTRLLipsPucker" );
+        aMorphsToAdd.push( "eCTRLLipsPressed" );
+        aMorphsToAdd.push( "eCTRLMouthBareTeeth" );
+        aMorphsToAdd.push( "eJCMCheeksBalloonR" );
+        aMorphsToAdd.push( "eJCMCheeksBalloonL" );
+        aMorphsToAdd.push( "eJCMLipsPucker" );
+        aMorphsToAdd.push( "eJCMLipsPressed" );
+        aMorphsToAdd.push( "eJCMMouthBareTeeth" );
 
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
@@ -890,49 +1082,150 @@
     function handleGen8_1FaceMorphsButton()
     {
         var aMorphsToAdd = [];
-        aMorphsToAdd.push( "facs_jnt_EyeWideLeft" );
-        aMorphsToAdd.push( "facs_jnt_EyeWideRight" );
-        aMorphsToAdd.push( "facs_jnt_EyeBlinkLeft" );
-        aMorphsToAdd.push( "facs_jnt_EyeBlinkRight" );
-        aMorphsToAdd.push( "facs_bs_EyeSquintLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_EyeSquintRight_div2" );
-        aMorphsToAdd.push( "facs_jnt_JawForward" );
-        aMorphsToAdd.push( "facs_jnt_JawLeft" );
-        aMorphsToAdd.push( "facs_jnt_JawOpen" );
-        aMorphsToAdd.push( "facs_bs_MouthClose_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthFunnel_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthPucker_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthSmileLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthSmileRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthFrownLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthFrownRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthDimpleLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthDimpleRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthStretchLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthStretchRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthRollLower_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthRollUpper_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthShrugLower_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthShrugUpper_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthPressLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthPressRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthLowerDownLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthLowerDownRight_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthUpperUpLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_MouthUpperUpRight_div2" );
-        aMorphsToAdd.push( "facs_bs_BrowDownLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_BrowDownRight_div2" );
+        aMorphsToAdd.push( "facs_ctrl_BrowUp" );
         aMorphsToAdd.push( "facs_ctrl_BrowInnerUp" );
-        aMorphsToAdd.push( "facs_bs_BrowOuterUpLeft_div2" );
+        aMorphsToAdd.push( "facs_ctrl_BrowDown" );
         aMorphsToAdd.push( "facs_bs_BrowOuterUpRight_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowOuterUpLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowInnerUpRight_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowInnerUpLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowDownRight_div2" );
+        aMorphsToAdd.push( "facs_bs_BrowDownLeft_div2" );
+        aMorphsToAdd.push( "facs_jnt_JawRight" );
+        aMorphsToAdd.push( "facs_jnt_JawRecess" );
+        aMorphsToAdd.push( "facs_jnt_JawOpen" );
+        aMorphsToAdd.push( "facs_jnt_JawLeft" );
+        aMorphsToAdd.push( "facs_jnt_JawForward" );
+        aMorphsToAdd.push( "facs_ctrl_CheekSquint" );
         aMorphsToAdd.push( "facs_ctrl_CheekPuff" );
-        aMorphsToAdd.push( "facs_bs_CheekSquintLeft_div2" );
         aMorphsToAdd.push( "facs_bs_CheekSquintRight_div2" );
-        aMorphsToAdd.push( "facs_bs_NoseSneerLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_NoseSneerRight_div2" );
+        aMorphsToAdd.push( "facs_bs_CheekSquintLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_CheekPuffRight_div2" );
+        aMorphsToAdd.push( "facs_bs_CheekPuffLeft_div2" );
+        aMorphsToAdd.push( "facs_jnt_EyeWideRight" );
+        aMorphsToAdd.push( "facs_jnt_EyeWideLeft" );
+        aMorphsToAdd.push( "facs_jnt_EyeLookUpRight" );
+        aMorphsToAdd.push( "facs_jnt_EyeLookUpLeft" );
+        aMorphsToAdd.push( "facs_jnt_EyeLookDownRight" );
+        aMorphsToAdd.push( "facs_jnt_EyeLookDownLeft" );
+        aMorphsToAdd.push( "facs_jnt_EyeBlinkRight" );
+        aMorphsToAdd.push( "facs_jnt_EyeBlinkLeft" );
+        aMorphsToAdd.push( "facs_ctrl_EyeWide" );
+        aMorphsToAdd.push( "facs_ctrl_EyeSquint" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownLeft" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-Down" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-Side" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookAuto" );
+        aMorphsToAdd.push( "facs_ctrl_EyeBlink" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideLeft" );
+        aMorphsToAdd.push( "facs_bs_EyeSquintRight_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeSquintLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeLookOutRight_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeLookOutLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeLookInRight_div2" );
+        aMorphsToAdd.push( "facs_bs_EyeLookInLeft_div2" );
+        aMorphsToAdd.push( "facs_jnt_TongueUp" );
+        aMorphsToAdd.push( "facs_jnt_TongueTipBend" );
+        aMorphsToAdd.push( "facs_jnt_TongueRight" );
+        aMorphsToAdd.push( "facs_jnt_TongueLeft" );
+        aMorphsToAdd.push( "facs_ctrl_MouthUpperUp" );
+        aMorphsToAdd.push( "facs_ctrl_MouthStretch" );
+        aMorphsToAdd.push( "facs_ctrl_MouthPress" );
+        aMorphsToAdd.push( "facs_ctrl_MouthLowerDown" );
+        aMorphsToAdd.push( "facs_ctrl_MouthFrown" );
+        aMorphsToAdd.push( "facs_ctrl_MouthDimple" );
+        aMorphsToAdd.push( "facs_ctrl_MouthSmile" );
+        aMorphsToAdd.push( "facs_bs_TongueTipWide" );
+        aMorphsToAdd.push( "facs_bs_TongueTipNarrow" );
         aMorphsToAdd.push( "facs_bs_TongueOut" );
+        aMorphsToAdd.push( "facs_bs_TongueNarrow" );
+        aMorphsToAdd.push( "facs_bs_TongueIn" );
+        aMorphsToAdd.push( "facs_bs_MouthUpperUpRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthUpperUpLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthStretchRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthStretchLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthSmileRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthSmileLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthShrugUpper_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthShrugLower_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRollUpper_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRollLower_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPucker_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPressRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthPressLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLowerDownRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLowerDownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFunnel_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFrownRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthFrownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthDimpleRight_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthDimpleLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_MouthClose_div2" );
+        aMorphsToAdd.push( "facs_ctrl_NoseSneer" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerRight_div2" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_NasalFlare_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_BOUR_div2" );
+        aMorphsToAdd.push( "facs_cbs_BIUR_BOUR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_BOUL_div2" );
+        aMorphsToAdd.push( "facs_cbs_BIUL_BOUL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_BIUR_div2" );
+        aMorphsToAdd.push( "facs_cbs_BDR_BIUR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_BIUL_div2" );
+        aMorphsToAdd.push( "facs_cbs_BDL_BIUL_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_JR_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawRecess_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_MR_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_ML_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_MF_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_JL_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawOpen_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawForward_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_CSR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_CSL_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_CPR_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_CPL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeWideRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeWideLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookUpRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_ELUR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookUpLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_ELUL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookDownRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_ELDR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookDownLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_ELDL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeBlinkRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_NSR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_ESR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_ELOR_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBR_ELIR_div2" );
+        aMorphsToAdd.push( "eCTRLEyesClosedR" );
+        aMorphsToAdd.push( "facs_cbs_EyeBlinkLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_NSL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_ESL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_ELOL_div2" );
+        aMorphsToAdd.push( "facs_cbs_EBL_ELIL_div2" );
+        aMorphsToAdd.push( "eCTRLEyesClosedL" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookUpRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookUpLeft" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookOutRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookOutLeft" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookInRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookInLeft" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookDownRight" );
+        aMorphsToAdd.push( "facs_ctrl_EyeLookDownLeft" );
+        aMorphsToAdd.push( "facs_cbs_MSR_MDR_div2" );
+        aMorphsToAdd.push( "facs_cbs_MSL_MDL_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_MF_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_MC_div2" );
+        aMorphsToAdd.push( "facs_cbs_MouthPuckerDetails_div2" );
 
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
@@ -951,15 +1244,24 @@
     function handleVismesMorphsButton()
     {
         var aMorphsToAdd = [];
-
-        aMorphsToAdd.push( "eCTRLvSH" );
-        aMorphsToAdd.push( "eCTRLvW" );
-        aMorphsToAdd.push( "eCTRLvM" );
+        
+        aMorphsToAdd.push( "eCTRLvAA" );
+        aMorphsToAdd.push( "eCTRLvEE" );
+        aMorphsToAdd.push( "eCTRLvEH" );
+        aMorphsToAdd.push( "eCTRLvER" );
         aMorphsToAdd.push( "eCTRLvF" );
-        aMorphsToAdd.push(" eCTRLMouthOpen" );
-        aMorphsToAdd.push( "eCTRLMouthWide-Narrow" ); 
-        aMorphsToAdd.push( "eCTRLTongueIn-Out" );
-        aMorphsToAdd.push( "eCTRLTongueUp-Down" );
+        aMorphsToAdd.push( "eCTRLvIH" );
+        aMorphsToAdd.push( "eCTRLvIY" );
+        aMorphsToAdd.push( "eCTRLvK" );
+        aMorphsToAdd.push( "eCTRLvL" );
+        aMorphsToAdd.push( "eCTRLvM" );
+        aMorphsToAdd.push( "eCTRLvOW" );
+        aMorphsToAdd.push( "eCTRLvS" );
+        aMorphsToAdd.push( "eCTRLvSH" );
+        aMorphsToAdd.push( "eCTRLvT" );
+        aMorphsToAdd.push( "eCTRLvTH" );
+        aMorphsToAdd.push( "eCTRLvUW" );
+        aMorphsToAdd.push( "eCTRLvW" );
 
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
@@ -1087,6 +1389,10 @@
     /*********************************************************************/
     if( main() )
     {
+        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
+            var oMorphInfo = s_aMorphsToExport[i]
+            checkMorphConnections( oMorphInfo );
+        }
         return s_aMorphsToExport;
     }
     else{

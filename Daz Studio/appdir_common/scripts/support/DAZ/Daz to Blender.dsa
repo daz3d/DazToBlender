@@ -6,7 +6,7 @@
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
 	// To be able to use the IDE Input your absolute Path.
-	//s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
+	//s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
 	var s_sMorphDialog = String( "Dz%1MorphSelectionDialog" ).arg( s_sBridge )
 	s_oFileInfo.deleteLater();
@@ -41,6 +41,7 @@
 	
 	var s_sMorphRules = "";
 	var s_oMorphLinks = {};
+	var s_aMorphNamesToExport = []
 	var s_oSkeletonData = {};
 	var s_oLimitsData = {};
 	var s_oHeadTailData = {};
@@ -1837,6 +1838,7 @@
 		oDtuJson["Asset Type"] = sContentType;
 		oDtuJson["Materials"] = [];
 		oDtuJson["MorphLinks"] = s_oMorphLinks;
+		oDtuJson["MorphNames"] = s_aMorphNamesToExport;
 		oDtuJson["SkeletonData"] = s_oSkeletonData;
 		oDtuJson["HeadTailData"] = s_oHeadTailData;
 		oDtuJson["LimitData"] = s_oLimitsData;
@@ -1976,21 +1978,20 @@
 
 	/*********************************************************************/
 	// String : Returns the morph rules to be used at Export
-	function getMorphString(s_aMorphsToExport)
+	function getMorphString( aExportableProperties ) 
 	{
-        var aMorphNamesToExport;
         var sMorphString
 
-        if ( s_aMorphsToExport.length == 0 ){
+        if ( aExportableProperties.length == 0 ){
             return "";
         }
-        aMorphNamesToExport = [];
+        s_aMorphNamesToExport = [];
         sMorphString = "";
-        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
-            oMorphInfo = s_aMorphsToExport[i]
-            aMorphNamesToExport.push( oMorphInfo.name );
+        for( var i = 0; i < aExportableProperties.length; i++ ){
+            oMorphInfo = aExportableProperties[i]
+            s_aMorphNamesToExport.push( oMorphInfo.name );
         }
-        sMorphString = aMorphNamesToExport.join("\n1\n");
+        sMorphString = s_aMorphNamesToExport.join("\n1\n");
         sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
         return sMorphString;
     };
@@ -2058,7 +2059,32 @@
 		
 		return;		
 	};
+	/*********************************************************************/
+	// Void: ...
+	function disconnectMorphs( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			if( oMorphInfo.disable == true){
+				oMorphProperty.setOverrideControllers( true );
+			}
+		}
+	}
 	
+	/*********************************************************************/
+	// Void: ...
+	function reconnectMorphs( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			if( oMorphInfo.disable ){
+				var oMorphProperty = oMorphInfo.property;
+				oMorphProperty.setOverrideControllers( false );
+			}
+		}
+	}
+
 	/*********************************************************************/
 	// void : ...
 	function main()
@@ -2125,6 +2151,7 @@
 					);
 					s_sMorphRules = getMorphString( aExportableProperties );
 					loadMorphLinks( aExportableProperties );
+					disconnectMorphs( aExportableProperties );
 				};
 				
 				
@@ -2143,6 +2170,9 @@
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
 				reparentFigure( oFigure );
+				if ( s_bIncludeMorphs ){
+					reconnectMorphs( aExportableProperties );
+				}
 			}
 		}
 		
