@@ -234,4 +234,15 @@ class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
         box.operator("wm.url_open", text="Meet the Bridge Team", icon = "URL").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
         box.operator("wm.url_open", text="Report a Bug", icon = "URL").url = "https://github.com/daz3d/DazToBlender/issues"
         box.operator("wm.url_open", text="Past Versions", icon = "URL").url = "https://github.com/daz3d/DazToBlender/releases"
-   
+
+class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_utilities_daz"
+    bl_label = "Utilities"
+    def draw(self, context):
+        l = self.layout
+        w_mgr = context.window_manager
+        l.label(text = "On Object Mode")
+        box = l.box()
+        row = l.row(align=True)
+        row.alignment = 'EXPAND'
+        box.operator("rename.morphs", icon = "OUTLINER_DATA_MESH")

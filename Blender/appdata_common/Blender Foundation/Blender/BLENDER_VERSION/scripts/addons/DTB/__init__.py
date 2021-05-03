@@ -281,6 +281,24 @@ class LIMB_OT_redraw(bpy.types.Operator):
                     c.influence = ik_value
         return {'FINISHED'}
 
+class RENAME_MORPHS(bpy.types.Operator):
+    bl_idname = "rename.morphs"
+    bl_label = "Remove Morph Prefix"
+    def execute(self, context):
+        active_object = bpy.context.active_object
+        if active_object is not None and active_object.type == 'MESH' and (context.mode == 'OBJECT' or active_object.select_get()):
+            # get the selected object
+            selected_object = bpy.context.object
+            # get its shapekeys
+            shape_keys = selected_object.data.shape_keys.key_blocks
+            string_to_replace = bpy.context.active_object.data.name.__add__("__")
+            # loop through shapekeys and replace the names
+            for key in shape_keys:
+                key.name = key.name.replace(string_to_replace, "")
+            self.report({"INFO"}, "Morphs renamed!")
+        else:
+            self.report({"WARNING"}, "No object selected! Go to Object Mode and select one object (ex. base mesh, hair, clothing).")
+        return {'FINISHED'}
 
 
 def init_props():
@@ -374,6 +392,7 @@ classes = (
     DtbPanels.DTB_PT_GENERAL,
     DtbPanels.DTB_PT_COMMANDS,
     DtbPanels.DTB_PT_MORE_INFO,
+    DtbPanels.DTB_PT_UTILITIES,
     DtbOperators.IMP_OT_POSE,
     DtbOperators.IMP_OT_FBX,
     DtbOperators.IMP_OT_ENV,
@@ -392,6 +411,7 @@ classes = (
     LIMB_OT_redraw,
     EXP_OT_morph,
     SCULPT_OT_push,
+    RENAME_MORPHS,
    
    
 )
