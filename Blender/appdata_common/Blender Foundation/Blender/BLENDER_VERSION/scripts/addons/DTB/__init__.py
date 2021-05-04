@@ -281,8 +281,6 @@ class LIMB_OT_redraw(bpy.types.Operator):
                     c.influence = ik_value
         return {'FINISHED'}
 
-
-
 def init_props():
     w_mgr = bpy.types.WindowManager
     w_mgr.skin_prop = EnumProperty(
@@ -345,7 +343,7 @@ def init_props():
         name  = "Highlight for Collection",
         description = "Choose any figure in your scene to which you wish to add a pose.",
         items = figure_items,
-        default = "null",
+        default = "null"
     )
     w_mgr.scene_scale = EnumProperty(
         name = "Scene Scale",
@@ -373,12 +371,14 @@ classes = (
     DtbPanels.DTB_PT_MATERIAL,
     DtbPanels.DTB_PT_GENERAL,
     DtbPanels.DTB_PT_COMMANDS,
+    DtbPanels.DTB_PT_UTILITIES,
     DtbPanels.DTB_PT_MORE_INFO,
     DtbOperators.IMP_OT_POSE,
     DtbOperators.IMP_OT_FBX,
     DtbOperators.IMP_OT_ENV,
     DtbOperators.CLEAR_OT_Pose,
     DtbOperators.REFRESH_DAZ_FIGURES,
+    DtbOperators.RENAME_MORPHS,
     DtbOperators.REMOVE_DAZ_OT_button,
     DtbOperators.OPTIMIZE_OT_material,
     DtbCommands.SEARCH_OT_Commands,
@@ -392,7 +392,6 @@ classes = (
     LIMB_OT_redraw,
     EXP_OT_morph,
     SCULPT_OT_push,
-   
    
 )
 

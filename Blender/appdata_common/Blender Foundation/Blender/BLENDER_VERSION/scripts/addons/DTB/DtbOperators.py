@@ -38,8 +38,7 @@ def reload_dropdowns(version):
         w_mgr.choose_daz_figure = EnumProperty(
             name = prop["name"],
             description = prop["description"],
-            items = prop["items"],
-            default = Global.get_Amtr_name()
+            items = prop["items"]
         )
 
 class ImportFilesCollection(bpy.types.PropertyGroup):
@@ -96,6 +95,38 @@ class REMOVE_DAZ_OT_button(bpy.types.Operator):
                 material.user_clear()
                 bpy.data.materials.remove(material)
         return {'FINISHED'}
+
+
+class RENAME_MORPHS(bpy.types.Operator):
+    bl_idname = "rename.morphs"
+    bl_label = "Remove Morph Prefix"
+    def execute(self, context):
+        Global.setOpsMode("OBJECT")
+        selected_objects = []
+        fig_object_name = bpy.context.window_manager.choose_daz_figure
+        if fig_object_name == "null":
+            selected_objects.append(bpy.context.object)
+        else:
+            selected_objects = Global.getChildren(bpy.data.objects[fig_object_name])
+
+        for selected_object in selected_objects:
+            
+            if selected_object is None or selected_object.type != 'MESH':
+                self.report({"WARNING"}, "Select Object or Choose From Dropdown")
+                return
+            if selected_object.data.shape_keys is None:
+                self.report({"INFO"}, "No Morphs found on {0}".format(selected_object.name))
+                continue
+            # get its shapekeys
+            shape_keys = selected_object.data.shape_keys.key_blocks
+            string_to_replace = selected_object.name.replace(".Shape","") + "__"
+            # loop through shapekeys and replace the names
+            for key in shape_keys:
+                key.name = key.name.replace(string_to_replace, "")
+        self.report({"INFO"}, "Morphs renamed!")
+        
+        return {'FINISHED'}
+
 
 # End of Utlity Classes
 # Start of Import Classes

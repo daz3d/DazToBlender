@@ -22,6 +22,7 @@ class Posing:
 
     def __init__(self, dtu):
         if isinstance(dtu, str):
+            self.select_figure()
             Global.setOpsMode("POSE")
         else:
             self.bone_limits = dtu.get_bone_limits_dict()
@@ -46,7 +47,12 @@ class Posing:
             else:
                 data =  gzip.open(input_duf, "rb")
                 return json.load(data)
-                
+
+    def select_figure(self):
+        fig_object_name = bpy.context.window_manager.choose_daz_figure
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.data.objects[fig_object_name].select_set(True)
+        
    
     def add_skeleton_data(self):
         self.fig_object_name = bpy.context.window_manager.choose_daz_figure
@@ -393,7 +399,7 @@ class Posing:
             return 'YZX'
         elif order == "YXZ":
             return 'YXZ'
-
+    
     
     def update_scale(self):
         Global.setOpsMode("POSE")
