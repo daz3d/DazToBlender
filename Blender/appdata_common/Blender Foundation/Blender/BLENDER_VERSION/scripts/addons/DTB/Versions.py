@@ -360,7 +360,7 @@ def to_other_layer(obj_names,col_name):
             if on in bpy.context.scene.collection.objects:
                 bpy.context.scene.collection.objects.unlink(ob)
 
-def do_chest_upper(blist,neck_lower_head):
+def do_chest_upper(blist, neck_lower_head):
     if BV<2.82:
         return blist
     else:

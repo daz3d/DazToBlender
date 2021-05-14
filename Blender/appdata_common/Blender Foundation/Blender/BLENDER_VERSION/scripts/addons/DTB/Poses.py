@@ -404,9 +404,9 @@ class Posing:
     def update_scale(self):
         Global.setOpsMode("POSE")
         self.fig_object_name = bpy.context.window_manager.choose_daz_figure
-        self.fig_object  = bpy.data.objects[self.fig_object_name]
         if self.fig_object_name == "null":
             return
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
         pbs = self.fig_object.pose.bones
         root_bone = pbs[0]
         root_name = root_bone.name
@@ -421,9 +421,9 @@ class Posing:
         bone_limits = self.bone_limits_dict
         transform_data = self.pose_data_dict
         self.fig_object_name = bpy.context.window_manager.choose_daz_figure
-        self.fig_object  = bpy.data.objects[self.fig_object_name]
         if self.fig_object_name == "null":
             return
+        self.fig_object  = bpy.data.objects[self.fig_object_name]
         pbs = self.fig_object.pose.bones
         for pb in pbs:
             if "Daz Rotation Order" in pb.keys():

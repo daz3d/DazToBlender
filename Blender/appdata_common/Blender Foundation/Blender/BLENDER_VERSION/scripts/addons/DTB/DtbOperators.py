@@ -38,7 +38,8 @@ def reload_dropdowns(version):
         w_mgr.choose_daz_figure = EnumProperty(
             name = prop["name"],
             description = prop["description"],
-            items = prop["items"]
+            items = prop["items"],
+            default = Global.get_Amtr_name()
         )
 
 class ImportFilesCollection(bpy.types.PropertyGroup):
@@ -393,3 +394,39 @@ class OPTIMIZE_OT_material(bpy.types.Operator):
         return {'FINISHED'}
 
 # End of Material Classes
+
+
+# Start of Rigify Classes
+
+def clear_pose():
+    if bpy.context.object is None:
+        return
+    if Global.getAmtr() is not None and Versions.get_active_object() == Global.getAmtr():
+        for pb in Global.getAmtr().pose.bones:
+            pb.bone.select = True
+    if Global.getRgfy() is not None and Versions.get_active_object() == Global.getRgfy():
+        for pb in Global.getRgfy().pose.bones:
+            pb.bone.select = True
+    bpy.ops.pose.transforms_clear()
+    bpy.ops.pose.select_all(action='DESELECT')
+
+class TRANS_OT_Rigify(bpy.types.Operator):
+    bl_idname = 'to.rigify'
+    bl_label = 'To Rigify'
+    def invoke(self, context, event):
+        if bpy.data.is_dirty:
+            return context.window_manager.invoke_confirm(self, event)
+        return self.execute(context)
+
+    def execute(self, context):
+        clear_pose()
+        Util.active_object_to_current_collection()
+        dtu = DataBase.DtuLoader()
+        trf = ToRigify.ToRigify(dtu)
+        db = DataBase.DB()
+        DtbIKBones.adjust_shin_y(2, False)
+        DtbIKBones.adjust_shin_y(3, False)
+        trf.toRigify(db, self)
+        return {'FINISHED'}
+
+# End of Rigify Classes

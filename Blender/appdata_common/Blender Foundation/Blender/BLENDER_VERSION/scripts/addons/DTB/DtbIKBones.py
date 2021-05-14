@@ -357,8 +357,8 @@ def bone_disp(idx, flg_hide):
 
 
 
-def bonerange_onoff(self):
-    bonerange_onoff(self,bpy.contxt)
+# def bonerange_onoff(self):
+#     bonerange_onoff(self,bpy.contxt)
     
 def bonerange_onoff(self,context):
     flg_on = context.window_manager.br_onoff_prop

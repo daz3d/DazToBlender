@@ -71,35 +71,6 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                         and len(cobj.vertex_groups) < 500 and len(cobj.data.vertices) < 321309:
                     Global.clear_variables()
                     Global.find_Both(cobj)
-            if DtbIKBones.ik_access_ban == False and context.active_object.mode == 'POSE':
-                l.separator()
-                if Global.amIAmtr(context.object):
-                    col = l.column(align=True)
-                    r = col.row(align=True)
-                    for i in range(len(DtbIKBones.ik_name)):
-                        if i == 2:
-                            r = col.row(align=True)
-                        influence_data_path = DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i])
-                        if influence_data_path is not None:
-                            r.prop(w_mgr, 'ifk' + str(i), text=DtbIKBones.ik_name[i], toggle=True)
-                    col.operator('limb.redraw',icon='LINE_DATA')
-                    l.separator()
-                elif Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('my.iktofk', icon="MESH_CIRCLE")
-                        row.operator('my.fktoik', icon="MESH_CUBE")
-                if Global.amIAmtr(context.object):
-                    l.operator('to.rigify', icon='ARMATURE_DATA')
-                if Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('match.ikfk')
-                        row.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
-                    else:
-                        l.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
                 
             if Global.amIBody(context.object):
                 col = l.column(align=True)
@@ -130,6 +101,41 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                 l.separator()
        
         # l.operator('df.optimize', icon="MATERIAL")
+class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_rigging_daz"
+    bl_label = "Rigging Tools"
+    
+    def draw(self, context):
+        l = self.layout
+        w_mgr = context.window_manager
+        if DtbIKBones.ik_access_ban == False and context.active_object.mode == 'POSE':
+            if Global.amIAmtr(context.object):
+                col = l.column(align=True)
+                r = col.row(align=True)
+                for i in range(len(DtbIKBones.ik_name)):
+                    if i == 2:
+                        r = col.row(align=True)
+                    influence_data_path = DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i])
+                    if influence_data_path is not None:
+                        r.prop(w_mgr, 'ifk' + str(i), text=DtbIKBones.ik_name[i], toggle=True)
+                col.operator('limb.redraw',icon='LINE_DATA')
+                l.separator()
+            elif Global.amIRigfy(context.object):
+                if BV<2.81:
+                    row = l.row(align=True)
+                    row.alignment = 'EXPAND'
+                    row.operator('my.iktofk', icon="MESH_CIRCLE")
+                    row.operator('my.fktoik', icon="MESH_CUBE")
+            if Global.amIAmtr(context.object):
+                l.operator('to.rigify', icon='ARMATURE_DATA')
+            if Global.amIRigfy(context.object):
+                if BV<2.81:
+                    row = l.row(align=True)
+                    row.alignment = 'EXPAND'
+                    row.operator('match.ikfk')
+                    row.prop(w_mgr, "br_onoff_prop", text="Limit Bone Rotation", toggle=True)
+                else:
+                    l.prop(w_mgr, "br_onoff_prop", text="Limit Bone Rotation", toggle=True)
 
 class DTB_PT_POSE(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_pose_daz"

@@ -584,6 +584,51 @@ class DtbShapeKeys:
                 exp = row[3]
                 dvr.driver.expression = exp
                 break
+    
+
+    def makeDrive(self,dobj,db):
+        mesh_name = dobj.data.name
+        Versions.active_object(dobj)
+        aobj = bpy.context.active_object
+        if bpy.data.meshes[mesh_name].shape_keys is None:
+            return
+        ridx = 0
+        cur = db.tbl_mdrive
+        if Global.getIsG3():
+            cur.extend(db.tbl_mdrive_g3)
+        while ridx  < len(cur):
+            max = len(bpy.data.meshes[mesh_name].shape_keys.key_blocks)
+            row = cur[ridx]
+            for i in range(max):
+                if aobj is None:
+                    continue
+                aobj.active_shape_key_index = i
+                if aobj.active_shape_key is None:
+                    continue
+                sk_name = aobj.active_shape_key.name
+                if row[0] in sk_name and sk_name.endswith(".001")==False:
+                    dvr = aobj.data.shape_keys.key_blocks[sk_name].driver_add('value')
+                    dvr.driver.type = 'SCRIPTED'
+                    var = dvr.driver.variables.new()
+                    Versions.set_debug_info(dvr)
+                    if self.flg_rigify:
+                        target_bone =  self.get_rigify_bone_name(row[1])
+                        xyz = self.toRgfyXyz(row[2],target_bone)
+                        self.setDriverVariables(var, 'val', Global.getRgfy(), target_bone, xyz)
+                        exp = self.getRgfyExp(row[3],target_bone,row[0])
+                        if ridx < len(cur) - 1 and cur[ridx + 1][0] in sk_name:
+                            row2 = cur[ridx + 1]
+                            target_bone2 = self.get_rigify_bone_name(row2[1])
+                            var2 = dvr.driver.variables.new()
+                            xyz2 = self.toRgfyXyz(row2[2],target_bone2)
+                            self.setDriverVariables(var2, 'val2', Global.getRgfy(), target_bone2, xyz2)
+                            exp2 = self.getRgfyExp(row2[3], target_bone2, row2[0])
+                            exp += '+' + exp2
+                            ridx = ridx + 1
+                        dvr.driver.expression = exp
+                    break
+            ridx = ridx + 1
+
 
     def toRgfyXyz(self, xyz, bname):
         zy_switch = ['chest', 'hips']

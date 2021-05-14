@@ -113,11 +113,14 @@ class DtuLoader:
             self.load_morph_links_dict()
         return self.morph_links_dict
 
+
+dtu = DtuLoader()
+
 #TODO: Clear out Hardcoded Drivers
 class DB:
     def __init__(self):
         pass
-
+  
     tbl_facems = [
         'EyelidsUpperUp-DownR',
         'MouthCornerUp-DownR',
@@ -498,7 +501,7 @@ class DB:
 
     def mix_range(self,arg):
         ans = [0,0,0,0,0,0]
-        bone_limits = get_bone_limits_dict()
+        bone_limits = dtu.get_bone_limits_dict()
         for bone_limit_key in bone_limits:
             bone_limit = bone_limits[bone_limit_key]
             if bone_limit[0].startswith(arg):
@@ -1174,12 +1177,6 @@ m_geni = [
 ]
 
 
-# tbl_brollfix_g3=[
-#     ['-Hand',87],
-#     ['-ForearmBend', 90],
-#     ['-ShldrBend', 90],
-#     ['-SmallToe1', -130],
-# ]
 tbl_brollfix_g3_f=[
     ['-Hand',87],
     ['-ForearmBend', 90],
@@ -1213,7 +1210,6 @@ tbl_brollfix_g3_f=[
     ['-SmallToe1_2', 80-60+19],
     ['-BigToe_2', 180-30],
 ]
-
 
 tbl_brollfix = [
         ['-ForearmBend', 45],
@@ -1272,7 +1268,6 @@ mbone = [
         ['-SmallToe4', 85],
         ['-SmallToe4_2', 187],
 ]
-
 
 mbone_g3 = [
         ['-Foot',18],#new290

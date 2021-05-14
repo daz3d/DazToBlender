@@ -229,7 +229,6 @@ class ReadFbx:
         for pb in amtr.pose.bones:
             
             binfo = self.pose.get_bone_limits_dict(pb.name)
-            print(binfo)
             if binfo is None:
                 continue
             else:
@@ -264,7 +263,6 @@ class ReadFbx:
     
     def is_armature_modified(self,dobj):
         if dobj.type == 'MESH':
-            print(dobj.name)
             for modifier in dobj.modifiers:
                 if modifier.type=='ARMATURE' and modifier.object is not None:
                     return True

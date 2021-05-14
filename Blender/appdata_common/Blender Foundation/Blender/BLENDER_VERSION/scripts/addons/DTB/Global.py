@@ -266,9 +266,10 @@ def find_RGFY(dobj):
                 return True
     return False
 
+# TODO: Find a method to get Armature Necessary when Rigify is Ran
 def find_AMTR(dobj):
     global _AMTR
-    if dobj.type == 'ARMATURE':
+    if dobj.type == 'ARMATURE' and "Genesis" in dobj.name:
         _AMTR = dobj.name
         return True
     return False
@@ -280,6 +281,7 @@ def find_BODY(dobj):
             return False
         for modifier in dobj.modifiers:
             if modifier.type == "ARMATURE" and modifier.object is not None:
+               
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
                     figure_name = dobj.name.replace(".Shape","")
                     figure_name = figure_name.split(".")[0]
@@ -296,7 +298,7 @@ def find_BODY(dobj):
                                         ]:
                         _BODY = dobj.name
                         return True
-                             
+          
     return False
 
 def getChildren(obj):
@@ -416,12 +418,32 @@ def decide_HERO():
     
     clear_variables()
     
-    for dobj in Util.myacobjs():
-        if find_AMTR(dobj):
-            continue
-        if find_BODY(dobj):
-            continue
-    
+    active_col_objs = Util.myacobjs()
+    # Find Armatures
+    exists = {
+        "_AMTR" : False,
+        "_RGFY" : False,
+        "_BODY" : False 
+    }
+    for dobj in active_col_objs:
+        if exists["_AMTR"] == False:
+            exists["_AMTR"] = find_AMTR(dobj)
+            if exists["_AMTR"]:
+                continue
+        if exists["_RGFY"] == False:
+            exists["_RGFY"] = find_RGFY(dobj)
+            if exists["_RGFY"]:
+                continue
+
+    # Needs to be Seperated as Rigify changes Order
+    for dobj in active_col_objs:
+        if exists["_BODY"] == False:
+            exists["_BODY"] = find_BODY(dobj)
+            if exists["_BODY"]:
+                continue
+        
+        
+
     # Removed until found necessary
     
     # if find_EYLS(dobj):

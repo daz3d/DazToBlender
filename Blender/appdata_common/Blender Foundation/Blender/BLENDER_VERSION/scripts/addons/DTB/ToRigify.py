@@ -1,3 +1,5 @@
+from re import T
+import re
 import bpy
 import os
 import math
@@ -14,8 +16,10 @@ class ToRigify:
     RIG = None
     chest_upper_tail = []
     neck_lower_head = []
-    
-    def make_amtr_objs(self):
+    def __init__(self, dtu):
+        self.dtu = dtu
+
+    def find_amtr_objs(self):
         for d in Util.myccobjs():
             if d.type == 'MESH':
                 for modifier in d.modifiers:
@@ -37,7 +41,7 @@ class ToRigify:
                 if dp == 'EyesUpDown' or dp=='EyesSideSide':
                     dobj.data.shape_keys.key_blocks[dp].driver_remove('value')
 
-    def toRigify(self,db,main):
+    def prepare_scene(self):
         self.chest_upper_tail = []
         self.neck_lower_head  = []
         self.amtr_objs = []
@@ -47,27 +51,16 @@ class ToRigify:
         for scene in bpy.data.scenes:
             if scene.name == 'Scene':
                 scene.tool_settings.use_keyframe_insert_auto = False
-        bpy.ops.mesh.primitive_circle_add()
-        wm = bpy.context.window_manager
-        wm.progress_begin(0, 100)
-        Global.decide_HERO()
-        self.make_amtr_objs()
-        Global.setOpsMode('OBJECT')
-        Versions.pivot_active_element_and_center_and_trnormal()
-        if Global.find_RGFY_all():
-            return
-        if Global.getBody() is None:
-            return
-        Global.heigou_vgroup()
-        dobj = Global.getAmtr()
-        if dobj is None:
-            return
-        if len(Global.get_bone_limit())==0:
-            Global.bone_limit_modify()
-        wm.progress_update(5)
-        Versions.select(dobj, True)
-        Versions.active_object(dobj)
-        bpy.ops.object.mode_set(mode = 'EDIT')
+
+    def check_if_possible(self):
+        if Global.find_RGFY_all(): # Check if Rigify ran
+            return True
+        if Global.getBody() is None: 
+            return True
+        if Global.getAmtr() is None:
+            return True
+
+    def prepare_bone_list(self, dobj):
         blist = []
         for bone in dobj.data.edit_bones:
             if bone.name.lower()=='chestupper':
@@ -78,16 +71,44 @@ class ToRigify:
                     self.neck_lower_head.append(bone.head[i])
             b10 = [bone.name,bone.head[0], bone.head[1], bone.head[2],bone.tail[0], bone.tail[1], bone.tail[2],bone.roll ,bone.use_connect]
             blist.append(b10)
-        blist = Versions.do_chest_upper(blist,self.neck_lower_head)
+        Versions.do_chest_upper(blist,self.neck_lower_head)
+        return blist
+
+
+    def toRigify(self,db,main):
+        # Prepare for Rigify
+        self.prepare_scene()
+        bpy.ops.mesh.primitive_circle_add()
+        wm = bpy.context.window_manager
+        wm.progress_begin(0, 100)
+        Global.decide_HERO()
+        self.find_amtr_objs()
+        Global.setOpsMode('OBJECT')
+        Versions.pivot_active_element_and_center_and_trnormal()
+        if self.check_if_possible():
+            return
+        Global.heigou_vgroup() # Updates VertexGroups
+        if len(Global.get_bone_limit())==0: # Seems not Necessary
+            Global.bone_limit_modify()
+        wm.progress_update(5)
+
+        # Get Bone List
+        dobj = Global.getAmtr()
+        Versions.select(dobj, True)
+        Versions.active_object(dobj)
+        bpy.ops.object.mode_set(mode = 'EDIT')
+        blist = []
+        blist = self.prepare_bone_list(dobj)
         Global.setOpsMode('OBJECT')
         wm.progress_update(10)
-        ####Core####################################################
+
+        # Create Rig
         rtn = self.make_metarig()
-        if rtn!="":
+        if rtn != "":
             main.report({"ERROR"}, rtn)
             return
         wm.progress_update(15)
-        bpy.ops.object.mode_set(mode='EDIT')
+        Global.setOpsMode('EDIT')
         self.fit2Rig(blist, db, 0)
         self.fitMetaFace(db)
         wm.progress_update(20)
@@ -148,10 +169,10 @@ class ToRigify:
                 bpy.ops.object.parent_set(type='ARMATURE')
                 Versions.select(d,False)
         wm.progress_update(75)
-        Global.decide_HERO()
+        Global.decide_HERO() 
         Versions.select(Global.getBody(), True)
         Versions.active_object(Global.getBody())
-        dsk = DtbShapeKeys.DtbShapeKeys(True)
+        dsk = DtbShapeKeys.DtbShapeKeys(True, self.dtu)
         self.swap_morph_driver(db,dsk)
         wm.progress_update(80)
         dsk.swap_fvgroup(db)
@@ -775,21 +796,22 @@ class ToRigify:
         Versions.select(rig,True)
         return ""
 
-    def fit2Rig(self,blist,db,sw):
+    def fit2Rig(self, blist, db, sw):
+   
         rig = None
-        if sw==0:
+        if sw == 0:
             rig = self.METARIG#Util.myccobjs().get('metarig')
         else:
             rig = self.RIG#Util.myccobjs().get('rig')
         for meb in rig.data.edit_bones:
             for dmr in db.toRigify:
-                if (sw<2 and dmr[0]>=6) or (sw==2 and dmr[0] < 2):
+                if (sw < 2 and dmr[0] >= 6) or (sw == 2 and dmr[0] < 2):
                     continue
                 key = dmr[2]
                 keep_key = key
-                if sw==1:
+                if sw == 1:
                     key = 'ORG-' + key
-                elif sw==2:
+                elif sw == 2:
                     key = 'DEF-' + key
                 ops_key = key.replace('.L','.R')
                 bool_ops = ('.L' in key) and (ops_key == meb.name)
@@ -797,16 +819,16 @@ class ToRigify:
                 bool_keep_ops = ('.L' in keep_key) and (ops_keep_key == meb.name)
                 if key == meb.name or bool_ops:
                     for b8 in blist:
-                        if (bool_ops==False and b8[0]==dmr[1]) or \
+                        if (bool_ops == False and b8[0] == dmr[1]) or \
                         (bool_ops and  dmr[1].startswith('l') and b8[0] == 'r' + dmr[1][1:] ):
                             if sw>0 and (dmr[0]>0 and dmr[0]!=6) and ('Toe' in dmr[1])==False:
                                 meb.use_connect = b8[8]
                             for i in range(3):
-                                if dmr[0]!=4:
-                                    if dmr[0]>=2 or dmr[0]==1 or dmr[0]==7:
-                                        if dmr[0]!=6:
+                                if dmr[0] != 4:
+                                    if dmr[0] >= 2 or dmr[0] == 1 or dmr[0] == 7:
+                                        if dmr[0] != 6:
                                             meb.head[i] = b8[1+i]
-                                    if dmr[0]>=2 or dmr[0]==0 or dmr[0]==6:
+                                    if dmr[0] >= 2 or dmr[0] == 0 or dmr[0] == 6:
                                         if dmr[0] != 7:
                                             meb.tail[i] = b8[4+i]
                                     if sw==0:
@@ -879,12 +901,7 @@ class ToRigify:
                 deb[a].use_connect = False
                 for i in range(3):
                     deb[a].head[i] = deb[a].head[i] + (deb[a].tail[i] - deb[a].head[i]) / 6
-        #spine282 = ['tweak_spine.003','spine_fk.003','tweak_spine.002']
-        #Versions.adjust_spine23(deb,spine282)
 
-        # back_ledge = 'ORG-spine.003'
-        # if deb.get(back_ledge) is not None:
-        #     deb.get(back_ledge).head[1] +=1*(0.01*Global.getSize())
 
     def make_metarig(self):
         error = ""
@@ -894,9 +911,9 @@ class ToRigify:
             error = "Missing Addon: 'Rigify'"
         except:
             error =  "Rigify: Broken... Something's wrong with Rigify. Please report this"
-        if ('metarig' in Util.myccobjs()) == False:
-            error = "MIssing Addon: 'Rigify'"
-        if error!='':
+        if('metarig' in Util.myccobjs()) == False:
+            error = "Missing Addon: 'Rigify'"
+        if error != '':
             return error
         self.METARIG = bpy.context.active_object
 

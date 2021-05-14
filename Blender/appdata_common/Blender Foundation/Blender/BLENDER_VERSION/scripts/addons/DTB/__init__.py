@@ -108,38 +108,6 @@ class MATERIAL_OT_down(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
-def clear_pose():
-    if bpy.context.object is None:
-        return
-    if Global.getAmtr() is not None and Versions.get_active_object() == Global.getAmtr():
-        for pb in Global.getAmtr().pose.bones:
-            pb.bone.select = True
-    if Global.getRgfy() is not None and Versions.get_active_object() == Global.getRgfy():
-        for pb in Global.getRgfy().pose.bones:
-            pb.bone.select = True
-    bpy.ops.pose.transforms_clear()
-    bpy.ops.pose.select_all(action='DESELECT')
-
-class TRANS_OT_Rigify(bpy.types.Operator):
-    bl_idname = 'to.rigify'
-    bl_label = 'To Rigify'
-    def invoke(self, context, event):
-        if bpy.data.is_dirty:
-            return context.window_manager.invoke_confirm(self, event)
-        return self.execute(context)
-
-    def execute(self, context):
-        clear_pose()
-        Util.active_object_to_current_collection()
-
-        trf = ToRigify.ToRigify()
-        db = DataBase.DB()
-        DtbIKBones.adjust_shin_y(2, False)
-        DtbIKBones.adjust_shin_y(3, False)
-        trf.toRigify(db, self)
-        return {'FINISHED'}
-
 class DEFAULT_OT_material(bpy.types.Operator):
     bl_idname = "df.material"
     bl_label = 'RESET MATERIAL'
@@ -147,7 +115,6 @@ class DEFAULT_OT_material(bpy.types.Operator):
         Util.active_object_to_current_collection()
         default_material(context)
         return {'FINISHED'}
-
 
 
 def default_material(context):
@@ -366,6 +333,7 @@ def init_props():
 classes = (
     
     DtbPanels.DTB_PT_MAIN,
+    DtbPanels.DTB_PT_RIGGING,
     DtbPanels.DTB_PT_POSE,
     DtbPanels.DTB_PT_MORPHS,
     DtbPanels.DTB_PT_MATERIAL,
@@ -387,7 +355,7 @@ classes = (
     MATERIAL_OT_up,
     MATERIAL_OT_down,
     DEFAULT_OT_material,
-    TRANS_OT_Rigify,
+    DtbOperators.TRANS_OT_Rigify,
     MATCH_OT_ikfk,
     LIMB_OT_redraw,
     EXP_OT_morph,
