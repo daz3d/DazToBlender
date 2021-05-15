@@ -718,21 +718,22 @@ class DtbShapeKeys:
                         dobj.vertex_groups.remove(vg)
                         break
 
-    def swap_fvgroup(self, db):
-        dobj = Global.getBody()
-        for z in range(2):
-            for _fs in db.fvgroup_swap:
-                fs = [_fs[0], _fs[1]]
-                if z == 1:
-                    if fs[1].startswith("l") and fs[1].startswith("lower") == False:
-                        fs[1] = "r" + fs[1][1:]
-                        fs[0] = fs[0].replace(".L", ".R")
-                    else:
-                        continue
-                vgs = dobj.vertex_groups
-                for vg in vgs:
-                    if vg.name == fs[1]:
-                        vg.name = fs[0]
+    def swap_fvgroup(self, db, objs):
+        for obj in objs:
+            dobj = bpy.data.objects[obj]
+            for z in range(2):
+                for _fs in db.fvgroup_swap:
+                    fs = [_fs[0], _fs[1]]
+                    if z == 1:
+                        if fs[1].startswith("l") and fs[1].startswith("lower") == False:
+                            fs[1] = "r" + fs[1][1:]
+                            fs[0] = fs[0].replace(".L", ".R")
+                        else:
+                            continue
+                    vgs = dobj.vertex_groups
+                    for vg in vgs:
+                        if vg.name == fs[1]:
+                            vg.name = fs[0]
 
     def delete_oneobj_sk_from_command(self):
         wm = bpy.context.window_manager

@@ -91,12 +91,10 @@ class ToRigify:
         if len(Global.get_bone_limit())==0: # Seems not Necessary
             Global.bone_limit_modify()
         wm.progress_update(5)
-
-        # Get Bone List
         dobj = Global.getAmtr()
         Versions.select(dobj, True)
         Versions.active_object(dobj)
-        bpy.ops.object.mode_set(mode = 'EDIT')
+        Global.setOpsMode('EDIT')
         blist = []
         blist = self.prepare_bone_list(dobj)
         Global.setOpsMode('OBJECT')
@@ -175,7 +173,7 @@ class ToRigify:
         dsk = DtbShapeKeys.DtbShapeKeys(True, self.dtu)
         self.swap_morph_driver(db,dsk)
         wm.progress_update(80)
-        dsk.swap_fvgroup(db)
+        dsk.swap_fvgroup(db, self.amtr_objs)
         wm.progress_update(90)
         self.delete001_sk()
         Global.deselect()
