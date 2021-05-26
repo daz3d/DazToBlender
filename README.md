@@ -24,26 +24,26 @@
  2. Under Assets you will find the newest build. It will be named DazToBlender_VersionNumber
  3. Download the zip and Inside you will find the Contents needed to use the bridge. Follow the steps below on how to install the bridge.  
 
- ### How to Install to Blender
+ ## How to Install to Blender
  ---
   Within the "\Blender" folder, there will be a folder and a zip folder.
-     a. To install the Bridge as a zip.
-        1. Launch Blender.
-        2. Go Edit -> Preferences -> Add-ons.
-        3. Press Install at the Top-Right of the Preferences Window. 
-        4. Locate your Zip File labeled "DTB.zip" and press Install Add-on
-     b. To install the Bridge as a folder.
-        1. Go to your AppData Folder. Easiest Method is to press start and type %appdata%
-        2. Go to Appdata --> Roaming --> Blender Foundation --> Blender 
-        3. Choose the version you wish to Install to For example 2.92
-        4. Go to ...\Blender\2.92\scripts\addons\ and Copy the DTB folder to this location.
-        5. You are ready to use Launch Blender.
-  
-  # How to Install to Daz Studio
+  1. To install the Bridge as a zip.
+     1. Launch Blender.
+     2. Go Edit -> Preferences -> Add-ons.
+     3. Press Install at the Top-Right of the Preferences Window. 
+     4. Locate your Zip File labeled "DTB.zip" and press Install Add-on
+  2. To install the Bridge as a folder.
+     1. Go to your AppData Folder. Easiest Method is to press start and type %appdata%
+     2. Go to Appdata --> Roaming --> Blender Foundation --> Blender 
+     3. Choose the version you wish to Install to For example 2.92
+     4. Go to ...\Blender\2.92\scripts\addons\ and Copy the DTB folder to this location.
+
+  ### How to Install to Daz Studio
   ---
    There are three different methods to install the Daz Side of the Bridge and we will go through all three of them.
-   a. Installing the Bridge with the RunOnce Script.
+   1. Installing the Bridge with the RunOnce Script.
       Please follow these steps to manually install the Daz to Blender bridge:
+      
       **Note this is not necessary if you have installed by Daz Central/Daz Install Manager**
       1. Go to your AppData Folder. Easiest Method is to press start and type %appdata%
       2. Navigate within the Roaming folder to  --> DAZ 3D --> Studio4 → RunOnce
@@ -55,13 +55,14 @@
       7. Inside of the Build Downloaded you will find the needed files under \Daz Studio\
       8. Drag and drop this script to the scripts location and close out of this window
       9. Run Daz Studio to finish the installation
-   b. Replacing version from Daz Install Manager/Daz Central. 
+   2. Replacing version from Daz Install Manager/Daz Central. 
       1. Go to your install location of Daz Studio. By Default that location will be 
           (WIN) C:\Program Files\DAZ 3D\DAZStudio4
       2. Go to the location of the Original Installation which will be: \scripts\support\DAZ\
       3. Inside of the Build Downloaded you will find the needed files under \Daz Studio\
       4. Replace the old versions with the contents here.
-   c. Manually adding a script to your Daz Studio.
+   3. Manually adding a script to your Daz Studio.
+      
       *Inprogress*
 
 ## Directory Structure
