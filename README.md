@@ -47,17 +47,21 @@
       **Note this is not necessary if you have installed by Daz Central/Daz Install Manager**
       1. Go to your AppData Folder. Easiest Method is to press start and type %appdata%
       2. Navigate within the Roaming folder to  --> DAZ 3D --> Studio4 → RunOnce
-      3. Locate the Daz to Cinema 4D.dsa script with "\Use this to Install Daz Side"
+      3. Locate the Daz to Blender.dsa script with "\Use this to Install Daz Side"
       4. Drag and drop this script to the RunOnce folder and close out of this window
       5. Go to your install location of Daz Studio. By Default that location will be 
-        (WIN) C:\Program Files\DAZ 3D\DAZStudio4
+     
+        *(WIN) C:\Program Files\DAZ 3D\DAZStudio4*
+        
       6. Go to the location the Bridge Scripts are kept which is \scripts\support\DAZ\
       7. Inside of the Build Downloaded you will find the needed files under \Daz Studio\
       8. Drag and drop this script to the scripts location and close out of this window
       9. Run Daz Studio to finish the installation
    2. Replacing version from Daz Install Manager/Daz Central. 
       1. Go to your install location of Daz Studio. By Default that location will be 
-          (WIN) C:\Program Files\DAZ 3D\DAZStudio4
+      
+          *(WIN) C:\Program Files\DAZ 3D\DAZStudio4*
+          
       2. Go to the location of the Original Installation which will be: \scripts\support\DAZ\
       3. Inside of the Build Downloaded you will find the needed files under \Daz Studio\
       4. Replace the old versions with the contents here.
