@@ -317,16 +317,16 @@ class DtbShapeKeys:
         return var_name
 
     # Add the next expression based on the type of ERC_Link it is
-    def combine_target_expression(self,exp, morph_links, link_index):
+    def combine_target_expression(self, exp, morph_links, link_index):
         link_type = morph_links[link_index]["Type"]
         next_index = link_index + 1
         first_stage = [0, 4, 5, 6]
         second_stage = [1, 2, 3]
         
-        if len(morph_links) - 1 >= next_index:
+        if len(morph_links) - 1 >= next_index and link_type in first_stage:
             next_link_type = morph_links[next_index]["Type"]
             
-            if (link_type in first_stage) and (link_index == 0):
+            if link_index == 0:
                 if next_link_type in first_stage:
                     return "(" + exp + "+"
                 elif next_link_type in second_stage:
@@ -334,7 +334,7 @@ class DtbShapeKeys:
                 else:
                     return exp + "+"
 
-            elif (link_type in first_stage) and (link_index > 0):                
+            elif link_index > 0:
                 if next_link_type in first_stage:
                     return exp + "+"
                 elif next_link_type in second_stage:
@@ -343,7 +343,7 @@ class DtbShapeKeys:
         elif (link_type in second_stage) and (link_index > 0):
                 return "*" + exp
         
-        elif (next_index == len(morph_links)) and (len(morph_links) > 1): 
+        elif (next_index == len(morph_links)) and (len(morph_links) > 1):
             return exp + ")"
             
         else:
@@ -420,7 +420,6 @@ class DtbShapeKeys:
                     # break when the limit is reached to avoid errors
                     break
                 expression += self.combine_target_expression(exp, morph_links, link_index)
-                
                     
             # Delete the driver and continue if there are no variables
             if var_count == 0:
