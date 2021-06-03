@@ -18,9 +18,10 @@ class DtbShapeKeys:
     var_name_index = 0
     var_name_range = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    def __init__(self, flg_rigify):
+    def __init__(self, flg_rigify, dtu):
         self.flg_rigify = flg_rigify
-
+        self.bone_limits = dtu.get_bone_limits_dict() 
+        self.morph_links_dict = dtu.get_morph_links_dict()
     def make_drivers(self):
         body_obj = Global.getBody()
         for dobj in Util.myccobjs():
@@ -31,7 +32,7 @@ class DtbShapeKeys:
         bone_name = morph_link["Bone"]
         property_name = morph_link["Property"]
 
-        bone_limits = DataBase.get_bone_limits_dict()
+        bone_limits = self.bone_limits
         bone_order = bone_limits[bone_name][1]
         
         # Conversions for corresponding rotation properties betweem Daz Studio 
@@ -86,7 +87,7 @@ class DtbShapeKeys:
         if bone_name == "None":
             return var_name
 
-        bone_limits = DataBase.get_bone_limits_dict()
+        bone_limits = self.bone_limits
         bone_order = bone_limits[bone_name][1]
         
         prefix = bone_name[0:1]
@@ -162,7 +163,7 @@ class DtbShapeKeys:
         elif link_type == 3:
             # ERCMultiply
             driver.use_self = True
-            return "(" + var_name + "*self.value+" + addend + ")"
+            return "(" + var_name + "*self.value+" + addend + "if self.value>0 else " + var_name + "+" + addend +")"
         elif link_type == 4:
             # ERCSubtract
             driver.use_self = True
@@ -251,11 +252,7 @@ class DtbShapeKeys:
     
     def load_morph_link_list(self):
         # Read all the morph links from the DTU
-        for file in os.listdir(Global.getHomeTown()):
-            if file.endswith(".dtu"):
-                input_file = open(Global.getHomeTown() + Global.getFileSp() + file)
-        dtu_content = input_file.read()
-        return json.loads(dtu_content)["MorphLinks"]
+        return self.morph_links_dict
     
     def add_custom_shape_key_prop(self, key_block, mesh_obj, morph_label, shape_key_min, shape_key_max):
         # Skip Basis shape key
@@ -318,6 +315,39 @@ class DtbShapeKeys:
             var_name = var_name + str(suffix_index)
         self.var_name_index += 1
         return var_name
+
+    # Add the next expression based on the type of ERC_Link it is
+    def combine_target_expression(self, exp, morph_links, link_index):
+        link_type = morph_links[link_index]["Type"]
+        next_index = link_index + 1
+        first_stage = [0, 4, 5, 6]
+        second_stage = [1, 2, 3]
+        
+        if len(morph_links) - 1 >= next_index and link_type in first_stage:
+            next_link_type = morph_links[next_index]["Type"]
+            
+            if link_index == 0:
+                if next_link_type in first_stage:
+                    return "(" + exp + "+"
+                elif next_link_type in second_stage:
+                    return exp
+                else:
+                    return exp + "+"
+
+            elif link_index > 0:
+                if next_link_type in first_stage:
+                    return exp + "+"
+                elif next_link_type in second_stage:
+                    return exp + ")"
+
+        elif (link_type in second_stage) and (link_index > 0):
+                return "*" + exp
+        
+        elif (next_index == len(morph_links)) and (len(morph_links) > 1):
+            return exp + ")"
+            
+        else:
+            return exp + "+"
 
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
@@ -389,8 +419,8 @@ class DtbShapeKeys:
                     # Driver script expression max lenght is 255
                     # break when the limit is reached to avoid errors
                     break
-                expression += exp + "+"
-            
+                expression += self.combine_target_expression(exp, morph_links, link_index)
+                    
             # Delete the driver and continue if there are no variables
             if var_count == 0:
                 key_block.driver_remove("value")
@@ -404,8 +434,12 @@ class DtbShapeKeys:
                                             )
                 continue
             
-            # Trim the extra '+' char
+            # Trim the extra chars
             if expression.endswith("+"):
+                expression = expression[:-1]
+            if expression.startswith("*"):
+                expression = expression[1:]
+            if expression.endswith("))") and var_count == 1:
                 expression = expression[:-1]
             driver.expression = expression
 
@@ -549,6 +583,51 @@ class DtbShapeKeys:
                 exp = row[3]
                 dvr.driver.expression = exp
                 break
+    
+
+    def makeDrive(self,dobj,db):
+        mesh_name = dobj.data.name
+        Versions.active_object(dobj)
+        aobj = bpy.context.active_object
+        if bpy.data.meshes[mesh_name].shape_keys is None:
+            return
+        ridx = 0
+        cur = db.tbl_mdrive
+        if Global.getIsG3():
+            cur.extend(db.tbl_mdrive_g3)
+        while ridx  < len(cur):
+            max = len(bpy.data.meshes[mesh_name].shape_keys.key_blocks)
+            row = cur[ridx]
+            for i in range(max):
+                if aobj is None:
+                    continue
+                aobj.active_shape_key_index = i
+                if aobj.active_shape_key is None:
+                    continue
+                sk_name = aobj.active_shape_key.name
+                if row[0] in sk_name and sk_name.endswith(".001")==False:
+                    dvr = aobj.data.shape_keys.key_blocks[sk_name].driver_add('value')
+                    dvr.driver.type = 'SCRIPTED'
+                    var = dvr.driver.variables.new()
+                    Versions.set_debug_info(dvr)
+                    if self.flg_rigify:
+                        target_bone =  self.get_rigify_bone_name(row[1])
+                        xyz = self.toRgfyXyz(row[2],target_bone)
+                        self.setDriverVariables(var, 'val', Global.getRgfy(), target_bone, xyz)
+                        exp = self.getRgfyExp(row[3],target_bone,row[0])
+                        if ridx < len(cur) - 1 and cur[ridx + 1][0] in sk_name:
+                            row2 = cur[ridx + 1]
+                            target_bone2 = self.get_rigify_bone_name(row2[1])
+                            var2 = dvr.driver.variables.new()
+                            xyz2 = self.toRgfyXyz(row2[2],target_bone2)
+                            self.setDriverVariables(var2, 'val2', Global.getRgfy(), target_bone2, xyz2)
+                            exp2 = self.getRgfyExp(row2[3], target_bone2, row2[0])
+                            exp += '+' + exp2
+                            ridx = ridx + 1
+                        dvr.driver.expression = exp
+                    break
+            ridx = ridx + 1
+
 
     def toRgfyXyz(self, xyz, bname):
         zy_switch = ['chest', 'hips']
@@ -638,21 +717,22 @@ class DtbShapeKeys:
                         dobj.vertex_groups.remove(vg)
                         break
 
-    def swap_fvgroup(self, db):
-        dobj = Global.getBody()
-        for z in range(2):
-            for _fs in db.fvgroup_swap:
-                fs = [_fs[0], _fs[1]]
-                if z == 1:
-                    if fs[1].startswith("l") and fs[1].startswith("lower") == False:
-                        fs[1] = "r" + fs[1][1:]
-                        fs[0] = fs[0].replace(".L", ".R")
-                    else:
-                        continue
-                vgs = dobj.vertex_groups
-                for vg in vgs:
-                    if vg.name == fs[1]:
-                        vg.name = fs[0]
+    def swap_fvgroup(self, db, objs):
+        for obj in objs:
+            dobj = bpy.data.objects[obj]
+            for z in range(2):
+                for _fs in db.fvgroup_swap:
+                    fs = [_fs[0], _fs[1]]
+                    if z == 1:
+                        if fs[1].startswith("l") and fs[1].startswith("lower") == False:
+                            fs[1] = "r" + fs[1][1:]
+                            fs[0] = fs[0].replace(".L", ".R")
+                        else:
+                            continue
+                    vgs = dobj.vertex_groups
+                    for vg in vgs:
+                        if vg.name == fs[1]:
+                            vg.name = fs[0]
 
     def delete_oneobj_sk_from_command(self):
         wm = bpy.context.window_manager

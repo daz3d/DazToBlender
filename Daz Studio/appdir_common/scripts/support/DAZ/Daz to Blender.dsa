@@ -1,14 +1,14 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
 
 (function(){
-	
-	var s_sDazBridgeName = "Daz To Blender"
+	var s_sBridge = "Blender"
+	var s_sDazBridgeName = String( "Daz To %1" ).arg( s_sBridge )
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
 	// To be able to use the IDE Input your absolute Path.
-	//s_sScriptPath = "I:/Scripts/Git Repos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
+	//s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
-	var s_sMorphDialog = "DzBlenderMorphSelectionDialog"
+	var s_sMorphDialog = String( "Dz%1MorphSelectionDialog" ).arg( s_sBridge )
 	s_oFileInfo.deleteLater();
 
 	var s_aFigures = [];
@@ -16,6 +16,8 @@
 	
 	var s_sFig = "FIG";
 	var s_sEnv = "ENV";
+
+	var s_aToReparent = [];
 	
 	var s_oMeshTypes = {
 		"Figure" :3,
@@ -37,10 +39,16 @@
 	var s_sRootPath = "";
 	var s_sPresetPath = "";
 	
+	var s_sFbxPath = "";
 	var s_sMorphRules = "";
-	var s_aMorphExported = [];
 	var s_oMorphLinks = {};
-	
+	var s_aMorphNamesToExport = []
+	var s_oSkeletonData = {};
+	var s_oLimitsData = {};
+	var s_oHeadTailData = {};
+	var s_oJointOrientation = {};
+	var s_oPoseData = {};
+
 	var s_nLenName = 0;
 	var s_nMaxName = 19;
 	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
@@ -55,8 +63,8 @@
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
-	var s_bIncludeMorphs
-	
+	var s_bIncludeMorphs;
+	var s_bCollectTextures;
 	
 	
 	
@@ -364,6 +372,9 @@
 			}
 			// Clean up; don't leak memory
 			oExporter.deleteLater();
+			
+			//Store FBX Path
+			s_sFbxPath = sPath;
 		// We didn't find an exporter with the class name we wanted
 		} else {
 			// Inform the user
@@ -672,7 +683,7 @@
 
 	/*********************************************************************/
 	// void : ...
-	function writePoseData( oBaseNode, sFilename, bIsFigure )
+	function loadPoseData( oBaseNode, bIsFigure )
 	{
 		s_aPoseData = [];
 		
@@ -708,9 +719,7 @@
 		var vecPos;
 		var quatRot;
 		var mtxScale;
-		var sLine;
-		var oData = {};
-		var oParent;
+		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sObjectType = getObjectType( oNode );
@@ -721,7 +730,7 @@
 			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			sLabel = oNode.getLabel();	
 			sName = oNode.name;		
-			oName = oData[sName] = {};
+			oName = s_oPoseData[sName] = {};
 			oName["Name"] = sName;
 			oName["Label"] = sLabel;
 			oName["Object Type"] = sObjectType;
@@ -747,8 +756,8 @@
 				mtxScale.m33
 			];	
 		}
-		sData = JSON.stringify( oData, undefined, 4 )
-		writeDataFile( sData, sFilename );
+	
+		
 	};
 	
 	/*********************************************************************/
@@ -951,10 +960,12 @@
 
 		// Create Type Directories
 		if(nType == s_oExportTypes.EnvProp ){
-			sPath = s_sRootPath + aSubs[0] + "/"	
+			sPath = s_sRootPath + aSubs[0] + "/"
+			sType = aSubs[0]	
 			};
 		if(nType == s_oExportTypes.Figure ){
-			sPath = s_sRootPath + aSubs[1] + "/"	
+			sPath = s_sRootPath + aSubs[1] + "/"
+			sType = aSubs[1]	
 			};	
 
 		// Create Directories
@@ -963,21 +974,29 @@
 			oDir.mkdir( sPath );
 		};
 		
+		var aDirs = []
 		// Delete Files
 		aFiles = oDir.getFilesFromDir( [], true );
 		for( var j = 0; j < aFiles.length; j += 1 ){
+			var oFile = new DzFile( aFiles[j] );
+			var sFileName = oFile.fileName()
+			dir = oDir.relativeFilePath( aFiles[j] ).replace(  sFileName, "" )
+			aDirs.pushIfNotExists( dir );
 			oDir.remove( aFiles[j] );
+
 		};
+	
 		// Delete Dirs
-		var aDirs = oDir.entryList( "*",
-			DzDir.Dirs | DzDir.NoSymLinks | DzDir.NoDotAndDotDot, DzDir.Name );
-		
 		for ( var j = 0; j < aDirs.length; j += 1 ){
 			sDelPath = sPath + aDirs[j]
 			oDelDir.setPath( sDelPath );
 			if( oDelDir.exists() ){
+				sDirName = oDelDir.dirName()
 				oDelDir.rmdir( sDelPath );
-			}
+				if( oDelDir.cdUp() && sDirName != sType ){
+					oDelDir.rmdir()
+				}
+			}	
 		};
 	};
 	
@@ -1039,6 +1058,14 @@
 		wIncludeMorphsCbx.text = "Include Morphs";
 		wIncludeMorphsCbx.checked = false;
 		wSettingsDialog.addWidget( wIncludeMorphsCbx );
+
+		// Checkbox to collect textures at export
+		var wCollectTexturesCbx = new DzCheckBox( wSettingsDialog );
+		wCollectTexturesCbx.text = "Collect Textures";
+		wCollectTexturesCbx.checked = false;
+		wSettingsDialog.addWidget( wCollectTexturesCbx );
+
+
 		// When user Cancels the dialog
 		if( !wSettingsDialog.exec() ){
 			return false;
@@ -1048,6 +1075,7 @@
 		s_nSubDivLevel = wSubDivGroup.selected;
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
 		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
+		s_bCollectTextures = wCollectTexturesCbx.checked;
 		// When user Accepts the dialog
 		return true;
 	};
@@ -1072,6 +1100,80 @@
 			}
 		}
 	};
+
+	/*********************************************************************/
+	// string : ...
+	function checkChildType( oChildNode )
+	{
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oChildNode );
+		return sContentType
+	};
+
+	/*********************************************************************/
+	// TODO: Add a UI to allow the user to choose how they wish to export every asset
+	// void : Check the node and what type of export it is. 
+	function findRootNodes( oNode )
+	{
+		var oParent;
+		var oOrgParent;
+		var aChildFigures = [];
+		var sClassName = oNode.className();
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
+		if( sClassName == "DzFigure" ){
+			if( sContentType == "Actor/Character" 
+				|| sContentType == "Actor" ){
+				s_aFigures.push( oNode );
+				return
+			}
+			else{
+				s_aEnvProp.push( oNode );
+				return
+			}
+		}
+		if( sClassName == "DzGroupNode" ){
+			aChildren = oNode.getNodeChildren( true );
+			for( var j = 0; j < aChildren.length; j += 1 ){
+				oChildNode = aChildren[j]
+				sContentType = checkChildType( oChildNode );
+				if( sContentType == "Actor/Character"
+					|| sContentType == "Actor"){
+					aChildFigures.push( oChildNode )
+				}
+			}
+			if( aChildFigures.length > 0 ){
+				for( var i = 0; i < aChildFigures.length; i++ ){
+					var oChild = aChildFigures[i]
+					s_aFigures.push( oChild )
+					oParent = oChild.getNodeParent();
+					if( oParent == oNode ){
+						oNode.removeNodeChild( oChild, inPlace = true );
+					}
+					else{
+						oOrgParent = oParent
+						while( oParent != null ){
+							oParent.removeNodeChild( oChild, inPlace = true );
+							oParent = oChild.getNodeParent();
+						}
+						oParent = oOrgParent;
+					}
+					var aParentChain = new Array ( oParent, oChild );
+					s_aToReparent.push( aParentChain );
+				}
+				return
+			}
+			else{
+				s_aEnvProp.push( oNode );
+				return
+			}
+
+		}
+		else{
+			s_aEnvProp.push( oNode );
+			return
+		} 
+	};
 	
 	/*********************************************************************/
 	// void : ...
@@ -1092,28 +1194,27 @@
 						aChildren[j].setVisible( true );
 					}
 				}
-				
 				continue;
 			}
-			
+	
 			if( oNode.isRootNode() && oNode.isVisible() ){
-				if( 
-				(oNode.name.startsWith( "Genesis8Female" )
-				|| oNode.name.startsWith( "Genesis8Male" )
-				|| oNode.name.startsWith( "Genesis8_1Male" )
-				|| oNode.name.startsWith( "Genesis8_1Female" )
-				|| oNode.name.startsWith( "Genesis3Male" )
-				|| oNode.name.startsWith( "Genesis3Female" ))
-					&& oNode.name.indexOf( "Eyelash" ) < 0
-					&& oNode.name.indexOf( "Tear" ) < 0
-				){
-					s_aFigures.push( oNode );
-				} else {
-					s_aEnvProp.push( oNode );
-				}
+				findRootNodes( oNode )
 			}
 		}
 	};
+	/*********************************************************************/
+	// void : ...
+	function reparentFigure( oFigure )
+	{
+		var aPair
+		for( var i = 0; i < s_aToReparent.length; i++ ){
+			aPair = s_aToReparent[i]
+			if( aPair[1] == oFigure ){
+				aPair[0].addNodeChild( oFigure, inPlace = true)
+				return
+			}
+		}
+	}
 	
 	/*********************************************************************/
 	// Number : ...
@@ -1602,8 +1703,9 @@
 	/*********************************************************************/
 	// DzVec3 : Checks if there is an offset for Parent bone
 	// TODO: Check if any other bones are changed with FBMs
-	function getBoneOffset( oNode ){
-		var nOffset = new DzVec3( 0, 0, 0)
+	function getBoneOffset( oNode )
+	{
+		var vecOffset = new DzVec3( 0, 0, 0)
 		for( var i = 0; i < oNode.getNumProperties(); i++ ){
 			var oProperty = oNode.getProperty( i );
 			var sPropName = oProperty.getName();
@@ -1615,15 +1717,14 @@
 					oErcLink = oProperty.getController( j );
 					var oControllerProp = oErcLink.getProperty();
 					sControllerName = getPropertyName(oControllerProp);
-					if( sControllerName.indexOf( "FBM" ) != -1 ){
-						if( oControllerProp.getDoubleValue() != 0 ){
-							nOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
-						};
+					if( oControllerProp.getDoubleValue() != 0 ){
+						vecOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
 					};
+					
 				};
 			};
 		};
-		return nOffset
+		return vecOffset
 	};
 	
 	/*********************************************************************/
@@ -1635,8 +1736,8 @@
 	}
 
 	/*********************************************************************/
-	// Void : Write bone's limits along with rotation orders
-	function writeFigureBoneData( oBaseNode, sFilename )
+	// Void : load bone's limits along with rotation orders
+	function loadFigureBoneData( oBaseNode )
 	{
 		if( !oBaseNode.inherits("DzFigure") ){
 			return;
@@ -1683,18 +1784,17 @@
 		var nYRotMax;
 		var nZRotMin;
 		var nZRotMax;
-		var vecOffset
-		var aLimitsData = new Array( nNodes );
-		var aHeadTailData = new Array( nNodes );
-		var aSkeletonData = new Array( 1 );
+		var nXOrientation;
+		var nYOrientation;
+		var nZOrientation;
+		var vecOffset;
 		
 		// To account for the scale on the skeleton due to morphs
 		var nSkeletonScale = oBaseNode.getScaleControl().getValue();
-		aSkeletonData[0] = ["skeletonScale", nSkeletonScale].join(",");
-		
+		s_oSkeletonData["skeletonScale"] = ["skeletonScale", nSkeletonScale];
 		// To account for offset on the hip bone.
 		vecOffset = getBoneOffset(aNodes[0])
-		aSkeletonData[1] = ["offset", vecOffset.y].join(",");
+		s_oSkeletonData["offset"] = ["offset", vecOffset.y];
 
 		oBaseNode.update();
 		oBaseNode.finalize();
@@ -1712,14 +1812,19 @@
 			nYRotMax = oNode.getYRotControl().getMax();
 			nZRotMin = oNode.getZRotControl().getMin();
 			nZRotMax = oNode.getZRotControl().getMax();
-			aLimitsData[i] = [
+			nXOrientation = oNode.getOrientXControl().getValue();
+			nYOrientation = oNode.getOrientYControl().getValue();
+			nZOrientation = oNode.getOrientZControl().getValue();
+			quatOrientation = oNode.getOrientation();
+
+			s_oLimitsData[oNode.getName()] = [
 				oNode.getName(),
 				sRotOrder,
 				nXRotMin, nXRotMax,
 				nYRotMin, nYRotMax,
 				nZRotMin, nZRotMax
-				].join(",");
-			
+				];
+
 			nBoneLength = getBoneNodeLength( oNode );
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 
@@ -1732,8 +1837,7 @@
 			vecTail = vecHead.add( vecPrimaryAxis );
 			vecSecondAxis = getNodeSecondAxis( oNode );
 			
-			aHeadTailData[i] = [
-				oNode.getName(),
+			s_oHeadTailData[oNode.getName()] = [
 				( vecHead.x + vecOffset.x ) * nSkeletonScale,
 				( vecHead.y + vecOffset.y ) * nSkeletonScale,
 				( vecHead.z + vecOffset.z ) * nSkeletonScale,
@@ -1744,38 +1848,55 @@
 				vecSecondAxis.y,
 				vecSecondAxis.z
 				]
-				.concat( getBoneTransformValues( oNode ) )
-				.join(",");
+				.concat( getBoneTransformValues( oNode ) );
+
+			s_oJointOrientation[oNode.getName()] = [
+				sRotOrder,
+				nXOrientation,
+				nYOrientation,
+				nZOrientation,
+				quatOrientation.w,
+				quatOrientation.x,
+				quatOrientation.y,
+				quatOrientation.z
+			]
+			
 		}
-		
-		writeDataFile( aLimitsData, sFilename + "_boneLimits.csv" );
-		writeDataFile( aHeadTailData, sFilename + "_boneHeadTail.csv" );
-		writeDataFile( aSkeletonData, sFilename + "_skeletonData.csv" );
 	};
 	
 	/*********************************************************************/	
 	// void : ...
 	// Note: Configure DTU File
 	// TO DO: Grab Subdivision info and Morphs Exporting
-	function writeConfiguration( oNode, sFilename )
+	function writeConfiguration( oNode, sFilename, sDir )
 	{
 		var sDtufilename = sFilename + ".dtu";
 		var oDtufile = new DzFile( sDtufilename );
 		var oDtuJson = {};
 		var aChildren = oNode.getNodeChildren( true );
 		var nChildren = aChildren.length;
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
 		
 		oDtuJson["Asset Name"] = oNode.getLabel();
+		oDtuJson["Import Name"] = oNode.getName();
+		oDtuJson["Asset Type"] = sContentType;
+		oDtuJson["FBX File"] = s_sFbxPath;
 		oDtuJson["Materials"] = [];
-		aFigureMats = writeMaterials( oNode );
-		oDtuJson["Materials"].push( aFigureMats );
-		oDtuJson['Morphs'] = s_aMorphExported;
 		oDtuJson["MorphLinks"] = s_oMorphLinks;
+		oDtuJson["MorphNames"] = s_aMorphNamesToExport;
+		oDtuJson["SkeletonData"] = s_oSkeletonData;
+		oDtuJson["HeadTailData"] = s_oHeadTailData;
+		oDtuJson["JointOrientation"] = s_oJointOrientation;
+		oDtuJson["LimitData"] = s_oLimitsData;
+		oDtuJson["PoseData"] = s_oPoseData;
 		
+		aFigureMats = writeMaterials( oNode, sDir );
+		oDtuJson["Materials"].push( aFigureMats );
 		if (nChildren > 0){
 			for ( var i = 0; i < nChildren; i++ ){
 				var oChild = aChildren[ i ]; 
-				aChildMats = writeMaterials( oChild );
+				aChildMats = writeMaterials( oChild, sDir );
 				if ( aChildMats != false ){
 					oDtuJson["Materials"].push( aChildMats );
 				}		
@@ -1798,16 +1919,39 @@
 				return value;
 			}
 		};
-
+		
 		oDtufile.open( DzFile.WriteOnly );
 		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
 		oDtufile.close();
 	};
+	/*********************************************************************/
+	// String : Writes Texture and returns new Path
+	// TODO: Find a better method to get the paths
+	function writeTexture( sDir, sOrigTexture, sAssetName )
+	{
+		var oOrigFile = new DzFile( sOrigTexture );
+		var sOrgImageName = oOrigFile.fileName();
+		var sAbsPath = oOrigFile.absolutePath();
+		var aSplitPath = sAbsPath.split("Textures");
+		var sPath = String( "%1/%2/%3" ).arg( sDir ).arg( "Textures" ).arg( sAssetName );
+		
+		var oDir = new DzDir( "" );
+		oDir.setPath( sPath );
+		if( !oDir.exists() ){
+			oDir.mkpath( sPath );
+		}
+
+		var sNewTexture = String( "%1/%2" ).arg( sPath ).arg( sOrgImageName )
+		oOrigFile.copy( sNewTexture )
+		return sNewTexture
+		
+	};
+
 
 	/*********************************************************************/	
 	// Array : ...
 	// Note: Cycle through all the Materials on a Node and return an array
-	function writeMaterials( oNode )
+	function writeMaterials( oNode, sDir )
 	{	
 		var oObj = oNode.getObject();
 		if( oObj != null ){
@@ -1845,9 +1989,9 @@
 							var bImageProperty = oProperty.inherits( "DzImageProperty" );
 							var bColorProperty = oProperty.inherits( "DzColorProperty" );
 							var bNumericProperty = oProperty.inherits( "DzNumericProperty" );
+							var sTextureName = "";
 
 							if( bImageProperty ){
-								var sTextureName = "";
 								if(oProperty.getValue()){
 									sTextureName = oProperty.getValue().getFilename();	
 								}
@@ -1856,8 +2000,6 @@
 								oPropertyInfo["Texture"] = sTextureName;
 							}
 							else if( bColorProperty ){
-								var sName = oProperty.getName();
-								var sTextureName ="";
 								if ( oProperty.getMapValue() ){
 									sTextureName = oProperty.getMapValue().getFilename();
 								}
@@ -1866,8 +2008,6 @@
 								oPropertyInfo["Texture"] = sTextureName;
 							}
 							else if( bNumericProperty ){
-								var sName = oProperty.getName();
-								var sTextureName = "";
 								if ( oProperty.getMapValue() ){
 									sTextureName = oProperty.getMapValue().getFilename();
 								}
@@ -1876,6 +2016,14 @@
 								oPropertyInfo["Texture"] = sTextureName;
 							}
 							aProperties.push( oPropertyInfo );
+							if ( sTextureName != "" ){
+								if(s_bCollectTextures){
+									sNewTexture = writeTexture( sDir, 
+																sTextureName,
+																oMaterialInfo["Asset Label"]);
+									oPropertyInfo["Texture"] = sNewTexture;
+								}
+							}
 						}
 						oMaterialInfo["Properties"] = aProperties;
 						
@@ -1904,21 +2052,20 @@
 
 	/*********************************************************************/
 	// String : Returns the morph rules to be used at Export
-	function getMorphString(s_aMorphsToExport)
+	function getMorphString( aExportableProperties ) 
 	{
-        var aMorphNamesToExport;
         var sMorphString
 
-        if ( s_aMorphsToExport.length == 0 ){
+        if ( aExportableProperties.length == 0 ){
             return "";
         }
-        aMorphNamesToExport = [];
+        s_aMorphNamesToExport = [];
         sMorphString = "";
-        for( var i = 0; i < s_aMorphsToExport.length; i++ ){
-            oMorphInfo = s_aMorphsToExport[i]
-            aMorphNamesToExport.push( oMorphInfo.name );
+        for( var i = 0; i < aExportableProperties.length; i++ ){
+            oMorphInfo = aExportableProperties[i]
+            s_aMorphNamesToExport.push( oMorphInfo.name );
         }
-        sMorphString = aMorphNamesToExport.join("\n1\n");
+        sMorphString = s_aMorphNamesToExport.join("\n1\n");
         sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
         return sMorphString;
     };
@@ -1935,8 +2082,28 @@
 	};
 
 	/*********************************************************************/
+	// Array : Find if Bone Exists on Children Objects
+	// Should be replaced with checking vertices directly
+	function checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
+	{
+		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+			oChildNode = oNode.getNodeChild( i );
+			if( oChildNode.inherits( "DzFigure" ) ){
+				oSkeleton = oChildNode.getSkeleton();
+				oChildBone = oSkeleton.findBone( sBoneName );
+				if( !oChildBone ){
+					continue
+				}
+				aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
+			}
+		}
+		return aControlledMeshes
+	}
+
+
+	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
-	function loadMorphLinks( aExportableProperties )
+	function loadMorphLinks( aExportableProperties, oNode )
 	{
 		// Load all the controller links on the properties
 		for( var i = 0; i < aExportableProperties.length; i += 1 ){
@@ -1944,6 +2111,8 @@
 			var oMorphProperty = oMorphInfo.property;
 			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
+			var aControlledMeshes = []
+			aControlledMeshes.push(oNode.name + ".Shape")
 			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
 				oErcLink = oMorphProperty.getController( j );
@@ -1970,23 +2139,72 @@
 				}
 				var oOwnerNode = oControllerProp.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
+					sBoneName = oOwnerNode.name 
+					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
 					oLink["Bone"] = oOwnerNode.name
 				}
 				aLinks.push( oLink );
 			}
+
+			// Checks for Alias to Find where Morph Attaches too. 
+			for( var l = 0; l < oMorphProperty.getNumAliases(); l++ ){
+				var oAlias = oMorphProperty.getAlias( l );
+				var oBone = oAlias.getOwner();
+				if( oBone.inherits("DzBone") ){
+					sBoneName = oBone.name;
+					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+				}
+			}
+			// Keep for the Children Nodes' Morphs
+			var oMorphInfoNode = oMorphInfo.node;
+			if( oMorphInfoNode != undefined ){
+				if( oMorphInfoNode.name != oNode.name ){
+					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
+				}
+			}
+
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
 					"Links": aLinks,
 					"Minimum": oMorphInfo.min,
 					"Maximum": oMorphInfo.max,
-					"isHidden": oMorphInfo.hidden
+					"isHidden": oMorphInfo.hidden,
+					"Controlled Meshes" : aControlledMeshes
 			};
 			s_oMorphLinks[getPropertyName( oMorphProperty )] = oMorphLinkObj;
 		}
 		
 		return;		
 	};
+	/*********************************************************************/
+	// Void: ...
+	function disconnectMorphs( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			
+			if( oMorphInfo.disable == true){
+				oMorphProperty.setValue( 0 );
+				oMorphProperty.setOverrideControllers( true );
+			}
+		}
+	}
 	
+	/*********************************************************************/
+	// Void: ...
+	function reconnectMorphs( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			if( oMorphInfo.disable ){
+				oMorphProperty.setOverrideControllers( false );
+				oMorphProperty.setValue( oMorphInfo.value );
+			}
+		}
+	}
+
 	/*********************************************************************/
 	// void : ...
 	function main()
@@ -2024,7 +2242,8 @@
 		prepareForExport( s_nExportType );
 		
 		var sFileBasename;
-		
+		var sBaseDirectory; 
+
 		if( s_nExportType == s_oExportTypes.Both
 		|| s_nExportType == s_oExportTypes.Figure ){
 			setHideRoot( false, false );
@@ -2052,17 +2271,12 @@
 						[oFigure, s_sPresetPath, s_sDazBridgeName] 
 					);
 					s_sMorphRules = getMorphString( aExportableProperties );
-					loadMorphLinks( aExportableProperties );
-				};
-				
-				
-				// Write data
-				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
-				writeFigureBoneData( oFigure, sFileBasename );
-				writePoseData( oFigure, sFileBasename + ".transforms", true );
-				writeParentingData( oFigure, sFileBasename + ".dat" );
-				writeConfiguration( oFigure, sFileBasename );
-				
+					loadMorphLinks( aExportableProperties, oFigure );
+					disconnectMorphs( aExportableProperties );
+				};	
+				// Export Figure
+				loadFigureBoneData( oFigure );
+				loadPoseData( oFigure, true );
 				setEyelashVisibility( oFigure, false );
 				exportOBJ( oFigure, s_sFig, i );
 				setEyelashVisibility( oFigure, true );
@@ -2070,6 +2284,17 @@
 				exportFBX( oFigure, s_sFig, i , bDebugFBX );
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
+				reparentFigure( oFigure );
+				if ( s_bIncludeMorphs ){
+					reconnectMorphs( aExportableProperties );
+				}
+
+				// Write data
+				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+				sBaseDirectory = String( "%1%2/%2%3" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
+				writeParentingData( oFigure, sFileBasename + ".dat" );
+				writeConfiguration( oFigure, sFileBasename, sBaseDirectory );
+
 			}
 		}
 		
@@ -2112,9 +2337,9 @@
 				sPoseFilename = sFileBasename + ".transforms";
 				
 				if( bIsBone ){
-					writeFigureBoneData( oNode, sFileBasename );
+					loadFigureBoneData( oNode );
 				} else {
-					writePoseData( oNode, sPoseFilename, false );
+					loadPoseData( oNode, sPoseFilename, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 				}
 				updateName( oNode );

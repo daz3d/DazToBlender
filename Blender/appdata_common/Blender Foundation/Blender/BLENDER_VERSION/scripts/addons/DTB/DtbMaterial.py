@@ -42,10 +42,12 @@ def getGroupNodeTree(key):
     if rtn is not None:
         return rtn.node_tree
 
+
 def default_material():
     getGroupNodeTree("EyeDry")
     getGroupNodeTree("EyeWet")
     getGroupNodeTree("IrayUberSkin")
+
 
 def forbitMinus():
     pbsdf = 'Principled BSDF'
@@ -75,6 +77,7 @@ def forbitMinus():
                             if type(i) is float:
                                 if node_input.default_value < 0:
                                     node_input.default_value = 0.0
+
 
 def adjust_material(kind, inc_value, isEye):
     skincombi = [
@@ -156,7 +159,8 @@ def getNidx(idx, nodes):
 # endregion top-level methods
 
 class DtbShaders:
-    def __init__(self):
+    def __init__(self, dtu):
+        self.material_list = dtu.get_materials_list()
         self.mat_data_dict = {}
         self.mat_property_dict = {}
         self.node_groups = []
@@ -166,11 +170,7 @@ class DtbShaders:
 
     #TODO: Find a better way to create the dict
     def make_dct(self):
-        for file in os.listdir(Global.getHomeTown()):
-            if file.endswith(".dtu"):
-                input_file = open(os.path.join(Global.getHomeTown(), file))
-        dtu_content = input_file.read()
-        mat_info_list = json.loads(dtu_content)["Materials"]
+        mat_info_list = self.material_list
         for mat_info in mat_info_list:
             if mat_info["Asset Name"] == mat_info["Asset Label"]:
                 if  mat_info["Asset Name"] in self.mat_data_dict.keys():
@@ -205,12 +205,12 @@ class DtbShaders:
     
 
     def get_mat_properties(self,mat_data):
-        mat_property_dict = {}
+        self.mat_property_dict = {}
         #To deal with material names sometimes being undescriptive.
         for mat_property in mat_data["Properties"]:
-            mat_property_dict[mat_property["Name"]] = mat_property
-            mat_property_dict[mat_property["Label"]] = mat_property
-        return mat_property_dict
+            self.mat_property_dict[mat_property["Name"]] = mat_property
+            self.mat_property_dict[mat_property["Label"]] = mat_property
+        return self.mat_property_dict
     
     def get_mat_type(self,material):
         material_name = material["Material Name"]

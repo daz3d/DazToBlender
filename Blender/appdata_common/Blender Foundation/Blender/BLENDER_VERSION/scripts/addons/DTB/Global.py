@@ -19,7 +19,7 @@ _RGFY = ""
 keep_EYLS = ""
 keep_TEAR = ""
 db = DataBase.DB()
-bone_limit_memory = []
+updated_bone_limits = []
 
 Geo_Idx = 0
 now_ary = []
@@ -174,8 +174,6 @@ def setOpsMode(arg):
             if Versions.get_active_object().mode != arg:
                 bpy.ops.object.mode_set(mode=arg)
 
-def add_bone_limit(line):
-    bone_limit_memory.append(line)
 
 def get_Amtr_name():
     if _AMTR!="" and (_AMTR in Util.allobjs()):
@@ -268,26 +266,12 @@ def find_RGFY(dobj):
                 return True
     return False
 
+# TODO: Find a method to get Armature Necessary when Rigify is Ran
 def find_AMTR(dobj):
     global _AMTR
-    global _ISG3
-    _ISG3 = 0
-    if dobj.type == 'ARMATURE':
-        abones = dobj.data.bones
-        point = 0
-        if('lHeel' in abones) or ('rHeel' in abones):#G3
-            _ISG3 = 1
-        if len(abones) > 160:
-            for bn in db.tbl_basic_bones:
-                for pb in abones:
-                    if bn[0] == pb.name:
-                        point += 1
-        if point > 150:
-            _AMTR = dobj.name
-            _RGFY = ""
-            if _ISG3==1:
-                _ISG3 = 2
-            return True
+    if dobj.type == 'ARMATURE' and "Genesis" in dobj.name:
+        _AMTR = dobj.name
+        return True
     return False
 
 def find_BODY(dobj):
@@ -297,8 +281,9 @@ def find_BODY(dobj):
             return False
         for modifier in dobj.modifiers:
             if modifier.type == "ARMATURE" and modifier.object is not None:
+               
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-                    figure_name =  dobj.name.replace(".Shape","")
+                    figure_name = dobj.name.replace(".Shape","")
                     figure_name = figure_name.split(".")[0]
                     if figure_name in [
                                         'Genesis8Female',
@@ -306,11 +291,14 @@ def find_BODY(dobj):
                                         'Genesis8_1Male',
                                         'Genesis8_1Female',
                                         'Genesis3Male',
-                                        'Genesis3Female'
+                                        'Genesis3Female',
+                                        'Genesis2Female',
+                                        'Genesis2Male',
+                                        'Genesis'
                                         ]:
                         _BODY = dobj.name
                         return True
-                             
+          
     return False
 
 def getChildren(obj):
@@ -429,20 +417,42 @@ def decide_HERO():
     global _SIZE
     
     clear_variables()
-
-    for dobj in Util.myacobjs():
-        if find_AMTR(dobj):
-            continue
-        if find_EYLS(dobj):
-            continue
-        if find_HAIR(dobj):
-            continue
-        if find_TEAR(dobj):
-            continue
-        if find_BODY(dobj):
-            continue
     
+    active_col_objs = Util.myacobjs()
+    # Find Armatures
+    exists = {
+        "_AMTR" : False,
+        "_RGFY" : False,
+        "_BODY" : False 
+    }
+    for dobj in active_col_objs:
+        if exists["_AMTR"] == False:
+            exists["_AMTR"] = find_AMTR(dobj)
+            if exists["_AMTR"]:
+                continue
+        if exists["_RGFY"] == False:
+            exists["_RGFY"] = find_RGFY(dobj)
+            if exists["_RGFY"]:
+                continue
+
+    # Needs to be Seperated as Rigify changes Order
+    for dobj in active_col_objs:
+        if exists["_BODY"] == False:
+            exists["_BODY"] = find_BODY(dobj)
+            if exists["_BODY"]:
+                continue
         
+        
+
+    # Removed until found necessary
+    
+    # if find_EYLS(dobj):
+    #     continue
+    # if find_HAIR(dobj):
+    #     continue
+    # if find_TEAR(dobj):
+    #     continue
+    
  
    
         
@@ -723,10 +733,6 @@ def toGeniVIndex(vidx):
 def get_geo_idx():
     return Geo_Idx
     
-def get_bone_limit():
-    if bone_limit_memory is None or len(bone_limit_memory)==0:
-        bone_limit_modify()
-    return bone_limit_memory
 
 def getRig_id():
     rig = getRgfy()
@@ -734,9 +740,8 @@ def getRig_id():
         if d.name=='rig_id':
             return d.data['rig_id']
             
-def bone_limit_modify():
-    bone_limits = DataBase.get_bone_limits_dict()
 
+def bone_limit_modify(bone_limits):
     for bone_limit_key in bone_limits:
         bone_limit = bone_limits[bone_limit_key]
         name = bone_limit[0]
@@ -753,7 +758,7 @@ def bone_limit_modify():
             bone_type = 'center'
         
         do_conversion = True
-
+    
         if do_conversion and order == 'XYZ':
             # YZ switch (Y <-> Z)
             for i in range(2):
@@ -800,7 +805,7 @@ def bone_limit_modify():
                 temp = 0 - bone_limit[7]
                 bone_limit[7] = 0 - bone_limit[6]
                 bone_limit[6] = temp
-        
+
         elif do_conversion and order == "YZX":
             # Bones that are pointed down with YZX order
             # TODO: remove hardcoding
@@ -839,8 +844,16 @@ def bone_limit_modify():
             temp = 0 - bone_limit[3]
             bone_limit[3] = 0 - bone_limit[2]
             bone_limit[2] = temp
+    store_bone_limits(bone_limits)
+    return bone_limits
 
-        add_bone_limit(bone_limit)
+def store_bone_limits(bone_limits):
+    global updated_bone_limits
+    updated_bone_limits = bone_limits
+
+
+def get_bone_limit():
+    return updated_bone_limits
 
 def toMergeWeight(dobj, ruler_idx, slave_idxs):
     setOpsMode('OBJECT')
@@ -1034,7 +1047,7 @@ def scale_settings():
     rotation = [0.6888, 0.6246, 0.2473, 0.2727]
     distance = float_by_size(430)
     cam_ob = bpy.context.scene.camera
-    
+
     for area in bpy.context.screen.areas:
         if area.type == "VIEW_3D":
             rv3d = area.spaces[0].region_3d

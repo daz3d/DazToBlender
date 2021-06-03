@@ -367,10 +367,14 @@ class CBones:
         dobj.data.edit_bones['hip'].parent = dobj.data.edit_bones.get('root')
         Global.setOpsMode("OBJECT")
 
+    #TODO : Redo the logic so it doesn't rely on naming conventions of bones
     def makeEyes(self):
         Global.setOpsMode("EDIT")
         mihon3 = ['MidNoseBridge','rEye','lEye']
         newbname3 = ['mainEye_H','rEye_H','lEye_H']
+        for bidx,nbname in enumerate(newbname3):
+            if not mihon3[bidx] in bpy.context.object.data.edit_bones.keys():
+                return
         for bidx,nbname in enumerate(newbname3):
             nbone = bpy.context.object.data.edit_bones.new(nbname)
             mihon = bpy.context.object.data.edit_bones[mihon3[bidx]]
@@ -386,6 +390,7 @@ class CBones:
             else:
                 nbone.parent = Global.getAmtr().data.edit_bones.get(newbname3[0])
         Global.setOpsMode('POSE')
+
         for nidx,nb in enumerate(newbname3):
             pb = Global.getAmtr().pose.bones.get(nb)
             pb.rotation_mode = 'XYZ'

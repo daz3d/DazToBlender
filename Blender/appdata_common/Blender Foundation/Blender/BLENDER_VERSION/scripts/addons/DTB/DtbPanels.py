@@ -71,35 +71,6 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                         and len(cobj.vertex_groups) < 500 and len(cobj.data.vertices) < 321309:
                     Global.clear_variables()
                     Global.find_Both(cobj)
-            if DtbIKBones.ik_access_ban == False and context.active_object.mode == 'POSE':
-                l.separator()
-                if Global.amIAmtr(context.object):
-                    col = l.column(align=True)
-                    r = col.row(align=True)
-                    for i in range(len(DtbIKBones.ik_name)):
-                        if i == 2:
-                            r = col.row(align=True)
-                        influence_data_path = DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i])
-                        if influence_data_path is not None:
-                            r.prop(w_mgr, 'ifk' + str(i), text=DtbIKBones.ik_name[i], toggle=True)
-                    col.operator('limb.redraw',icon='LINE_DATA')
-                    l.separator()
-                elif Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('my.iktofk', icon="MESH_CIRCLE")
-                        row.operator('my.fktoik', icon="MESH_CUBE")
-                if Global.amIAmtr(context.object):
-                    l.operator('to.rigify', icon='ARMATURE_DATA')
-                if Global.amIRigfy(context.object):
-                    if BV<2.81:
-                        row = l.row(align=True)
-                        row.alignment = 'EXPAND'
-                        row.operator('match.ikfk')
-                        row.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
-                    else:
-                        l.prop(w_mgr, "br_onoff_prop", text="Joint Range", toggle=True)
                 
             if Global.amIBody(context.object):
                 col = l.column(align=True)
@@ -130,6 +101,43 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                 l.separator()
        
         # l.operator('df.optimize', icon="MATERIAL")
+class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_rigging_daz"
+    bl_label = "Rigging Tools"
+    
+    def draw(self, context):
+        l = self.layout
+        w_mgr = context.window_manager
+        if context.object and context.active_object:
+            cobj = context.active_object
+            if DtbIKBones.ik_access_ban == False and context.active_object.mode == 'POSE':
+                if Global.amIAmtr(context.object):
+                    col = l.column(align=True)
+                    r = col.row(align=True)
+                    for i in range(len(DtbIKBones.ik_name)):
+                        if i == 2:
+                            r = col.row(align=True)
+                        influence_data_path = DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i])
+                        if influence_data_path is not None:
+                            r.prop(w_mgr, 'ifk' + str(i), text=DtbIKBones.ik_name[i], toggle=True)
+                    col.operator('limb.redraw',icon='LINE_DATA')
+                    l.separator()
+                elif Global.amIRigfy(context.object):
+                    if BV<2.81:
+                        row = l.row(align=True)
+                        row.alignment = 'EXPAND'
+                        row.operator('my.iktofk', icon="MESH_CIRCLE")
+                        row.operator('my.fktoik', icon="MESH_CUBE")
+                if Global.amIAmtr(context.object):
+                    l.operator('to.rigify', icon='ARMATURE_DATA')
+                if Global.amIRigfy(context.object):
+                    if BV<2.81:
+                        row = l.row(align=True)
+                        row.alignment = 'EXPAND'
+                        row.operator('match.ikfk')
+                        row.prop(w_mgr, "br_onoff_prop", text="Limit Bone Rotation", toggle=True)
+                    else:
+                        l.prop(w_mgr, "br_onoff_prop", text="Limit Bone Rotation", toggle=True)
 
 class DTB_PT_POSE(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_pose_daz"
@@ -141,7 +149,9 @@ class DTB_PT_POSE(View3DPanel, bpy.types.Panel):
         w_mgr = context.window_manager
         l.operator('my.clear')
         l.separator()
-        box.prop(w_mgr, "choose_daz_figure", text = "")
+        row = box.row(align=True)
+        row.prop(w_mgr, "choose_daz_figure", text = "")
+        row.operator('refresh.alldaz', text = "" ,icon='FILE_REFRESH')
         box.operator('import.pose', icon='POSE_HLT')
         row = box.row(align=True)
         row.prop(w_mgr, "add_pose_lib", text="Add to Pose Library", toggle=False)
@@ -149,6 +159,7 @@ class DTB_PT_POSE(View3DPanel, bpy.types.Panel):
 class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_material_daz"
     bl_label = "Material Settings"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         l = self.layout
@@ -162,6 +173,7 @@ class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):
 class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_general_daz"
     bl_label = "General Settings"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         l = self.layout
@@ -180,6 +192,7 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
 class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_commands_daz"
     bl_label = "Commands List"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         l = self.layout
@@ -220,9 +233,24 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
                 if len(morph_filter) == 0 or morph_filter.lower() in morph_prop_name.lower() or morph_filter == "Type Keyword Here":
                     layout.prop(mesh_obj, '["' + morph_prop_name + '"]')
 
+class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_utilities_daz"
+    bl_label = "Utilities"
+    bl_options = {"DEFAULT_CLOSED"}
+    def draw(self, context):
+        l = self.layout
+        w_mgr = context.window_manager
+        box = l.box()
+        row = box.row(align=True)
+        row.alignment = 'EXPAND'
+        row.prop(w_mgr, "choose_daz_figure", text = "")
+        row.operator('refresh.alldaz', text = "" ,icon='FILE_REFRESH')
+        box.operator("rename.morphs", icon = "OUTLINER_DATA_MESH")
+
 class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_info_daz"
     bl_label = "More Info"
+    bl_options = {"DEFAULT_CLOSED"}
     def draw(self, context):
         l = self.layout
         w_mgr = context.window_manager
@@ -234,4 +262,3 @@ class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
         box.operator("wm.url_open", text="Meet the Bridge Team", icon = "URL").url = "https://www.daz3d.com/forums/discussion/469341/daz-to-blender-bridge-meet-the-team#latest"
         box.operator("wm.url_open", text="Report a Bug", icon = "URL").url = "https://github.com/daz3d/DazToBlender/issues"
         box.operator("wm.url_open", text="Past Versions", icon = "URL").url = "https://github.com/daz3d/DazToBlender/releases"
-   

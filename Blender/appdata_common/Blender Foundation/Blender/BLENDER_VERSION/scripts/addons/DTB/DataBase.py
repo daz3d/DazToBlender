@@ -1,50 +1,126 @@
 from . import Global
 import os
+import json
+class DtuLoader:
+    dtu_dict = dict()
+    bone_limits_dict = dict()
+    skeleton_data_dict = dict()
+    pose_data_dict = dict()
+    bone_head_tail_dict = dict()
+    morph_links_dict = dict()
+    asset_name = ""
+    materials_list = []
 
-bone_limits_dict = dict()
-skeleton_data = dict()
 
-def load_bone_limits():
-    input_file = open(os.path.join(Global.getHomeTown(), "FIG_boneLimits.csv"), "r")
-    lines = input_file.readlines()
-    input_file.close()
+    def load_dtu(self):
+        for file in os.listdir(Global.getHomeTown()):
+            if file.endswith(".dtu"):
+                dtu = os.path.join(Global.getHomeTown(), file)
+                break
+        with open(dtu, "r") as data:
+            self.dtu_dict = json.load(data)
+           
 
-    for line in lines:
-        line_split = line.split(',')
-        bone_limit = []
-        bone_limit.append(line_split[0])
-        bone_limit.append(line_split[1])
-        bone_limit.append(float(line_split[2]))
-        bone_limit.append(float(line_split[3]))
-        bone_limit.append(float(line_split[4]))
-        bone_limit.append(float(line_split[5]))
-        bone_limit.append(float(line_split[6]))
-        bone_limit.append(float(line_split[7]))
-        bone_limits_dict[bone_limit[0]] = bone_limit
+    def get_dtu_dict(self):
+        if len(self.dtu_dict.keys()) == 0:
+            self.load_dtu()
+        return self.dtu_dict
 
-def get_bone_limits_dict():
-    if len(bone_limits_dict.keys()) == 0:
-        load_bone_limits()
-    return bone_limits_dict
+    
+    def load_asset_name(self):
+        dtu_dict = self.get_dtu_dict()
+        self.asset_name = dtu_dict["Asset Name"]
 
-def load_skeleton_data():
-    input_file = open(os.path.join(Global.getHomeTown(),"FIG_skeletonData.csv"), "r")
-    lines = input_file.readlines()
-    input_file.close()
 
-    for line in lines:
-        line_split = line.split(',')
-        skeleton_data[line_split[0]] = float(line_split[1])
+    def get_asset_name(self):
+        if self.asset_name == "":
+            self.load_asset_name()
+        return self.asset_name
 
-def get_skeleton_data():
-    if len(skeleton_data) == 0:
-        load_skeleton_data()
-    return skeleton_data
 
+    def load_bone_head_tail_dict(self):
+        dtu_dict = self.get_dtu_dict()
+        self.bone_head_tail_dict = dtu_dict["HeadTailData"]
+
+
+    def get_bone_head_tail_dict(self):
+        if len(self.bone_head_tail_dict.keys()) == 0:
+            self.load_bone_head_tail_dict()
+        return self.bone_head_tail_dict
+
+
+    def load_bone_limits_dict(self):
+        dtu_dict = self.get_dtu_dict()
+        self.bone_limits_dict = dtu_dict["LimitData"]
+
+
+    def get_bone_limits_dict(self):
+        if len(self.bone_limits_dict.keys()) == 0:
+            self.load_bone_limits_dict()
+        return self.bone_limits_dict
+
+
+    def load_skeleton_data_dict(self):
+        dtu_dict = self.get_dtu_dict()
+        self.skeleton_data_dict = dtu_dict["SkeletonData"]
+
+
+    def get_skeleton_data_dict(self):
+        if len(self.skeleton_data_dict.keys()) == 0:
+            self.load_skeleton_data_dict()
+        return self.skeleton_data_dict
+
+
+    def load_pose_data_dict(self):
+        dtu_dict = self.get_dtu_dict()
+        data = dtu_dict["PoseData"]
+        for key in data:
+            if key.startswith('Genesis'):
+                new_key = 'root'
+                data[key]["Name"] = new_key
+                data[key]["Object Type"] = 'BONE'
+                data[new_key] = data[key]
+                del data[key]
+                break
+
+        self.pose_data_dict = dtu_dict["PoseData"]
+
+
+    def get_pose_data_dict(self):
+        if len(self.pose_data_dict.keys()) == 0:
+            self.load_pose_data_dict()
+        return self.pose_data_dict
+
+
+    def load_materials_list(self):
+        dtu_dict = self.get_dtu_dict()
+        self.materials_list = dtu_dict["Materials"]
+
+
+    def get_materials_list(self):
+        if len(self.materials_list) == 0:
+            self.load_materials_list()
+        return self.materials_list
+
+
+    def load_morph_links_dict(self):
+        dtu_dict = self.get_dtu_dict()
+        self.morph_links_dict = dtu_dict["MorphLinks"]
+
+
+    def get_morph_links_dict(self):
+        if len(self.morph_links_dict.keys()) == 0:
+            self.load_morph_links_dict()
+        return self.morph_links_dict
+
+
+dtu = DtuLoader()
+
+#TODO: Clear out Hardcoded Drivers
 class DB:
     def __init__(self):
         pass
-
+  
     tbl_facems = [
         'EyelidsUpperUp-DownR',
         'MouthCornerUp-DownR',
@@ -425,7 +501,7 @@ class DB:
 
     def mix_range(self,arg):
         ans = [0,0,0,0,0,0]
-        bone_limits = get_bone_limits_dict()
+        bone_limits = dtu.get_bone_limits_dict()
         for bone_limit_key in bone_limits:
             bone_limit = bone_limits[bone_limit_key]
             if bone_limit[0].startswith(arg):
@@ -1101,12 +1177,6 @@ m_geni = [
 ]
 
 
-# tbl_brollfix_g3=[
-#     ['-Hand',87],
-#     ['-ForearmBend', 90],
-#     ['-ShldrBend', 90],
-#     ['-SmallToe1', -130],
-# ]
 tbl_brollfix_g3_f=[
     ['-Hand',87],
     ['-ForearmBend', 90],
@@ -1140,7 +1210,6 @@ tbl_brollfix_g3_f=[
     ['-SmallToe1_2', 80-60+19],
     ['-BigToe_2', 180-30],
 ]
-
 
 tbl_brollfix = [
         ['-ForearmBend', 45],
@@ -1199,7 +1268,6 @@ mbone = [
         ['-SmallToe4', 85],
         ['-SmallToe4_2', 187],
 ]
-
 
 mbone_g3 = [
         ['-Foot',18],#new290

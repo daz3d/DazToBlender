@@ -8,6 +8,7 @@ from . import Util
 from . import DtbMaterial
 from . import NodeArrange
 from . import Poses
+from . import DataBase
 import re
 
 
@@ -74,10 +75,11 @@ class ReadFbx:
     adr = ""
     index = 0
     my_meshs = []
-    pose = None
 
     def __init__(self,dir,i,int_progress):
-        
+        self.dtu = DataBase.DtuLoader()
+        self.pose = Poses.Posing(self.dtu)
+        self.dtb_shaders = DtbMaterial.DtbShaders(self.dtu)
         self.adr = dir
         self.my_meshs = []
         self.index = i
@@ -165,7 +167,7 @@ class ReadFbx:
     
     #TODO: combine shared code with figure import
     def import_as_armature(self, objs, amtr):
-        pose = Poses.Posing("ENV")
+        
         Global.deselect()
         self.create_controller()
         vertex_group_names = []
@@ -174,7 +176,7 @@ class ReadFbx:
         
         for i in range(3):
             amtr.scale[i] = 1
-        
+            
         #Apply Armature Modifer if it does not exist
         for obj in objs:
             if obj.type == 'MESH':
@@ -204,7 +206,7 @@ class ReadFbx:
         
         #Fix and Check Bones to Hide
         for bone in bones:
-            if not pose.set_bone_head_tail(bone):
+            if not self.pose.set_bone_head_tail(bone):
                 hides.append(bone.name)
                 continue
             if bone.name not in vertex_group_names:
@@ -225,7 +227,8 @@ class ReadFbx:
 
         #Apply Custom Shape
         for pb in amtr.pose.bones:
-            binfo = pose.get_bone_limits_dict(pb.name)
+            
+            binfo = self.pose.get_bone_limits_dict(pb.name)
             if binfo is None:
                 continue
             else:
@@ -235,7 +238,7 @@ class ReadFbx:
                     pb.custom_shape_scale = 0.04
                     amtr.data.bones.get(pb.name).show_wire = True
             #Apply Limits and Change Rotation Order
-            pose.bone_limit_modify(pb)
+            self.pose.bone_limit_modify(pb)
 
         # Hide Bones
         for hide in hides:
@@ -298,11 +301,10 @@ class ReadFbx:
 
     
     def setMaterial(self):
-        dtb_shaders = DtbMaterial.DtbShaders()
-        dtb_shaders.make_dct()
-        dtb_shaders.load_shader_nodes()
+        self.dtb_shaders.make_dct()
+        self.dtb_shaders.load_shader_nodes()
         for mesh in self.my_meshs:
-            dtb_shaders.setup_materials(mesh)
+            self.dtb_shaders.setup_materials(mesh)
             
 
 

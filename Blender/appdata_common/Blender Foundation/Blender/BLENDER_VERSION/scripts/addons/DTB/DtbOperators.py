@@ -97,6 +97,38 @@ class REMOVE_DAZ_OT_button(bpy.types.Operator):
                 bpy.data.materials.remove(material)
         return {'FINISHED'}
 
+
+class RENAME_MORPHS(bpy.types.Operator):
+    bl_idname = "rename.morphs"
+    bl_label = "Remove Morph Prefix"
+    def execute(self, context):
+        Global.setOpsMode("OBJECT")
+        selected_objects = []
+        fig_object_name = bpy.context.window_manager.choose_daz_figure
+        if fig_object_name == "null":
+            selected_objects.append(bpy.context.object)
+        else:
+            selected_objects = Global.getChildren(bpy.data.objects[fig_object_name])
+
+        for selected_object in selected_objects:
+            
+            if selected_object is None or selected_object.type != 'MESH':
+                self.report({"WARNING"}, "Select Object or Choose From Dropdown")
+                return
+            if selected_object.data.shape_keys is None:
+                self.report({"INFO"}, "No Morphs found on {0}".format(selected_object.name))
+                continue
+            # get its shapekeys
+            shape_keys = selected_object.data.shape_keys.key_blocks
+            string_to_replace = selected_object.name.replace(".Shape","") + "__"
+            # loop through shapekeys and replace the names
+            for key in shape_keys:
+                key.name = key.name.replace(string_to_replace, "")
+        self.report({"INFO"}, "Morphs renamed!")
+        
+        return {'FINISHED'}
+
+
 # End of Utlity Classes
 # Start of Import Classes
 class IMP_OT_FBX(bpy.types.Operator):
@@ -141,12 +173,15 @@ class IMP_OT_FBX(bpy.types.Operator):
         DtbIKBones.ik_access_ban = True
 
         # Instant of classes
-        drb = DazRigBlend.DazRigBlend()
-        dtb_shaders = DtbMaterial.DtbShaders()
-        anim = Animations.Animations()
-        pose = Poses.Posing("FIG")
+        dtu = DataBase.DtuLoader()
+        drb = DazRigBlend.DazRigBlend(dtu)
+        dtb_shaders = DtbMaterial.DtbShaders(dtu)
+        anim = Animations.Animations(dtu)
+        pose = Poses.Posing(dtu)
+        dsk = DtbShapeKeys.DtbShapeKeys(False, dtu)
         db = DataBase.DB()
         self.pbar(5,wm)
+
         anim.reset_total_key_count()
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
@@ -156,11 +191,11 @@ class IMP_OT_FBX(bpy.types.Operator):
         if Global.getAmtr() is not None and Global.getBody() is not None:
 
             # Set Custom Properties
-            Global.getAmtr()["Asset Name"] = Global.get_asset_name()
+            Global.getAmtr()["Asset Name"] = dtu.get_asset_name()
             Global.getAmtr()["Collection"] = Util.cur_col_name()
             reload_dropdowns("choose_daz_figure")
             pose.add_skeleton_data()
-
+            
             Global.deselect() # deselect all the objects
             pose.clear_pose() # Select Armature and clear transform
             drb.mub_ary_A() # Find and read FIG.dat file
@@ -208,7 +243,6 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.deselect()
 
             # Shape keys
-            dsk = DtbShapeKeys.DtbShapeKeys(False)
             dsk.make_drivers()
             Global.deselect()
             self.pbar(60,wm)
@@ -360,3 +394,39 @@ class OPTIMIZE_OT_material(bpy.types.Operator):
         return {'FINISHED'}
 
 # End of Material Classes
+
+
+# Start of Rigify Classes
+
+def clear_pose():
+    if bpy.context.object is None:
+        return
+    if Global.getAmtr() is not None and Versions.get_active_object() == Global.getAmtr():
+        for pb in Global.getAmtr().pose.bones:
+            pb.bone.select = True
+    if Global.getRgfy() is not None and Versions.get_active_object() == Global.getRgfy():
+        for pb in Global.getRgfy().pose.bones:
+            pb.bone.select = True
+    bpy.ops.pose.transforms_clear()
+    bpy.ops.pose.select_all(action='DESELECT')
+
+class TRANS_OT_Rigify(bpy.types.Operator):
+    bl_idname = 'to.rigify'
+    bl_label = 'To Rigify'
+    def invoke(self, context, event):
+        if bpy.data.is_dirty:
+            return context.window_manager.invoke_confirm(self, event)
+        return self.execute(context)
+
+    def execute(self, context):
+        clear_pose()
+        Util.active_object_to_current_collection()
+        dtu = DataBase.DtuLoader()
+        trf = ToRigify.ToRigify(dtu)
+        db = DataBase.DB()
+        DtbIKBones.adjust_shin_y(2, False)
+        DtbIKBones.adjust_shin_y(3, False)
+        trf.toRigify(db, self)
+        return {'FINISHED'}
+
+# End of Rigify Classes

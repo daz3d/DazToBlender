@@ -7,7 +7,10 @@ from . import DataBase
 
 class Animations:
     total_key_count = 0
+    def __init__(self, dtu):
+        self.skeleton_data = dtu.get_skeleton_data_dict()
 
+        
     def update_total_key_count(self,key_count):
         if key_count > self.total_key_count:
             self.total_key_count = key_count
@@ -107,10 +110,10 @@ class Animations:
 
     def get_rotation_order(self, node_name):
         bone_limits = Global.get_bone_limit()
-        for bone_limit in bone_limits:
-            if bone_limit[0] in node_name:
-                return bone_limit[1]
+        if node_name in bone_limits.keys():
+            return bone_limits[node_name][1]
         return "XYZ"
+
 
     def convert_rotation_orders(self):
         Versions.active_object(Global.getAmtr())
@@ -130,11 +133,10 @@ class Animations:
 
 
     def clean_animations(self):
-        poses = Poses.Posing("FIG")
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode('POSE')
         scene_size = Global.get_size()
-        root_scale = float(poses.get_scale())
+        root_scale = float(self.skeleton_data["skeletonScale"][1])
         #Choose Action
         armature = Global.getAmtr()
         action = armature.animation_data.action
@@ -195,13 +197,11 @@ class Animations:
                         fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
 
                     # Get skeleton scale and set to location animation data
-                    skeleton_data = DataBase.get_skeleton_data()
-                    skeleton_scale = skeleton_data["skeletonScale"]
-                    skeleton_scale *= scene_size # To match armature scale
+                    root_scale *= scene_size # To match armature scale
                     for i in range(point_count):
-                        fcurve_x.keyframe_points[i].co[1] *= skeleton_scale 
-                        fcurve_y.keyframe_points[i].co[1] *= skeleton_scale
-                        fcurve_z.keyframe_points[i].co[1] *= skeleton_scale
+                        fcurve_x.keyframe_points[i].co[1] *= root_scale 
+                        fcurve_y.keyframe_points[i].co[1] *= root_scale
+                        fcurve_z.keyframe_points[i].co[1] *= root_scale
 
                     index += 2
 
