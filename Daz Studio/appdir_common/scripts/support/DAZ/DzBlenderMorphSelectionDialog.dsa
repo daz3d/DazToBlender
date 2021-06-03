@@ -64,7 +64,7 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable, nCurrentValue )
+    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable, nCurrentValue, oNode )
     {
         this.name = sName;
         this.label = sLabel;
@@ -77,6 +77,7 @@
         this.max = nMax;
         this.disable = bDisable;
         this.value = nCurrentValue;
+        this.node = oNode;
     };
     
     /*********************************************************************/
@@ -400,7 +401,8 @@
                     oProperty.getMin(),
 					oProperty.getMax(),
                     false,
-                    oProperty.getValue()
+                    oProperty.getValue(),
+                    oNode
                 );
                 
                 if( !( oMorphInfo.name in s_oMorphs ) ){
@@ -439,7 +441,8 @@
                                 oProperty.getMin(),
                                 oProperty.getMax(),
                                 false,
-                                oProperty.getValue()
+                                oProperty.getValue(),
+                                oNode
                             );
                             if( !( oMorphInfo.name in s_oMorphs ) ){
                                 s_oMorphs[oMorphInfo.name] = oMorphInfo;
@@ -1085,22 +1088,12 @@
     function handleGen8_1FaceMorphsButton()
     {
         var aMorphsToAdd = [];
-        aMorphsToAdd.push( "facs_ctrl_BrowUp" );
-        aMorphsToAdd.push( "facs_ctrl_BrowInnerUp" );
-        aMorphsToAdd.push( "facs_ctrl_BrowDown" );
         aMorphsToAdd.push( "facs_bs_BrowOuterUpRight_div2" );
         aMorphsToAdd.push( "facs_bs_BrowOuterUpLeft_div2" );
         aMorphsToAdd.push( "facs_bs_BrowInnerUpRight_div2" );
         aMorphsToAdd.push( "facs_bs_BrowInnerUpLeft_div2" );
         aMorphsToAdd.push( "facs_bs_BrowDownRight_div2" );
         aMorphsToAdd.push( "facs_bs_BrowDownLeft_div2" );
-        aMorphsToAdd.push( "facs_jnt_JawRight" );
-        aMorphsToAdd.push( "facs_jnt_JawRecess" );
-        aMorphsToAdd.push( "facs_jnt_JawOpen" );
-        aMorphsToAdd.push( "facs_jnt_JawLeft" );
-        aMorphsToAdd.push( "facs_jnt_JawForward" );
-        aMorphsToAdd.push( "facs_ctrl_CheekSquint" );
-        aMorphsToAdd.push( "facs_ctrl_CheekPuff" );
         aMorphsToAdd.push( "facs_bs_CheekSquintRight_div2" );
         aMorphsToAdd.push( "facs_bs_CheekSquintLeft_div2" );
         aMorphsToAdd.push( "facs_bs_CheekPuffRight_div2" );
@@ -1113,38 +1106,42 @@
         aMorphsToAdd.push( "facs_jnt_EyeLookDownLeft" );
         aMorphsToAdd.push( "facs_jnt_EyeBlinkRight" );
         aMorphsToAdd.push( "facs_jnt_EyeBlinkLeft" );
-        aMorphsToAdd.push( "facs_ctrl_EyeWide" );
-        aMorphsToAdd.push( "facs_ctrl_EyeSquint" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownLeft" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookUp-Down" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-Side" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookAuto" );
-        aMorphsToAdd.push( "facs_ctrl_EyeBlink" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideLeft" );
+        aMorphsToAdd.push( "facs_cbs_EyeWideRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeWideLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeBlinkRight_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeBlinkLeft_div2" );
         aMorphsToAdd.push( "facs_bs_EyeSquintRight_div2" );
         aMorphsToAdd.push( "facs_bs_EyeSquintLeft_div2" );
         aMorphsToAdd.push( "facs_bs_EyeLookOutRight_div2" );
         aMorphsToAdd.push( "facs_bs_EyeLookOutLeft_div2" );
         aMorphsToAdd.push( "facs_bs_EyeLookInRight_div2" );
         aMorphsToAdd.push( "facs_bs_EyeLookInLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookUpRight_div2" );      
+        aMorphsToAdd.push( "facs_cbs_EyeLookUpLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_EyeLookDownRight_div2" );    
+        aMorphsToAdd.push( "facs_cbs_EyeLookDownLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerRight_div2" );
+        aMorphsToAdd.push( "facs_bs_NoseSneerLeft_div2" );
+        aMorphsToAdd.push( "facs_bs_NasalFlare_div2" );
         aMorphsToAdd.push( "facs_jnt_TongueUp" );
         aMorphsToAdd.push( "facs_jnt_TongueTipBend" );
         aMorphsToAdd.push( "facs_jnt_TongueRight" );
         aMorphsToAdd.push( "facs_jnt_TongueLeft" );
-        aMorphsToAdd.push( "facs_ctrl_MouthUpperUp" );
-        aMorphsToAdd.push( "facs_ctrl_MouthStretch" );
-        aMorphsToAdd.push( "facs_ctrl_MouthPress" );
-        aMorphsToAdd.push( "facs_ctrl_MouthLowerDown" );
-        aMorphsToAdd.push( "facs_ctrl_MouthFrown" );
-        aMorphsToAdd.push( "facs_ctrl_MouthDimple" );
-        aMorphsToAdd.push( "facs_ctrl_MouthSmile" );
         aMorphsToAdd.push( "facs_bs_TongueTipWide" );
         aMorphsToAdd.push( "facs_bs_TongueTipNarrow" );
         aMorphsToAdd.push( "facs_bs_TongueOut" );
         aMorphsToAdd.push( "facs_bs_TongueNarrow" );
         aMorphsToAdd.push( "facs_bs_TongueIn" );
+        aMorphsToAdd.push( "facs_jnt_JawRight" );
+        aMorphsToAdd.push( "facs_jnt_JawRecess" );
+        aMorphsToAdd.push( "facs_jnt_JawOpen" );
+        aMorphsToAdd.push( "facs_jnt_JawLeft" );
+        aMorphsToAdd.push( "facs_jnt_JawForward" );
+        aMorphsToAdd.push( "facs_cbs_JawOpen_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawLeft_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawForward_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawRecess_div2" );
+        aMorphsToAdd.push( "facs_cbs_JawRight_div2" );
         aMorphsToAdd.push( "facs_bs_MouthUpperUpRight_div2" );
         aMorphsToAdd.push( "facs_bs_MouthUpperUpLeft_div2" );
         aMorphsToAdd.push( "facs_bs_MouthStretchRight_div2" );
@@ -1168,10 +1165,7 @@
         aMorphsToAdd.push( "facs_bs_MouthDimpleRight_div2" );
         aMorphsToAdd.push( "facs_bs_MouthDimpleLeft_div2" );
         aMorphsToAdd.push( "facs_bs_MouthClose_div2" );
-        aMorphsToAdd.push( "facs_ctrl_NoseSneer" );
-        aMorphsToAdd.push( "facs_bs_NoseSneerRight_div2" );
-        aMorphsToAdd.push( "facs_bs_NoseSneerLeft_div2" );
-        aMorphsToAdd.push( "facs_bs_NasalFlare_div2" );
+        aMorphsToAdd.push( "facs_cbs_MouthPuckerDetails_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_BOUR_div2" );
         aMorphsToAdd.push( "facs_cbs_BIUR_BOUR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_BOUL_div2" );
@@ -1180,56 +1174,64 @@
         aMorphsToAdd.push( "facs_cbs_BDR_BIUR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_BIUL_div2" );
         aMorphsToAdd.push( "facs_cbs_BDL_BIUL_div2" );
-        aMorphsToAdd.push( "facs_cbs_JawRight_div2" );
-        aMorphsToAdd.push( "facs_cbs_JO_JR_div2" );
-        aMorphsToAdd.push( "facs_cbs_JawRecess_div2" );
-        aMorphsToAdd.push( "facs_cbs_JO_MR_div2" );
-        aMorphsToAdd.push( "facs_cbs_JO_ML_div2" );
-        aMorphsToAdd.push( "facs_cbs_JO_MF_div2" );
-        aMorphsToAdd.push( "facs_cbs_JO_JL_div2" );
-        aMorphsToAdd.push( "facs_cbs_JawOpen_div2" );
-        aMorphsToAdd.push( "facs_cbs_JawLeft_div2" );
-        aMorphsToAdd.push( "facs_cbs_JawForward_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_CSR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_CSL_div2" );
-        aMorphsToAdd.push( "facs_cbs_MP_CPR_div2" );
-        aMorphsToAdd.push( "facs_cbs_MP_CPL_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeWideRight_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeWideLeft_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeLookUpRight_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_ELUR_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeLookUpLeft_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_ELUL_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeLookDownRight_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_ELDR_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeLookDownLeft_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_ELDL_div2" );
-        aMorphsToAdd.push( "facs_cbs_EyeBlinkRight_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_NSR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_ESR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_ELOR_div2" );
         aMorphsToAdd.push( "facs_cbs_EBR_ELIR_div2" );
-        aMorphsToAdd.push( "eCTRLEyesClosedR" );
-        aMorphsToAdd.push( "facs_cbs_EyeBlinkLeft_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_NSL_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_ESL_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_ELOL_div2" );
         aMorphsToAdd.push( "facs_cbs_EBL_ELIL_div2" );
-        aMorphsToAdd.push( "eCTRLEyesClosedL" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookUpRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookUpLeft" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookOutRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookOutLeft" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookInRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookInLeft" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookDownRight" );
-        aMorphsToAdd.push( "facs_ctrl_EyeLookDownLeft" );
+        aMorphsToAdd.push( "facs_cbs_JO_JR_div2" );    
+        aMorphsToAdd.push( "facs_cbs_JO_MR_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_ML_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_MF_div2" );
+        aMorphsToAdd.push( "facs_cbs_JO_JL_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_CPR_div2" );
+        aMorphsToAdd.push( "facs_cbs_MP_CPL_div2" );
         aMorphsToAdd.push( "facs_cbs_MSR_MDR_div2" );
         aMorphsToAdd.push( "facs_cbs_MSL_MDL_div2" );
         aMorphsToAdd.push( "facs_cbs_MP_MF_div2" );
         aMorphsToAdd.push( "facs_cbs_MP_MC_div2" );
-        aMorphsToAdd.push( "facs_cbs_MouthPuckerDetails_div2" );
-
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookUp-DownLeft" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookSide-SideLeft" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookAuto" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookSide-Side" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeBlink" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeWide" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeSquint" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookUp-Down" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookUpRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookUpLeft" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookOutRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookOutLeft" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookInRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookInLeft" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookDownRight" );
+        // aMorphsToAdd.push( "facs_ctrl_EyeLookDownLeft" );
+        // aMorphsToAdd.push( "eCTRLEyesClosedR" );
+        // aMorphsToAdd.push( "eCTRLEyesClosedL" );
+        // aMorphsToAdd.push( "facs_ctrl_BrowDown" );
+        // aMorphsToAdd.push( "facs_ctrl_BrowUp" );
+        // aMorphsToAdd.push( "facs_ctrl_BrowInnerUp" );
+        // aMorphsToAdd.push( "facs_ctrl_CheekSquint" );
+        // aMorphsToAdd.push( "facs_ctrl_CheekPuff" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthLowerDown" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthFrown" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthDimple" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthSmile" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthUpperUp" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthStretch" );
+        // aMorphsToAdd.push( "facs_ctrl_MouthPress" );
+        // aMorphsToAdd.push( "facs_ctrl_NoseSneer" );
         for( var i = 0; i < aMorphsToAdd.length; i++ ){
             sMorphName = aMorphsToAdd[i]
             // Add the list for export

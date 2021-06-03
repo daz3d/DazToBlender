@@ -143,6 +143,8 @@ class DtbShapeKeys:
 
     
     def get_target_expression(self, var_name, morph_link, driver):
+        """ Currently does not support Raw Value/Current Value
+        """
         link_type = morph_link["Type"]
         scalar = str(round(morph_link["Scalar"], 2))
         addend = str(morph_link["Addend"])
@@ -162,8 +164,7 @@ class DtbShapeKeys:
             return "(" + "self.value/" + var_name + "+" + addend + ")"
         elif link_type == 3:
             # ERCMultiply
-            driver.use_self = True
-            return "(" + var_name + "*self.value+" + addend + "if self.value>0 else " + var_name + "+" + addend +")"
+            return "(" + var_name + "+" + addend + ")"
         elif link_type == 4:
             # ERCSubtract
             driver.use_self = True
@@ -202,9 +203,6 @@ class DtbShapeKeys:
         return var_name
 
     def get_morph_link_control_type(self, morph_link):
-        # if morph_link["Type"] == 6:
-        #     # skip links that are 'ERCKeyed' for now
-        #     return 'CONTROL_BY_NONE'
         if morph_link["Bone"] == "None":
             return 'CONTROL_BY_MORPH'
         else:
@@ -337,7 +335,7 @@ class DtbShapeKeys:
             elif link_index > 0:
                 if next_link_type in first_stage:
                     return exp + "+"
-                elif next_link_type in second_stage:
+                elif (next_link_type in second_stage) and (next_index != 1):
                     return exp + ")"
 
         elif (link_type in second_stage) and (link_index > 0):
@@ -348,6 +346,21 @@ class DtbShapeKeys:
             
         else:
             return exp + "+"
+
+    def remove_missing_links(self, morph_links, body_mesh_obj):
+        mesh_name = body_mesh_obj.data.name
+        shape_key = body_mesh_obj.data.shape_keys
+        if shape_key is None:
+            return
+        shape_key_blocks = shape_key.key_blocks
+        updated_morph_links = []
+        for link in morph_links:
+            if shape_key_blocks.get(mesh_name + "__" + link["Property"]):
+                updated_morph_links.append(link)
+            elif link["Bone"] != "None":
+                updated_morph_links.append(link)
+        return updated_morph_links
+
 
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
@@ -389,7 +402,8 @@ class DtbShapeKeys:
             expression = ""
             var_count = 0
             self.reset_var_names()
-            for link_index, morph_link in enumerate(morph_links):
+            updated_morph_links = self.remove_missing_links(morph_links, body_mesh_obj)
+            for link_index, morph_link in enumerate(updated_morph_links):
                 # Determine if the controller is a Bone or other shape key
                 control_type = self.get_morph_link_control_type(morph_link)
                 if control_type == 'CONTROL_BY_NONE':
@@ -419,7 +433,7 @@ class DtbShapeKeys:
                     # Driver script expression max lenght is 255
                     # break when the limit is reached to avoid errors
                     break
-                expression += self.combine_target_expression(exp, morph_links, link_index)
+                expression += self.combine_target_expression(exp, updated_morph_links, link_index)
                     
             # Delete the driver and continue if there are no variables
             if var_count == 0:
@@ -441,6 +455,7 @@ class DtbShapeKeys:
                 expression = expression[1:]
             if expression.endswith("))") and var_count == 1:
                 expression = expression[:-1]
+                
             driver.expression = expression
 
             # Set the Limits for Shapekey    

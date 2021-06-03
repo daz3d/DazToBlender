@@ -29,7 +29,7 @@ BV = Versions.getBV()
 def reload_dropdowns(version):
     if version == "choose_daz_figure":
         w_mgr = bpy.types.WindowManager
-        prop = w_mgr.choose_daz_figure[1]
+        prop = Versions.get_properties(w_mgr.choose_daz_figure)
         for arm in Util.all_armature():
             check = [x for x in prop["items"] if x[0] == arm.name]
             if len(check) == 0:
@@ -59,7 +59,7 @@ class REFRESH_DAZ_FIGURES(bpy.types.Operator):
     
     def execute(self, context):
         w_mgr = bpy.types.WindowManager
-        prop = w_mgr.choose_daz_figure[1]
+        prop = Versions.get_properties(w_mgr.choose_daz_figure)
         check = ["null"]
         for arm in Util.all_armature():
             check = [x for x in prop["items"] if x[0] == arm.name]
@@ -346,7 +346,10 @@ class IMP_OT_POSE(bpy.types.Operator, ImportHelper):
     bl_idname = "import.pose"
     bl_label = "Import Pose"
     bl_options = {'REGISTER', 'UNDO'}
-    filename_ext : ".duf"
+    filename_ext : StringProperty(
+        default=".duf",
+        options={'HIDDEN'},
+    )
     filter_glob : StringProperty(
         default="*.duf",
         options={'HIDDEN'},
