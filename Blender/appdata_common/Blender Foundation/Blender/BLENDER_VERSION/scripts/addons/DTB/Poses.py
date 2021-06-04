@@ -50,8 +50,8 @@ class Posing:
 
     def select_figure(self):
         fig_object_name = bpy.context.window_manager.choose_daz_figure
-        bpy.ops.object.select_all(action='DESELECT')
-        bpy.data.objects[fig_object_name].select_set(True)
+        Global.deselect()
+        bpy.context.view_layer.objects.active = bpy.data.objects[fig_object_name]
         
    
     def add_skeleton_data(self):

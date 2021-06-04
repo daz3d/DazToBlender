@@ -80,7 +80,10 @@ class IMP_OT_dir(bpy.types.Operator, ImportHelper):
             name="input file",
             subtype= 'DIR_PATH'
             )
-    filename_ext : ""#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif"
+    filename_ext : StringProperty(
+            default="",#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif",
+            options={'HIDDEN'},
+            )
     filter_glob :  StringProperty(
             default="",#*.png;*.jpg;*.bmp;*.exr;*.jpeg;*.tif;*.gif",
             options={'HIDDEN'},
@@ -102,7 +105,10 @@ bpy.utils.register_class(IMP_OT_dir)
 class IMP_OT_object(Operator, ImportHelper):
     bl_idname = "imp.object"
     bl_label = "Import Daz G8 Object"
-    filename_ext : ".obj"
+    filename_ext : StringProperty(
+        default=".obj",
+        options={'HIDDEN'},
+    )
     filter_glob : StringProperty(
         default="*.obj",
         options={'HIDDEN'},
@@ -135,7 +141,10 @@ bpy.utils.register_class(IMP_OT_object)
 class IMP_OT_dazG8_pose(Operator, ImportHelper):
     bl_idname = "import_daz_g8.pose"
     bl_label = "Import Daz G8 Pose"
-    filename_ext : ".duf"
+    filename_ext : StringProperty(
+        default=".duf",
+        options={'HIDDEN'},
+    )
     filter_glob : StringProperty(
         default="*.duf",
         options={'HIDDEN'},

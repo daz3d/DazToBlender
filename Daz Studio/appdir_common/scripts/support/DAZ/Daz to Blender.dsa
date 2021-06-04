@@ -6,7 +6,7 @@
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
 	// To be able to use the IDE Input your absolute Path.
-	//s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
+	// s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
 	var s_sToolName = s_sDazBridgeName;
 	var s_sMorphDialog = String( "Dz%1MorphSelectionDialog" ).arg( s_sBridge )
 	s_oFileInfo.deleteLater();
@@ -35,14 +35,16 @@
 		"None" : -1
 	};
 	var s_nExportType = s_oExportTypes.None;
-	
+	var s_aExportableProperties = [];
+
+
 	var s_sRootPath = "";
 	var s_sPresetPath = "";
 	
 	var s_sFbxPath = "";
 	var s_sMorphRules = "";
 	var s_oMorphLinks = {};
-	var s_aMorphNamesToExport = []
+	var s_aMorphNamesToExport = [];
 	var s_oSkeletonData = {};
 	var s_oLimitsData = {};
 	var s_oHeadTailData = {};
@@ -1018,12 +1020,16 @@
 			}
 		}
 	};
-	
 	/*********************************************************************/
 	// Bool : ...
 	// Export Settings Dialog
 	function promptSettings( oNode )
 	{
+		// Get the current style
+        var oStyle = App.getStyle();
+        // Get the general margin
+        var nMargin = oStyle.pixelMetric( "DZ_GeneralMargin" )
+		
 		var wSettingsDialog = new DzBasicDialog();
 		wSettingsDialog.caption = s_sToolName + ": Settings";
 		if( oNode ){
@@ -1033,6 +1039,7 @@
 		var sKey = wSettingsDialog.caption.replace( / /g, "" ) + "Dlg";
 		wSettingsDialog.getWidget().objectName = sKey;
 		
+
 		// SubDivision level radio button group
 		var wSubDivGroup = new DzVButtonGroup( wSettingsDialog );
 		wSubDivGroup.columns = 1;
@@ -1046,25 +1053,35 @@
 		wSubDivGroup.selected = 0;
 		wSettingsDialog.addWidget( wSubDivGroup );
 		
-		// Checkbox to include animation data
-		var wIncludeAnimationsCbx = new DzCheckBox( wSettingsDialog );
-		wIncludeAnimationsCbx.text = "Include animation data";
-		wIncludeAnimationsCbx.checked = true;
-		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
-		
+		// Create Morph Layout
+		var lytMorphs = new DzHButtonGroup( wSettingsDialog );
+        lytMorphs.margin = nMargin;
+        lytMorphs.spacing = nMargin;
+		wSettingsDialog.addWidget( lytMorphs );
 
 		// Checkbox to include morph data
-		var wIncludeMorphsCbx = new DzCheckBox( wSettingsDialog );
+		var wIncludeMorphsCbx = new DzCheckBox( lytMorphs );
 		wIncludeMorphsCbx.text = "Include Morphs";
 		wIncludeMorphsCbx.checked = false;
-		wSettingsDialog.addWidget( wIncludeMorphsCbx );
 
+		// Button to choose morph data
+		var wChooseMorphsBut = new DzPushButton( lytMorphs );
+		wChooseMorphsBut.text = "Choose Morphs";
+		
 		// Checkbox to collect textures at export
 		var wCollectTexturesCbx = new DzCheckBox( wSettingsDialog );
 		wCollectTexturesCbx.text = "Collect Textures";
 		wCollectTexturesCbx.checked = false;
 		wSettingsDialog.addWidget( wCollectTexturesCbx );
 
+		// Checkbox to include animation data
+		var wIncludeAnimationsCbx = new DzCheckBox( wSettingsDialog );
+		wIncludeAnimationsCbx.text = "Include animation data";
+		wIncludeAnimationsCbx.checked = false;
+		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
+
+		// Create Connections
+		wChooseMorphsBut.released.connect( oNode, executeMorphDialog );
 
 		// When user Cancels the dialog
 		if( !wSettingsDialog.exec() ){
@@ -1076,10 +1093,21 @@
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
 		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		s_bCollectTextures = wCollectTexturesCbx.checked;
+
 		// When user Accepts the dialog
 		return true;
 	};
-	
+
+	/*********************************************************************/
+	// Bool : Executes Morph Dialog 
+	function executeMorphDialog()
+	{
+		s_aExportableProperties = executeSubScript(
+			s_sMorphDialog, 
+			[this, s_sPresetPath, s_sDazBridgeName] 
+		);
+	};
+
 	/*********************************************************************/
 	// void : ...
 	// No eyelashes on .OBJ
@@ -1890,6 +1918,7 @@
 		oDtuJson["JointOrientation"] = s_oJointOrientation;
 		oDtuJson["LimitData"] = s_oLimitsData;
 		oDtuJson["PoseData"] = s_oPoseData;
+		oDtuJson["Subdivision"] = s_nSubDivLevel;
 		
 		aFigureMats = writeMaterials( oNode, sDir );
 		oDtuJson["Materials"].push( aFigureMats );
@@ -2099,7 +2128,25 @@
 		}
 		return aControlledMeshes
 	}
+	/*********************************************************************/
 
+	// Array : Find if Morph Exists on Children, Useful for FACS
+	function checkForMorphOnChild( oNode, aControlledMeshes, sMorphName )
+	{
+		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+			oChildNode = oNode.getNodeChild( i );
+			if( oChildNode.inherits( "DzFigure" ) ){
+				oObject = oChildNode.getObject();
+				if( oObject ){
+					oModifer = oObject.findModifier( sMorphName );
+					if( oModifer ){
+						aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
+					}
+				}					
+			}
+		}
+		return aControlledMeshes
+	}
 
 	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
@@ -2162,6 +2209,8 @@
 					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
 				}
 			}
+			// Check for FACs Morphs on Children
+			aControlledMeshes = checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
 
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
@@ -2251,7 +2300,6 @@
 			var oFigure;
 			for( var i = 0; i < s_aFigures.length; i += 1 ){
 				oFigure = s_aFigures[i];
-				
 				for( var j = 0; j < s_aFigures.length; j += 1 ){
 					setVisible( s_aFigures[j], i == j );
 				}
@@ -2266,13 +2314,9 @@
 				
 				// Morph Export
 				if( s_bIncludeMorphs ){
-					aExportableProperties = executeSubScript(
-						s_sMorphDialog, 
-						[oFigure, s_sPresetPath, s_sDazBridgeName] 
-					);
-					s_sMorphRules = getMorphString( aExportableProperties );
-					loadMorphLinks( aExportableProperties, oFigure );
-					disconnectMorphs( aExportableProperties );
+					s_sMorphRules = getMorphString( s_aExportableProperties );
+					loadMorphLinks( s_aExportableProperties, oFigure );
+					disconnectMorphs( s_aExportableProperties );
 				};	
 				// Export Figure
 				loadFigureBoneData( oFigure );
@@ -2286,7 +2330,7 @@
 				restorePose( oFigure );
 				reparentFigure( oFigure );
 				if ( s_bIncludeMorphs ){
-					reconnectMorphs( aExportableProperties );
+					reconnectMorphs( s_aExportableProperties );
 				}
 
 				// Write data
