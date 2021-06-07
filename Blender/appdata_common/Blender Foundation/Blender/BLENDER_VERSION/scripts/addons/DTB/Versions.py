@@ -4,24 +4,10 @@ import math
 from . import Global
 from . import Util
 #BV
-if bpy.app.version == (2, 79, 0):
-    BV = 2.79
-elif bpy.app.version == (2, 80, 0):
-    BV = 2.80
-elif bpy.app.version == (2, 81, 0):
-    BV = 2.81
-elif bpy.app.version == (2, 82, 0):
-    BV = 2.82
-elif bpy.app.version == (2, 83, 0):
-    BV = 2.83
-elif bpy.app.version == (2, 90, 0):
-    BV = 2.90
-elif bpy.app.version == (2, 91, 0):
-    BV = 2.91
-elif bpy.app.version == (2, 92, 0):
-    BV = 2.92
-else:
-    BV = 2.93
+def get_version():
+    return bpy.app.version[0] + (bpy.app.version[1]/100)
+
+BV = get_version()
 
 my_local_language = 'en_US'
 
