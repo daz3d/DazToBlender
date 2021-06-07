@@ -147,14 +147,16 @@ class IMP_OT_FBX(bpy.types.Operator):
         Versions.reverse_language()
         Versions.pivot_active_element_and_center_and_trnormal()
         Global.setRenderSetting(True)
+     
 
     def layGround(self):
-        bpy.context.preferences.inputs.use_mouse_depth_navigate = True
         Util.deleteEmptyDazCollection()
-        bpy.context.scene.render.engine = 'CYCLES'
-        bpy.context.space_data.shading.type = 'SOLID'
-        bpy.context.space_data.shading.color_type = 'OBJECT'
-        bpy.context.space_data.shading.show_shadows = False
+        if bpy.context.window_manager.update_scn_settings:
+            bpy.context.preferences.inputs.use_mouse_depth_navigate = True
+            bpy.context.scene.render.engine = 'CYCLES'
+            bpy.context.space_data.shading.type = 'SOLID'
+            bpy.context.space_data.shading.color_type = 'OBJECT'
+            bpy.context.space_data.shading.show_shadows = False
         Versions.set_english()
         bco = bpy.context.object
         if bco != None and bco.mode != 'OBJECT':
@@ -288,12 +290,15 @@ class IMP_OT_FBX(bpy.types.Operator):
             DtbIKBones.set_scene_settings(anim.total_key_count)
             self.pbar(100,wm)
             DtbIKBones.ik_access_ban = False
+            if bpy.context.window_manager.morph_prefix:
+                bpy.ops.rename.morphs()
             self.report({"INFO"}, "Success")
         else:
             self.show_error()
 
         wm.progress_end()
         DtbIKBones.ik_access_ban = False
+        
 
     def execute(self, context):
         if self.root == "":
@@ -308,6 +313,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.load_asset_name()
             self.import_one(fbx_adr)
         self.finish_obj()
+        
         return {'FINISHED'}
 
     def show_error(self):

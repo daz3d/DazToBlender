@@ -430,7 +430,7 @@ def get_language():
             return 'ho_GE'
         else:
             return 'en_US'
-    elif BV<2.83:
+    elif BV < 2.83:
         if bpy.context.preferences.view.use_international_fonts:
             return 'ho_GE'
         else:

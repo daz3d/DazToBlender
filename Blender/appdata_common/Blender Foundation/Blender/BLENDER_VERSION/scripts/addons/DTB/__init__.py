@@ -301,8 +301,9 @@ def init_props():
     w_mgr.ifk3 = BoolProperty(name="fik3", default=False, update=DtbIKBones.ifk_update3)
     w_mgr.new_morph = BoolProperty(name="_new_morph",default=False)
     w_mgr.skip_isk = BoolProperty(name = "_skip_isk",default = False)
-    w_mgr.update_viewport = BoolProperty(name="update_viewport", description ="Updates the Viewport, Scene Settings, and Camera for your Scale", default=True)
-    w_mgr.quick_heavy = BoolProperty(name="quick_heavy", default=False)
+    w_mgr.update_scn_settings = BoolProperty(name="update_viewport", description ="Updates the Render Engine, Shading Type, and Using Depth Under Mouse", default=True)
+    w_mgr.update_viewport = BoolProperty(name="update_viewport", description ="Updates the Viewport, and Camera for your Scale", default=True)
+    w_mgr.morph_prefix = BoolProperty(name="morph_prefix", default=True)
     w_mgr.combine_materials = BoolProperty(name="combine_materials", default=True)
     w_mgr.add_pose_lib = BoolProperty(name="add_pose_lib", default=True)
     figure_items = [("null" , "Choose Character", "Select which figure you wish to import")]
@@ -331,12 +332,10 @@ def init_props():
 
 
 classes = (
-    
     DtbPanels.DTB_PT_MAIN,
     DtbPanels.DTB_PT_RIGGING,
     DtbPanels.DTB_PT_POSE,
     DtbPanels.DTB_PT_MORPHS,
-    DtbPanels.DTB_PT_MATERIAL,
     DtbPanels.DTB_PT_GENERAL,
     DtbPanels.DTB_PT_COMMANDS,
     DtbPanels.DTB_PT_UTILITIES,
