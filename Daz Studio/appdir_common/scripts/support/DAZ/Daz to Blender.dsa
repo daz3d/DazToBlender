@@ -2233,8 +2233,8 @@
 		var oSlaveControler;
 
 		aControlledMeshes.push(oNode.name + ".Shape");
-		var nControllerCount_l = oMorphProperty.getNumSlaveControllers();
-		for( var j = 0; j < nControllerCount_l; j ++ ){
+		var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+		for( var j = 0; j < nSlaveControllerCount; j ++ ){
 			oSlaveControler = oMorphProperty.getSlaveController( j );
 			oOwnerNode = oSlaveControler.getOwner();
 			if( oOwnerNode ){
@@ -2261,8 +2261,11 @@
 			var oMorphInfo = aExportableProperties[i]
 			var oMorphProperty = oMorphInfo.property;
 			var nControllerCount = oMorphProperty.getNumControllers();
-			var aLinks = []
-			
+			var aLinks = [];
+			var aSubLinks = []
+			var sBoneName;
+			var oOwnerNode;
+
 			// Keep Morphs that are control bone placement 
 			var aControlledMeshes = checkMorphControlsChildren( oNode, oMorphProperty );
 			// Keep for the Children Nodes' Morphs
@@ -2299,7 +2302,7 @@
 					}
 					oLink["Keys"] = oKeys;
 				}
-				var oOwnerNode = oControllerProp.getOwner();
+				oOwnerNode = oControllerProp.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
 					sBoneName = oOwnerNode.name 
 					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
@@ -2308,13 +2311,34 @@
 				aLinks.push( oLink );
 			}
 
-			
+			var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+			for( var j = 0; j < nSlaveControllerCount; j ++ ){
+				var oErcLink = new DzERCLink()
+				oErcLink = oMorphProperty.getSlaveController( j );
+				oOwnerNode = oErcLink.getOwner();
+				if ( oOwnerNode ){
+					oBoneNode = oOwnerNode.getOwner();
+					if( oBoneNode.inherits( "DzBone" ) ){
+						var oLink = {
+							"Bone": oBoneNode.name,
+							"Property": oOwnerNode.name,
+							"Type": oErcLink.type,
+							"Scalar": oErcLink.scalar,
+							"Addend": oErcLink.addend,
+							
+						};
+						aSubLinks.push( oLink );
+					}	
+				}
+					
+			}
 			
 		
 
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
 					"Links": aLinks,
+					"SubLinks" : aSubLinks,
 					"Minimum": oMorphInfo.min,
 					"Maximum": oMorphInfo.max,
 					"isHidden": oMorphInfo.hidden,
