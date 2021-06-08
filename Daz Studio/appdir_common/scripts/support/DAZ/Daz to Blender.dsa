@@ -2263,6 +2263,18 @@
 			var nControllerCount = oMorphProperty.getNumControllers();
 			var aLinks = []
 			
+			// Keep Morphs that are control bone placement 
+			var aControlledMeshes = checkMorphControlsChildren( oNode, oMorphProperty );
+			// Keep for the Children Nodes' Morphs
+			var oMorphInfoNode = oMorphInfo.node;
+			if( oMorphInfoNode != undefined ){
+				if( oMorphInfoNode.name != oNode.name ){
+					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
+				}
+			}
+			// Check if Morph has its own version on Children
+			aControlledMeshes = checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
+			
 			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
 				oErcLink = oMorphProperty.getController( j );
@@ -2290,24 +2302,15 @@
 				var oOwnerNode = oControllerProp.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
 					sBoneName = oOwnerNode.name 
+					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
 					oLink["Bone"] = oOwnerNode.name
 				}
 				aLinks.push( oLink );
 			}
 
-			// Keep Morphs that are control bone placement 
-			var aControlledMeshes = checkMorphControlsChildren( oNode, oMorphProperty );
 			
-			// Keep for the Children Nodes' Morphs
-			var oMorphInfoNode = oMorphInfo.node;
-			if( oMorphInfoNode != undefined ){
-				if( oMorphInfoNode.name != oNode.name ){
-					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
-				}
-			}
-
-			// Check if Morph has its own version on Children
-			aControlledMeshes = checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
+			
+		
 
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
