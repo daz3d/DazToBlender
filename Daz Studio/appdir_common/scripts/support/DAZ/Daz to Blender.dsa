@@ -40,6 +40,7 @@
 
 	var s_sRootPath = "";
 	var s_sPresetPath = "";
+	var s_sConfigJSON = "";
 	
 	var s_sFbxPath = "";
 	var s_sMorphRules = "";
@@ -934,19 +935,21 @@
 		var sDelPath;
 		var oDelDir = new DzDir( "" );
 		
-		var aRoot = ["Documents","DAZ 3D", "Bridges", s_sDazBridgeName, "Presets", "Exports"];
+		var aRoot = ["Documents","DAZ 3D", "Bridges", s_sDazBridgeName] 
+		var aFolders = ["Exports", "Config", "Presets"];
 		var aSubs = [s_sEnv, s_sFig]
 
 		for( var i = 0; i < aRoot.length; i += 1 ){
 			// Create Base Directory
 			
 			sPath = s_sRootPath + aRoot[i] + "/";
-			
-			if( i != 4 ){
-				s_sRootPath = sPath;
-			}
+			s_sRootPath = sPath;
+
 			if ( i == 4 ){
 				s_sPresetPath = sPath;
+			}
+			if ( i == 5 ){
+				sConfigPath = sPath;
 			}
 			// Create Directories
 			oDir.setPath( sPath );
@@ -959,6 +962,30 @@
 				oDir.mkdir( sPath );
 			};
 		};
+		for( var i = 0; i < aFolders.length; i += 1 ){
+			// Create Folders 
+			var sTempPath = sPath + aFolders[i] + "/";
+			if( i == 0 ){
+				s_sRootPath = sTempPath;
+				
+			}
+			if( i == 1 ){
+				sConfigPath = sTempPath;
+			}
+			if( i == 2 ){
+				s_sPresetPath = sTempPath;
+			}
+			// Create Directories
+			oDir.setPath( sTempPath );
+			if( !oDir.exists() ){
+				if( i == 0 ){
+					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sTempPath ), 
+											qsTr( "Your Export Path" ), 
+											qsTr( "&Continue" ) );
+				}
+				oDir.mkdir( sTempPath );
+			}
+		}
 
 		// Create Type Directories
 		if(nType == s_oExportTypes.EnvProp ){
@@ -976,6 +1003,8 @@
 			oDir.mkdir( sPath );
 		};
 		
+		// Find Users Daz Content Paths
+		findUsersContent( sConfigPath );
 		var aDirs = []
 		// Delete Files
 		aFiles = oDir.getFilesFromDir( [], true );
@@ -1001,7 +1030,31 @@
 			}	
 		};
 	};
-	
+	/*********************************************************************/
+	// void : ...
+	function findUsersContent( sConfigPath ){
+		var oContentMgr = App.getContentMgr();
+		var nContentDirCount = oContentMgr.getNumContentDirectories();
+		var aContentDir = [];
+		for(var i=0; i < nContentDirCount; i++){
+			var sContentDirPath = oContentMgr.getContentDirectoryPath( i );
+			aContentDir.push( sContentDirPath )
+		}
+		writeContentPath( sConfigPath, aContentDir )
+	}
+	/*********************************************************************/
+	// void : ...
+	function writeContentPath( sConfigPath, aContentDir ){
+		var sDazPath = sConfigPath + "daz_paths.json";
+		var oDazFile = new DzFile( sDazPath );
+		var oDazJson = {};
+		oDazJson["Content Directories"] = aContentDir;
+		oDazFile.open( DzFile.WriteOnly );
+		oDazFile.write( JSON.stringify( oDazJson, null, 4 ) );
+		oDazFile.close();
+
+	}
+
 	/*********************************************************************/
 	// void : ...
 	// TODO : refactor - efficiency
