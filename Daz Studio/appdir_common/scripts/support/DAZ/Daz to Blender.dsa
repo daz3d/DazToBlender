@@ -40,6 +40,7 @@
 
 	var s_sRootPath = "";
 	var s_sPresetPath = "";
+	var s_sConfigJSON = "";
 	
 	var s_sFbxPath = "";
 	var s_sMorphRules = "";
@@ -934,19 +935,21 @@
 		var sDelPath;
 		var oDelDir = new DzDir( "" );
 		
-		var aRoot = ["Documents","DAZ 3D", "Bridges", s_sDazBridgeName, "Presets", "Exports"];
+		var aRoot = ["Documents","DAZ 3D", "Bridges", s_sDazBridgeName] 
+		var aFolders = ["Exports", "Config", "Presets"];
 		var aSubs = [s_sEnv, s_sFig]
 
 		for( var i = 0; i < aRoot.length; i += 1 ){
 			// Create Base Directory
 			
 			sPath = s_sRootPath + aRoot[i] + "/";
-			
-			if( i != 4 ){
-				s_sRootPath = sPath;
-			}
+			s_sRootPath = sPath;
+
 			if ( i == 4 ){
 				s_sPresetPath = sPath;
+			}
+			if ( i == 5 ){
+				sConfigPath = sPath;
 			}
 			// Create Directories
 			oDir.setPath( sPath );
@@ -959,6 +962,30 @@
 				oDir.mkdir( sPath );
 			};
 		};
+		for( var i = 0; i < aFolders.length; i += 1 ){
+			// Create Folders 
+			var sTempPath = sPath + aFolders[i] + "/";
+			if( i == 0 ){
+				s_sRootPath = sTempPath;
+				
+			}
+			if( i == 1 ){
+				sConfigPath = sTempPath;
+			}
+			if( i == 2 ){
+				s_sPresetPath = sTempPath;
+			}
+			// Create Directories
+			oDir.setPath( sTempPath );
+			if( !oDir.exists() ){
+				if( i == 0 ){
+					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sTempPath ), 
+											qsTr( "Your Export Path" ), 
+											qsTr( "&Continue" ) );
+				}
+				oDir.mkdir( sTempPath );
+			}
+		}
 
 		// Create Type Directories
 		if(nType == s_oExportTypes.EnvProp ){
@@ -976,6 +1003,8 @@
 			oDir.mkdir( sPath );
 		};
 		
+		// Find Users Daz Content Paths
+		findUsersContent( sConfigPath );
 		var aDirs = []
 		// Delete Files
 		aFiles = oDir.getFilesFromDir( [], true );
@@ -1001,7 +1030,31 @@
 			}	
 		};
 	};
-	
+	/*********************************************************************/
+	// void : ...
+	function findUsersContent( sConfigPath ){
+		var oContentMgr = App.getContentMgr();
+		var nContentDirCount = oContentMgr.getNumContentDirectories();
+		var aContentDir = [];
+		for(var i=0; i < nContentDirCount; i++){
+			var sContentDirPath = oContentMgr.getContentDirectoryPath( i );
+			aContentDir.push( sContentDirPath )
+		}
+		writeContentPath( sConfigPath, aContentDir )
+	}
+	/*********************************************************************/
+	// void : ...
+	function writeContentPath( sConfigPath, aContentDir ){
+		var sDazPath = sConfigPath + "daz_paths.json";
+		var oDazFile = new DzFile( sDazPath );
+		var oDazJson = {};
+		oDazJson["Content Directories"] = aContentDir;
+		oDazFile.open( DzFile.WriteOnly );
+		oDazFile.write( JSON.stringify( oDazJson, null, 4 ) );
+		oDazFile.close();
+
+	}
+
 	/*********************************************************************/
 	// void : ...
 	// TODO : refactor - efficiency
@@ -2111,25 +2164,6 @@
 	};
 
 	/*********************************************************************/
-	// Array : Find if Bone Exists on Children Objects
-	// Should be replaced with checking vertices directly
-	function checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
-	{
-		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
-			oChildNode = oNode.getNodeChild( i );
-			if( oChildNode.inherits( "DzFigure" ) ){
-				oSkeleton = oChildNode.getSkeleton();
-				oChildBone = oSkeleton.findBone( sBoneName );
-				if( !oChildBone ){
-					continue
-				}
-				aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
-			}
-		}
-		return aControlledMeshes
-	}
-	/*********************************************************************/
-
 	// Array : Find if Morph Exists on Children, Useful for FACS
 	function checkForMorphOnChild( oNode, aControlledMeshes, sMorphName )
 	{
@@ -2142,11 +2176,81 @@
 					if( oModifer ){
 						aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
 					}
-				}					
+				}
+			}
+		}
+		return aControlledMeshes
+
+	}
+	/*********************************************************************/
+	// Array : Find if Bone Exists on Children Objects
+	// Check if Bone has skin weights on object
+	function checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
+	{
+		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+			oChildNode = oNode.getNodeChild( i );
+			if( oChildNode.inherits( "DzFigure" ) ){
+				oSkeleton = oChildNode.getSkeleton();
+				oChildBone = oSkeleton.findBone( sBoneName );
+				if( !oChildBone ){
+					continue
+				}
+				// get the weight map Handler
+				var oWeightMapHandler = oSkeleton.getWeightMapHandler();
+				var oSkinBinding= oWeightMapHandler.getSkinBinding();	
+				var oBoneBinding = oSkinBinding.findBoneBinding( sBoneName );    
+				if( oBoneBinding ){
+					aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
+				}
+			}
+		}
+		return aControlledMeshes
+	};
+
+	/*********************************************************************/
+	// Array : Check the alias of the morph to find the bone
+	function checkForBoneInAlias( oNode, oMorphProperty, aControlledMeshes )
+	{
+		for( var l = 0; l < oMorphProperty.getNumAliases(); l++ ){
+			var oAlias = oMorphProperty.getAlias( l );
+			var oBone = oAlias.getOwner();
+			var sBoneName;
+			if( oBone.inherits("DzBone") ){
+				sBoneName = oBone.name;
+				aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
 			}
 		}
 		return aControlledMeshes
 	}
+	
+	/*********************************************************************/
+	// Array : Check the bone being controled by the morphs
+	function checkMorphControlsChildren( oNode, oMorphProperty )
+	{
+		var aControlledMeshes = [];
+		var sBoneName;
+		var oOwnerNode;
+		var oSlaveControler;
+
+		aControlledMeshes.push(oNode.name + ".Shape");
+		var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+		for( var j = 0; j < nSlaveControllerCount; j ++ ){
+			oSlaveControler = oMorphProperty.getSlaveController( j );
+			oOwnerNode = oSlaveControler.getOwner();
+			if( oOwnerNode ){
+				oOwnerNode = oOwnerNode.getOwner();
+				if( oOwnerNode.inherits( "DzBone" ) ){
+					sBoneName = oOwnerNode.name;
+					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+					break
+				}	
+			}		
+		}
+		if( !sBoneName ){
+			aControlledMeshes = checkForBoneInAlias( oNode, oMorphProperty, aControlledMeshes )
+		}	
+		return aControlledMeshes
+	};
 
 	/*********************************************************************/
 	// Void : Load morph links that are directly controlled by skeleton bones
@@ -2157,9 +2261,23 @@
 			var oMorphInfo = aExportableProperties[i]
 			var oMorphProperty = oMorphInfo.property;
 			var nControllerCount = oMorphProperty.getNumControllers();
-			var aLinks = []
-			var aControlledMeshes = []
-			aControlledMeshes.push(oNode.name + ".Shape")
+			var aLinks = [];
+			var aSubLinks = []
+			var sBoneName;
+			var oOwnerNode;
+
+			// Keep Morphs that are control bone placement 
+			var aControlledMeshes = checkMorphControlsChildren( oNode, oMorphProperty );
+			// Keep for the Children Nodes' Morphs
+			var oMorphInfoNode = oMorphInfo.node;
+			if( oMorphInfoNode != undefined ){
+				if( oMorphInfoNode.name != oNode.name ){
+					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
+				}
+			}
+			// Check if Morph has its own version on Children
+			aControlledMeshes = checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
+			
 			for( var j = 0; j < nControllerCount; j += 1 ){
 				var oErcLink = new DzERCLink();
 				oErcLink = oMorphProperty.getController( j );
@@ -2184,37 +2302,43 @@
 					}
 					oLink["Keys"] = oKeys;
 				}
-				var oOwnerNode = oControllerProp.getOwner();
+				oOwnerNode = oControllerProp.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
 					sBoneName = oOwnerNode.name 
-					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
 					oLink["Bone"] = oOwnerNode.name
 				}
 				aLinks.push( oLink );
 			}
 
-			// Checks for Alias to Find where Morph Attaches too. 
-			for( var l = 0; l < oMorphProperty.getNumAliases(); l++ ){
-				var oAlias = oMorphProperty.getAlias( l );
-				var oBone = oAlias.getOwner();
-				if( oBone.inherits("DzBone") ){
-					sBoneName = oBone.name;
-					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+			var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+			for( var j = 0; j < nSlaveControllerCount; j ++ ){
+				var oErcLink = new DzERCLink()
+				oErcLink = oMorphProperty.getSlaveController( j );
+				oOwnerNode = oErcLink.getOwner();
+				if ( oOwnerNode ){
+					oBoneNode = oOwnerNode.getOwner();
+					if( oBoneNode.inherits( "DzBone" ) ){
+						var oLink = {
+							"Bone": oBoneNode.name,
+							"Property": oOwnerNode.name,
+							"Type": oErcLink.type,
+							"Scalar": oErcLink.scalar,
+							"Addend": oErcLink.addend,
+							
+						};
+						aSubLinks.push( oLink );
+					}	
 				}
+					
 			}
-			// Keep for the Children Nodes' Morphs
-			var oMorphInfoNode = oMorphInfo.node;
-			if( oMorphInfoNode != undefined ){
-				if( oMorphInfoNode.name != oNode.name ){
-					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
-				}
-			}
-			// Check for FACs Morphs on Children
-			aControlledMeshes = checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
+			
+		
 
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
 					"Links": aLinks,
+					"SubLinks" : aSubLinks,
 					"Minimum": oMorphInfo.min,
 					"Maximum": oMorphInfo.max,
 					"isHidden": oMorphInfo.hidden,

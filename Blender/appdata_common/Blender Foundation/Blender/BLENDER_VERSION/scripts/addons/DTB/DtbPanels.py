@@ -100,7 +100,6 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                     
                 l.separator()
        
-        # l.operator('df.optimize', icon="MATERIAL")
 class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_rigging_daz"
     bl_label = "Rigging Tools"
@@ -172,21 +171,23 @@ class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):
         
 class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_general_daz"
-    bl_label = "General Settings"
+    bl_label = "Import Settings"
     bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         l = self.layout
         box = l.box()
         w_mgr = context.window_manager
-        row = box.row(align=True)
-        row.prop(w_mgr, "quick_heavy", text="Quick But Heavy", toggle=False)
+        col = box.column(align=True, heading="Material Settings")
+        col.prop(w_mgr, "combine_materials", text="Combine Dupe Materials", toggle=False)
         box = l.box()
-        col = box.column(align=True)
-        col.prop(w_mgr, "update_viewport", text="Update Viewport and Units", toggle=False)
+        col = box.column(align=True, heading="Morph Settings")
+        col.prop(w_mgr, "morph_prefix", text="Remove Morph Prefix", toggle=False)
+        box = l.box()
+        col = box.column(align=True, heading="Scenes Settings")
+        col.prop(w_mgr, "update_scn_settings", text="Update Viewport Shading", toggle=False)
+        col.prop(w_mgr, "update_viewport", text="Update Camera and Units", toggle=False)
         col.prop(w_mgr, "scene_scale", text = "")       
-        l.operator('refresh.alldaz', icon='BOIDS')
-        l.operator('remove.alldaz', icon='BOIDS')
         
 
 class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
@@ -246,6 +247,9 @@ class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
         row.prop(w_mgr, "choose_daz_figure", text = "")
         row.operator('refresh.alldaz', text = "" ,icon='FILE_REFRESH')
         box.operator("rename.morphs", icon = "OUTLINER_DATA_MESH")
+        l.operator('refresh.alldaz', icon='BOIDS')
+        l.operator('remove.alldaz', icon='BOIDS')
+        
 
 class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_info_daz"

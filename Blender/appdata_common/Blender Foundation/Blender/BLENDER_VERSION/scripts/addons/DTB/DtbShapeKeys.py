@@ -252,6 +252,51 @@ class DtbShapeKeys:
         # Read all the morph links from the DTU
         return self.morph_links_dict
     
+    def add_main_control(self, 
+                         key_block, 
+                         mesh_obj, 
+                         morph_label, 
+                         shape_key_min, 
+                         shape_key_max, 
+                         driver):
+        # Skip Basis shape key
+        if key_block.name == "Basis":
+            return
+
+        # Create a custom property and set limits
+        mesh_obj[morph_label] = 0.0
+        rna_ui = mesh_obj.get('_RNA_UI')
+        if rna_ui is None:
+            mesh_obj['_RNA_UI'] = {}
+            rna_ui = mesh_obj.get('_RNA_UI')
+        rna_ui[morph_label] = {
+                                    "min": shape_key_min,
+                                    "max": shape_key_max,
+                                    "soft_min": shape_key_min,
+                                    "soft_max": shape_key_max
+                                }
+
+        # Add variable
+        link_var = driver.variables.new()
+        link_var.name = self.get_next_var_name()
+        link_var.type = 'SINGLE_PROP'
+
+        # Set variable target
+        target = link_var.targets[0]
+        target.id_type = 'OBJECT'
+        target.id = mesh_obj
+        rna_data_path = "[\"" + morph_label + "\"]"
+        target.data_path = rna_data_path
+
+        # Set the Limits for Shapekey    
+        key_block.slider_min = shape_key_min
+        key_block.slider_max = shape_key_max
+        
+        # Add to the Global list, so it can be used in the Daz To Blender Panel
+        Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
+
+        return "(" + link_var.name + "*1)"
+
     def add_custom_shape_key_prop(self, key_block, mesh_obj, morph_label, shape_key_min, shape_key_max):
         # Skip Basis shape key
         if key_block.name == "Basis":
@@ -339,8 +384,9 @@ class DtbShapeKeys:
                     return exp + ")"
 
         elif (link_type in second_stage) and (link_index > 0):
-                return "*" + exp
-        
+            return "*" + exp
+        elif (link_type in second_stage) and (link_index == 0):
+            return "0 *" + exp
         elif (next_index == len(morph_links)) and (len(morph_links) > 1):
             return exp + ")"
             
@@ -380,9 +426,12 @@ class DtbShapeKeys:
             
             morph_label = morph_links_list[key_name]["Label"]
             morph_links = morph_links_list[key_name]["Links"]
+            morph_hidden = morph_links_list[key_name]["isHidden"]
+            
             shape_key_min = float(morph_links_list[key_name]["Minimum"])
             shape_key_max = float(morph_links_list[key_name]["Maximum"])
             
+
             # If morph_links is empty add a custom property
             if not morph_links:
                 # Create custom property for this shape key and drive it
@@ -434,7 +483,26 @@ class DtbShapeKeys:
                     # break when the limit is reached to avoid errors
                     break
                 expression += self.combine_target_expression(exp, updated_morph_links, link_index)
-                    
+            
+            # Trim the extra chars
+            if expression.endswith("+"):
+                expression = expression[:-1]
+            if expression.startswith("*"):
+                expression = expression[1:]
+            if expression.endswith("))") and var_count == 1:
+                expression = expression[:-1]
+            
+            if not morph_hidden:
+                expression = "(" + expression + ") +" 
+                expression += self.add_main_control(
+                                        key_block,
+                                        body_mesh_obj,
+                                        morph_label,
+                                        shape_key_min,
+                                        shape_key_max,
+                                        driver
+                                    )
+
             # Delete the driver and continue if there are no variables
             if var_count == 0:
                 key_block.driver_remove("value")
@@ -447,14 +515,6 @@ class DtbShapeKeys:
                                                 shape_key_max
                                             )
                 continue
-            
-            # Trim the extra chars
-            if expression.endswith("+"):
-                expression = expression[:-1]
-            if expression.startswith("*"):
-                expression = expression[1:]
-            if expression.endswith("))") and var_count == 1:
-                expression = expression[:-1]
                 
             driver.expression = expression
 
@@ -463,6 +523,7 @@ class DtbShapeKeys:
             key_block.slider_max = shape_key_max
 
     def make_other_mesh_drivers(self, other_mesh_obj, body_mesh_obj):
+        other_mesh_name_shape = other_mesh_obj.name
         other_mesh_name = other_mesh_obj.data.name
         body_mesh_name = body_mesh_obj.data.name
 
@@ -482,6 +543,20 @@ class DtbShapeKeys:
         for other_block in other_key_blocks:
             other_key_name = other_block.name[len(other_mesh_name + "__"):]
             if not other_key_name:
+                continue
+
+            # Continue if other_key_name not found in morph_links_list
+            if other_key_name not in morph_links_list:
+                other_mesh_obj.shape_key_remove(other_block)
+                continue
+
+            morph_label = morph_links_list[other_key_name]["Label"]
+            morph_links = morph_links_list[other_key_name]["Links"]
+            shape_key_min = float(morph_links_list[other_key_name]["Minimum"])
+            shape_key_max = float(morph_links_list[other_key_name]["Maximum"])
+            controled_meshes = morph_links_list[other_key_name]["Controlled Meshes"]
+            if other_mesh_name_shape not in controled_meshes:
+                other_mesh_obj.shape_key_remove(other_block)
                 continue
 
             body_key_name = self.get_control_shape_key(
@@ -507,14 +582,7 @@ class DtbShapeKeys:
                 rna_data_path = "key_blocks[\"" + block_id + "\"].value"
                 target.data_path = rna_data_path
             else:
-                # Continue if other_key_name not found in morph_links_list
-                if other_key_name not in morph_links_list:
-                    continue
-
-                morph_label = morph_links_list[other_key_name]["Label"]
-                morph_links = morph_links_list[other_key_name]["Links"]
-                shape_key_min = float(morph_links_list[other_key_name]["Minimum"])
-                shape_key_max = float(morph_links_list[other_key_name]["Maximum"])
+                
 
                 # If morph_links is empty add a custom property
                 if not morph_links:
