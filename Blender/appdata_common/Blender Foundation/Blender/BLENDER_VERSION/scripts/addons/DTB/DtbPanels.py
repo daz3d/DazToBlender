@@ -71,7 +71,7 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                         and len(cobj.vertex_groups) < 500 and len(cobj.data.vertices) < 321309:
                     Global.clear_variables()
                     Global.find_Both(cobj)
-
+                
             if Global.amIBody(context.object):
                 col = l.column(align=True)
                 box = col.box()
@@ -97,13 +97,13 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                     row.operator('to.sculpt', icon="MONKEY")
                     if DtbIKBones.obj_exsported != "":
                         l.label(text=DtbIKBones.obj_exsported)
-
+                    
                 l.separator()
-
+       
 class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_rigging_daz"
     bl_label = "Rigging Tools"
-
+    
     def draw(self, context):
         l = self.layout
         w_mgr = context.window_manager
@@ -138,10 +138,10 @@ class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
                     else:
                         l.prop(w_mgr, "br_onoff_prop", text="Limit Bone Rotation", toggle=True)
 
-class DTB_PT_POSE(View3DPanel, bpy.types.Panel):
+class DTB_PT_POSE(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_pose_daz"
     bl_label = "Pose Tools"
-
+    
     def draw(self, context):
         l = self.layout
         box = l.box()
@@ -155,7 +155,7 @@ class DTB_PT_POSE(View3DPanel, bpy.types.Panel):
         row = box.row(align=True)
         row.prop(w_mgr, "add_pose_lib", text="Add to Pose Library", toggle=False)
 
-class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):
+class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_material_daz"
     bl_label = "Material Settings"
     bl_options = {"DEFAULT_CLOSED"}
@@ -167,9 +167,9 @@ class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):
         box.label(text = "Import Settings")
         row = box.row(align=True)
         row.prop(w_mgr, "combine_materials", text="Combine Dupe Materials", toggle=False)
-
-
-class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
+        
+        
+class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):        
     bl_idname = "VIEW3D_PT_general_daz"
     bl_label = "Import Settings"
     bl_options = {"DEFAULT_CLOSED"}
@@ -187,8 +187,8 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
         col = box.column(align=True, heading="Scenes Settings")
         col.prop(w_mgr, "update_scn_settings", text="Update Viewport Shading", toggle=False)
         col.prop(w_mgr, "update_viewport", text="Update Camera and Units", toggle=False)
-        col.prop(w_mgr, "scene_scale", text = "")
-
+        col.prop(w_mgr, "scene_scale", text = "")       
+        
 
 class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_commands_daz"
@@ -214,21 +214,21 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_morphs_daz"
     bl_label = "Morphs List"
 
-
+    
     def draw(self, context):
         layout = self.layout
         w_mgr = context.window_manager
-
+        
         # WORKAROUND: Manually reload morphs from custom properties
         col = layout.column(align=True)
         col.operator("morphs.reload", text="Reload Morphs", icon="SHAPEKEY_DATA")
-
+        
         row = layout.row(align=True)
         row.alignment = 'EXPAND'
         row.prop(w_mgr, "search_morph_list")
         morph_filter = w_mgr.search_morph_list
         morph_custom_props = Global.get_shape_key_custom_props()
-
+        
         if len(morph_custom_props) == 0:
             return
         # For each mesh shape add custom shape key properties if any
@@ -258,7 +258,7 @@ class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
         box.operator("rename.morphs", icon = "OUTLINER_DATA_MESH")
         l.operator('refresh.alldaz', icon='BOIDS')
         l.operator('remove.alldaz', icon='BOIDS')
-
+        
 
 class DTB_PT_MORE_INFO(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_info_daz"

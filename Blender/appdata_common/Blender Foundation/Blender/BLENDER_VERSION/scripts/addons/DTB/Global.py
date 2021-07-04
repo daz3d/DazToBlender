@@ -73,13 +73,13 @@ def load_shape_key_custom_props(mesh_name, property_name):
 
 # WORKAROUND: Manually reload morphs from custom properties
 def reload_shape_key_custom_props():
-    shape_key_custom_props.clear()
     obj = bpy.context.active_object
     for prop in obj.keys():
         load_shape_key_custom_props(obj.name, prop)
 
 
 def get_shape_key_custom_props():
+    print("B :" + str(len(shape_key_custom_props)))
     return shape_key_custom_props
 
 def getMyMax3():
@@ -412,6 +412,7 @@ def getEnvRoot():
         return Util.allobjs().get(_ENVROOT)
 
 def decide_HERO():
+    print("CLEAR")
     global _AMTR
     global _RGFY
     global _BODY
@@ -633,7 +634,7 @@ def clear_variables():
     _BVCount  = 0
     now_ary = []
     pst_ary = []
-    shape_key_custom_props = []
+    # shape_key_custom_props = []
     #for scene in bpy.data.scenes:
     #    scene.unit_settings.scale_length = 1
     
