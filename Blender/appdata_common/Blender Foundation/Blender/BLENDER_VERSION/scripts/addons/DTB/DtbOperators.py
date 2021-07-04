@@ -128,6 +128,24 @@ class RENAME_MORPHS(bpy.types.Operator):
         
         return {'FINISHED'}
 
+        
+# WORKAROUND: Manually reload morphs from custom properties
+class RELOAD_SHAPE_KEY_CUSTOM_PROPS(bpy.types.Operator):
+    bl_idname = "morphs.reload"
+    bl_label = "Reload shape key custom props"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return bpy.context.active_object
+
+    def execute(self, context):
+        Global.reload_shape_key_custom_props()
+        return {'FINISHED'}
+
+        
+
+
 
 # End of Utlity Classes
 # Start of Import Classes

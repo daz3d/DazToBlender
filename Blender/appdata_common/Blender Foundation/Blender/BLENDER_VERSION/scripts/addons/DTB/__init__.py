@@ -348,6 +348,7 @@ classes = (
     DtbOperators.RENAME_MORPHS,
     DtbOperators.REMOVE_DAZ_OT_button,
     DtbOperators.OPTIMIZE_OT_material,
+    DtbOperators.RELOAD_SHAPE_KEY_CUSTOM_PROPS,
     DtbCommands.SEARCH_OT_Commands,
     IK2FK_OT_button,
     FK2IK_OT_button,

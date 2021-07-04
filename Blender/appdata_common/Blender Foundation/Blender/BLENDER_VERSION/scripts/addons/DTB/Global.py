@@ -70,6 +70,15 @@ def load_shape_key_custom_props(mesh_name, property_name):
                             }
     shape_key_custom_props.append(shape_key_custom_prop)
 
+
+# WORKAROUND: Manually reload morphs from custom properties
+def reload_shape_key_custom_props():
+    shape_key_custom_props.clear()
+    obj = bpy.context.active_object
+    for prop in obj.keys():
+        load_shape_key_custom_props(obj.name, prop)
+
+
 def get_shape_key_custom_props():
     return shape_key_custom_props
 
