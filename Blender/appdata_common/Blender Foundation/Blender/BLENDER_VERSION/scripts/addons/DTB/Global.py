@@ -79,7 +79,6 @@ def reload_shape_key_custom_props():
 
 
 def get_shape_key_custom_props():
-    print("B :" + str(len(shape_key_custom_props)))
     return shape_key_custom_props
 
 def getMyMax3():

@@ -234,7 +234,7 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
         # For each mesh shape add custom shape key properties if any
         for custom_prop in reversed(morph_custom_props):
             mesh_name = custom_prop["mesh"]
-            if mesh_name not in bpy.data.objects:
+            if mesh_name != bpy.context.active_object.name:
                 continue
             mesh_obj = bpy.data.objects[mesh_name]
             layout.label(text=mesh_name)
