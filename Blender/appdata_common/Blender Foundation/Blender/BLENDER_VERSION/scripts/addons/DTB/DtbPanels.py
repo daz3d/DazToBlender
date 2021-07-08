@@ -240,7 +240,7 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
             layout.label(text=mesh_name)
             for morph_prop_name in reversed(custom_prop["props"]):
                 if len(morph_filter) == 0 or morph_filter.lower() in morph_prop_name.lower() or morph_filter == "Type Keyword Here":
-                    layout.prop(mesh_obj, '["' + morph_prop_name + '"]')
+                    layout.prop(mesh_obj, '["' + morph_prop_name + '"]', slider=True)
 
 
 class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
