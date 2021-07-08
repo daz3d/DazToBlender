@@ -411,7 +411,6 @@ def getEnvRoot():
         return Util.allobjs().get(_ENVROOT)
 
 def decide_HERO():
-    print("CLEAR")
     global _AMTR
     global _RGFY
     global _BODY
