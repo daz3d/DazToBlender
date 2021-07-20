@@ -722,7 +722,7 @@
 		var vecPos;
 		var quatRot;
 		var mtxScale;
-		
+		s_oPoseData = {}
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sObjectType = getObjectType( oNode );
@@ -730,10 +730,10 @@
 			quatRot = oNode.getLocalRot();
 			mtxScale = oNode.getLocalScale();
 			oParent = oNode.getNodeParent();
-			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			sLabel = oNode.getLabel();	
 			sName = oNode.name;		
 			oName = s_oPoseData[sName] = {};
+			s_aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
 			oName["Name"] = sName;
 			oName["Label"] = sLabel;
 			oName["Object Type"] = sObjectType;
@@ -758,6 +758,7 @@
 				mtxScale.m22,
 				mtxScale.m33
 			];	
+			
 		}
 	
 		

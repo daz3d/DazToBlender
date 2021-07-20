@@ -214,9 +214,14 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
     bl_label = "Morphs List"
 
     def draw(self, context):
-        layout = self.layout
+        l = self.layout
         w_mgr = context.window_manager
-        row = layout.row(align=True)
+        box = l.box()
+        row = box.row(align=True)
+        row.alignment = 'EXPAND'
+        row.prop(w_mgr, "choose_daz_figure", text = "")
+        row.operator('refresh.alldaz', text = "" ,icon='FILE_REFRESH')
+        row = box.row(align=True)
         row.alignment = 'EXPAND'
         row.prop(w_mgr, "search_morph_list")
         morph_filter = w_mgr.search_morph_list
@@ -229,10 +234,10 @@ class DTB_PT_MORPHS(View3DPanel, bpy.types.Panel):
             if mesh_name not in bpy.data.objects:
                 continue
             mesh_obj = bpy.data.objects[mesh_name]
-            layout.label(text=mesh_name)
+            l.label(text=mesh_name)
             for morph_prop_name in reversed(custom_prop["props"]):
                 if len(morph_filter) == 0 or morph_filter.lower() in morph_prop_name.lower() or morph_filter == "Type Keyword Here":
-                    layout.prop(mesh_obj, '["' + morph_prop_name + '"]')
+                    l.prop(mesh_obj, '["' + morph_prop_name + '"]', slider = True)
 
 class DTB_PT_UTILITIES(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_utilities_daz"

@@ -108,7 +108,7 @@ class RENAME_MORPHS(bpy.types.Operator):
         if fig_object_name == "null":
             selected_objects.append(bpy.context.object)
         else:
-            selected_objects = Global.getChildren(bpy.data.objects[fig_object_name])
+            selected_objects = Global.get_children(bpy.data.objects[fig_object_name])
 
         for selected_object in selected_objects:
             

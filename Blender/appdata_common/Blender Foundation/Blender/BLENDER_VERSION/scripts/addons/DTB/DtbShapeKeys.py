@@ -24,6 +24,7 @@ class DtbShapeKeys:
         self.morph_links_dict = dtu.get_morph_links_dict()
     def make_drivers(self):
         body_obj = Global.getBody()
+        print(body_obj)
         for dobj in Util.myccobjs():
             if Global.isRiggedObject(dobj):
                 self.make_driver(dobj, body_obj)
@@ -293,7 +294,7 @@ class DtbShapeKeys:
         key_block.slider_max = shape_key_max
         
         # Add to the Global list, so it can be used in the Daz To Blender Panel
-        Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
+        # Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
 
         return "(" + link_var.name + "*1)"
 
@@ -336,7 +337,7 @@ class DtbShapeKeys:
         key_block.slider_max = shape_key_max
         
         # Add to the Global list, so it can be used in the Daz To Blender Panel
-        Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
+        # Global.load_shape_key_custom_props(mesh_obj.name, morph_label)
 
     def get_control_shape_key(self, key_name, body_mesh_name, body_key_blocks):
         # Get the body_block that matches the given key_name
@@ -410,6 +411,9 @@ class DtbShapeKeys:
 
     def make_body_mesh_drivers(self, body_mesh_obj):
         mesh_name = body_mesh_obj.data.name
+        if len(mesh_name.split(".")) == 2:
+            mesh_name = mesh_name.split(".")[0]
+            
         shape_key = body_mesh_obj.data.shape_keys
         if shape_key is None:
             return
@@ -582,8 +586,6 @@ class DtbShapeKeys:
                 rna_data_path = "key_blocks[\"" + block_id + "\"].value"
                 target.data_path = rna_data_path
             else:
-                
-
                 # If morph_links is empty add a custom property
                 if not morph_links:
                     # Create custom property for this shape key and drive it

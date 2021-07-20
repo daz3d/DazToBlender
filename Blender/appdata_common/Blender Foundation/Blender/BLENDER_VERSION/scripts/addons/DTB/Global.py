@@ -53,26 +53,28 @@ max_vs = [
 IS_EMERGENCY = False
 EYLSCOUNT =464
 
-def load_shape_key_custom_props(mesh_name, property_name):
-    for custom_prop in shape_key_custom_props:
-        # mesh_name already exists, append the property_name
-        if custom_prop["mesh"] == mesh_name:
-            if property_name not in custom_prop["props"]:
-                custom_prop["props"].append(property_name)
-                return
-            else:
-                return
-    
-    # Create a new mesh_name entry and add property_name
-    shape_key_custom_prop = {
-                                "mesh": mesh_name,
-                                "props": [property_name]
-                            }
-    shape_key_custom_props.append(shape_key_custom_prop)
+ 
+def get_children(object): 
+    children = [] 
+    for ob in bpy.data.objects: 
+        if ob.parent == object: 
+            children.append(ob) 
+    return children 
 
 def get_shape_key_custom_props():
-    return shape_key_custom_props
-
+    fig_object_name = bpy.context.window_manager.choose_daz_figure
+    if fig_object_name == "null":
+        return []
+    fig_object  = bpy.data.objects[fig_object_name]
+    children = get_children(fig_object) 
+    custom = []
+    for child in children:
+        if '_RNA_UI' in child.keys():
+            morphs = child.keys()
+            morphs.remove('_RNA_UI')
+            custom.append({'mesh' : child.name, "props" : morphs})
+    return custom
+            
 def getMyMax3():
     return max_vs[getSex()][get_geo_idx()]
 
@@ -301,7 +303,7 @@ def find_BODY(dobj):
           
     return False
 
-def getChildren(obj):
+def get_children(obj):
     children = []
     col = Util.getUsersCollection(obj)
     for ob in Util.colobjs(col.name):
@@ -319,7 +321,7 @@ def find_Both(obj):
         return find_BODY(obj)
     elif obj.type=='ARMATURE':
         if find_AMTR(obj) or find_RGFY(obj):
-            kids = getChildren(obj)
+            kids = get_children(obj)
             for k in kids:
                 if find_BODY(k):
                     return True
@@ -442,7 +444,8 @@ def decide_HERO():
             if exists["_BODY"]:
                 continue
         
-        
+    if "Male" in _BODY:
+        isMan = True 
 
     # Removed until found necessary
     

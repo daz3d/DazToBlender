@@ -398,7 +398,7 @@ class Posing:
         elif order == 'ZYX':
             return 'YZX'
         elif order == "YXZ":
-            return 'YXZ'
+            return 'ZYX'
     
     
     def update_scale(self):
@@ -426,6 +426,30 @@ class Posing:
         self.fig_object  = bpy.data.objects[self.fig_object_name]
         pbs = self.fig_object.pose.bones
         for pb in pbs:
+            if pb.name == "root":
+                bname = pb.name
+                order = "YXZ"
+                new_order = self.get_rotation_order(order)
+                pb.rotation_mode = new_order
+                if "root" in transform_data.keys():
+                    position = transform_data[bname]["Position"]
+                    rotation = transform_data[bname]["Rotation"]
+
+                    for i in range(len(position)):
+                        position[i] = position[i] * Global.get_size()
+
+                    pbs[bname].location[0] = float(position[0])
+                    # Y invert (-Y) and Flip with Z
+                    pbs[bname].location[1] = -float(position[2])
+                    # Z invert (-Z) and Flip with Y
+                    pbs[bname].location[2] = -float(position[1])
+                    
+                    # Rotation
+                    fixed_rotation = self.reorder_rotation(order,rotation,bname)
+                    pbs[bname].rotation_mode = order
+                    for i in range(len(rotation)):      
+                        pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
+                    pbs[bname].rotation_mode = new_order
             if "Daz Rotation Order" in pb.keys():
                 order = pb["Daz Rotation Order"]
                 bname = pb.name
@@ -445,7 +469,7 @@ class Posing:
                     pbs[bname].location[0] = float(position[0])
                     # Y invert (-Y)
                     pbs[bname].location[1] = -float(position[1])
-                    # Z invert (-Z)
+                    # Z invert (-Z) 
                     pbs[bname].location[2] = -float(position[2])
                     
                     
