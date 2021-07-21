@@ -442,7 +442,7 @@ class Posing:
                     # Y invert (-Y) and Flip with Z
                     pbs[bname].location[1] = -float(position[2])
                     # Z invert (-Z) and Flip with Y
-                    pbs[bname].location[2] = -float(position[1])
+                    pbs[bname].location[2] = float(position[1])
                     
                     # Rotation
                     fixed_rotation = self.reorder_rotation(order,rotation,bname)

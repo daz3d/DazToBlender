@@ -534,7 +534,6 @@ class DB:
         [2, 'lMetatarsals', 'foot.L'],
         [4, 'lFoot', 'foot.L'],
         [2, 'lToe', 'toe.L'],
-        #[2, 'lHeel','heel.02.L'],
         [2, 'pelvis', 'pelvis.L'],
         [2, 'pelvis', 'pelvis.R'],
         [2, 'abdomenLower', 'spine'],
