@@ -952,7 +952,7 @@
 				s_sPresetPath = sPath;
 			}
 			if ( i == 5 ){
-				sConfigPath = sPath;
+				s_sConfigPath = sPath;
 			}
 			// Create Directories
 			oDir.setPath( sPath );
@@ -1002,7 +1002,7 @@
 		};
 		
 		// Find Users Daz Content Paths
-		var aContentDir = findUsersContent( sConfigPath );
+		var aContentDir = findUsersContent( s_sConfigPath );
 		writeConfigPath( aContentDir );
 
 		// Replace RootPath if Custom Path is Enabled
