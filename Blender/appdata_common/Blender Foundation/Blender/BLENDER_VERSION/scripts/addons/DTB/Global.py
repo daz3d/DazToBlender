@@ -20,6 +20,7 @@ keep_EYLS = ""
 keep_TEAR = ""
 db = DataBase.DB()
 updated_bone_limits = []
+dtu = None
 
 Geo_Idx = 0
 now_ary = []
@@ -327,6 +328,16 @@ def find_AMTR(dobj):
     return False
 
 
+def find_amtr(dobj):
+    global dtu
+    import_name = dtu.get_import_name()
+    global _AMTR
+    if dobj.type == "ARMATURE" and import_name in dobj.name:
+        _AMTR = dobj.name
+        return True
+    return False
+
+
 def find_BODY(dobj):
     global _BODY
     if dobj.type == "MESH":
@@ -349,6 +360,31 @@ def find_BODY(dobj):
                         "Genesis2Male",
                         "Genesis",
                     ]:
+                        _BODY = dobj.name
+                        return True
+
+    return False
+
+
+def load_dtu(dtu_to_load):
+    global dtu
+    dtu = dtu_to_load
+
+
+# new find body used for importing
+def find_body(dobj):
+    global dtu
+    import_name = dtu.get_import_name()
+    global _BODY
+    if dobj.type == "MESH":
+        if Versions.isHide(dobj):
+            return False
+        for modifier in dobj.modifiers:
+            if modifier.type == "ARMATURE" and modifier.object is not None:
+                if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
+                    figure_name = dobj.name.replace(".Shape", "")
+                    figure_name = figure_name.split(".")[0]
+                    if figure_name == import_name:
                         _BODY = dobj.name
                         return True
 
@@ -497,6 +533,55 @@ def decide_HERO():
     for dobj in active_col_objs:
         if exists["_BODY"] == False:
             exists["_BODY"] = find_BODY(dobj)
+            if exists["_BODY"]:
+                continue
+
+    if "Male" in _BODY:
+        isMan = True
+
+    # Removed until found necessary
+
+    # if find_EYLS(dobj):
+    #     continue
+    # if find_HAIR(dobj):
+    #     continue
+    # if find_TEAR(dobj):
+    #     continue
+
+
+def store_variables():
+    global _AMTR
+    global _RGFY
+    global _BODY
+    global _EYLS
+    global _TEAR
+    global _HAIR
+    global isMan
+    global isGen
+    global _BVCount
+    global _ISG3
+    global Geo_Idx
+    global _SIZE
+
+    clear_variables()
+
+    active_col_objs = Util.myacobjs()
+    # Find Armatures
+    exists = {"_AMTR": False, "_RGFY": False, "_BODY": False}
+    for dobj in active_col_objs:
+        if exists["_AMTR"] == False:
+            exists["_AMTR"] = find_amtr(dobj)
+            if exists["_AMTR"]:
+                continue
+        if exists["_RGFY"] == False:
+            exists["_RGFY"] = find_RGFY(dobj)
+            if exists["_RGFY"]:
+                continue
+
+    # Needs to be Seperated as Rigify changes Order
+    for dobj in active_col_objs:
+        if exists["_BODY"] == False:
+            exists["_BODY"] = find_body(dobj)
             if exists["_BODY"]:
                 continue
 

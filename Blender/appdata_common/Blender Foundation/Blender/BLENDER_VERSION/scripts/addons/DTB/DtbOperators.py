@@ -211,7 +211,8 @@ class IMP_OT_FBX(bpy.types.Operator):
         anim.reset_total_key_count()
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
-        Global.decide_HERO()
+        Global.load_dtu(dtu)
+        Global.store_variables()
         self.pbar(15, wm)
 
         if Global.getAmtr() is not None and Global.getBody() is not None:
@@ -278,18 +279,24 @@ class IMP_OT_FBX(bpy.types.Operator):
             drb.mub_ary_Z()
             self.pbar(70, wm)
             Global.setOpsMode("OBJECT")
-            CustomBones.CBones()
+            try:
+                CustomBones.CBones()
+            except:
+                print("Custom bones currently not supported for this character")
             self.pbar(80, wm)
             Global.setOpsMode("OBJECT")
             Global.deselect()
             self.pbar(90, wm)
             amt = Global.getAmtr()
             for bname in DtbIKBones.bone_name:
-                bone = amt.pose.bones[bname]
-                for bc in bone.constraints:
-                    if bc.name == bname + "_IK":
-                        pbik = amt.pose.bones.get(bname + "_IK")
-                        amt.pose.bones[bname].constraints[bname + "_IK"].influence = 0
+                if bname in amt.pose.bones.keys():
+                    bone = amt.pose.bones[bname]
+                    for bc in bone.constraints:
+                        if bc.name == bname + "_IK":
+                            pbik = amt.pose.bones.get(bname + "_IK")
+                            amt.pose.bones[bname].constraints[
+                                bname + "_IK"
+                            ].influence = 0
             drb.makeBRotationCut(
                 db
             )  # lock movements around axes with zeroed limits for each bone

@@ -230,6 +230,7 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
         box = l.box()
         col = box.column(align=True, heading="Morph Settings")
         col.prop(w_mgr, "morph_prefix", text="Remove Morph Prefix", toggle=False)
+        col.prop(w_mgr, "morph_optimize", text="Optimize Morphs", toggle=False)
 
         box = l.box()
         col = box.column(align=True, heading="Scenes Settings")

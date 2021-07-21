@@ -337,6 +337,10 @@ def init_props():
         name="morph_prefix",
         default=True,
     )
+    w_mgr.morph_optimize = BoolProperty(
+        name="morph_optimize",
+        default=True,
+    )
     w_mgr.combine_materials = BoolProperty(
         name="combine_materials",
         default=True,

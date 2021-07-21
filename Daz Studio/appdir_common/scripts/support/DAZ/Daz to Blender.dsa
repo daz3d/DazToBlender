@@ -1175,6 +1175,13 @@
 		wIncludeAnimationsCbx.checked = false;
 		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 
+		// Checkbox to include animation data
+		var wRemoveIncompatible = new DzCheckBox( wSettingsDialog );
+		wRemoveIncompatible.text = "Remove any incompatible nodes";
+		wRemoveIncompatible.checked = false;
+		wSettingsDialog.addWidget( wRemoveIncompatible );
+
+
 		// Create Connections
 		wChooseMorphsBut.released.connect( oNode, executeMorphDialog );
 
@@ -1188,6 +1195,7 @@
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
 		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		s_bCollectTextures = wCollectTexturesCbx.checked;
+		s_bRemoveIncompatible = wRemoveIncompatible.checked;
 
 		// When user Accepts the dialog
 		return true;
@@ -1244,7 +1252,8 @@
 		var sClassName = oNode.className();
 		var oAssetMgr = App.getAssetMgr();
 		var sContentType = oAssetMgr.getTypeForNode( oNode );
-		if( sClassName == "DzFigure" ){
+		if( sClassName == "DzFigure" 
+		   || sClassName == "DzLegacyFigure" ){
 			if( sContentType == "Actor/Character" 
 				|| sContentType == "Actor" ){
 				s_aFigures.push( oNode );
@@ -1862,10 +1871,12 @@
 	// Void : load bone's limits along with rotation orders
 	function loadFigureBoneData( oBaseNode )
 	{
-		if( !oBaseNode.inherits("DzFigure") ){
-			return;
+
+		if( !oBaseNode.inherits( "DzFigure" ) ){
+			if( !oBaseNode.inherits( "DzLegacyFigure" ) ){
+				return;
+			}
 		}
-		
 		var oSkeleton = oBaseNode.getSkeleton();
 		var aNodes = oSkeleton.getAllBones();
 		var numFollowers = oSkeleton.getNumFollowSkeletons();
@@ -1922,8 +1933,11 @@
 		oBaseNode.update();
 		oBaseNode.finalize();
 		var oFigure = new DzFigure();
+		
 		var oFigure = oBaseNode.getSkeleton();
-		var oSkinBinding = oFigure.getSkinBinding();
+		if ( oBaseNode.className() != "DzLegacyFigure" ){
+			var oSkinBinding = oFigure.getSkinBinding();
+		}
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
@@ -1952,9 +1966,11 @@
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 
 			vecHead = oNode.getOrigin( false );
-			oBoneBinding = oSkinBinding.findBoneBinding( oNode );
-			if( oBoneBinding ){
-				vecHead = oBoneBinding.getScaledOrigin();
+			if ( oBaseNode.className() != "DzLegacyFigure" ){
+				oBoneBinding = oSkinBinding.findBoneBinding( oNode );
+				if( oBoneBinding ){
+					vecHead = oBoneBinding.getScaledOrigin();
+				}
 			}
 			
 			vecTail = vecHead.add( vecPrimaryAxis );
@@ -2547,7 +2563,9 @@
 				setEyelashVisibility( oFigure, false );
 				exportOBJ( oFigure, s_sFig, i );
 				setEyelashVisibility( oFigure, true );
-				removeIncompatibleNodes( oFigure );
+				if( s_bRemoveIncompatible ){
+					removeIncompatibleNodes( oFigure );
+				}
 				exportFBX( oFigure, s_sFig, i , bDebugFBX );
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
@@ -2574,9 +2592,10 @@
 			var sEnvPath;
 			var sPoseFilename;
 			var sFileBasename;
+			
 			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
 				oNode = s_aEnvProp[i];
-				
+
 				for( var j = 0; j < s_aEnvProp.length; j += 1 ){
 					setVisible( s_aEnvProp[j], i == j );
 				}
