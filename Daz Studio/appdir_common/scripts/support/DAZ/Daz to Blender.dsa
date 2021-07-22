@@ -1008,7 +1008,8 @@
 
 		// Replace RootPath if Custom Path is Enabled
 		if( useCustomPath() ){
-			sPath.replace( s_sRootPath, s_sCustomPath )
+			sPath = sPath.replace( s_sRootPath, s_sCustomPath );
+			oDir.setPath( sPath );
 			s_sRootPath = s_sCustomPath;
 		};
 
