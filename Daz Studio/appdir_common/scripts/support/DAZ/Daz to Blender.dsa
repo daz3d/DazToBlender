@@ -68,6 +68,7 @@
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
+	var s_bRemoveIncompatible;
 	var s_bIncludeMorphs;
 	var s_bCollectTextures;
 	
