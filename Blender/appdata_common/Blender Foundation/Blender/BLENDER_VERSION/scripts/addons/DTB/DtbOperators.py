@@ -131,12 +131,11 @@ class RENAME_MORPHS(bpy.types.Operator):
             selected_objects.append(bpy.context.object)
         else:
             selected_objects = Global.get_children(bpy.data.objects[fig_object_name])
-
         for selected_object in selected_objects:
 
             if selected_object is None or selected_object.type != "MESH":
                 self.report({"WARNING"}, "Select Object or Choose From Dropdown")
-                return
+                continue
             if selected_object.data.shape_keys is None:
                 self.report(
                     {"INFO"}, "No Morphs found on {0}".format(selected_object.name)
@@ -144,13 +143,13 @@ class RENAME_MORPHS(bpy.types.Operator):
                 continue
             # get its shapekeys
             shape_keys = selected_object.data.shape_keys.key_blocks
-            string_to_replace = selected_object.name.replace(".Shape", "") + "__"
+            string_to_replace = selected_object.data.name + "__"
             # loop through shapekeys and replace the names
             for key in shape_keys:
                 key.name = key.name.replace(string_to_replace, "")
         self.report({"INFO"}, "Morphs renamed!")
 
-        return {"FINISHED"}
+        return {"FINISHED"} 
 
 
 # End of Utlity Classes
@@ -321,7 +320,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(100, wm)
             DtbIKBones.ik_access_ban = False
             if bpy.context.window_manager.morph_prefix:
-                bpy.ops.rename.morphs()
+                bpy.ops.rename.morphs('EXEC_DEFAULT')
             self.report({"INFO"}, "Success")
         else:
             self.show_error()

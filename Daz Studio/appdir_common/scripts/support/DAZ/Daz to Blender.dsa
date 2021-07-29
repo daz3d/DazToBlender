@@ -705,7 +705,7 @@
 		
 		for( var i = 0; i < aTopNodes.length; i += 1 ){
 			oTopNode = aTopNodes[i];
-			if( bIsFigure && oTopNode.name != "hip" ){
+			if( !bIsFigure ){
 				continue;
 			}
 			
@@ -717,6 +717,7 @@
 		}
 		
 		var nNodes = aNodes.length;
+		print(nNodes)
 		if( nNodes < 1 ){
 			return;
 		}
@@ -2606,8 +2607,10 @@
 				if( bIsBone ){
 					flattenObjectHierarchy( oNode );
 				}
+				else{
+					setLock( oNode, true, false );
+				}
 				
-				setLock( oNode, true, false );
 				
 				setSubDivLevelAll( oNode, 0 );
 				
@@ -2627,15 +2630,17 @@
 				
 				if( bIsBone ){
 					loadFigureBoneData( oNode );
+					loadPoseData( oNode, true );
 				} else {
-					loadPoseData( oNode, sPoseFilename, false );
+					loadPoseData( oNode, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
+					setLock( oNode, false, false );
 				}
 				updateName( oNode );
 				
 				writeConfiguration( oNode, sFileBasename );
 
-				setLock( oNode, false, false );
+				
 			}
 		}
 		
