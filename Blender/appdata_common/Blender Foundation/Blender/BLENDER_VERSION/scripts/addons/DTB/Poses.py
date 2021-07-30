@@ -498,7 +498,7 @@ class Posing:
                     pbs[bname].location[2] = float(position[1])
                     
                     # Rotation
-                    fixed_rotation = self.reorder_rotation(order,rotation,bname)
+                    fixed_rotation = self.reorder_rotation(new_order,rotation,bname)
                     pbs[bname].rotation_mode = order
                     for i in range(len(rotation)):      
                         pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
