@@ -705,10 +705,11 @@
 		
 		for( var i = 0; i < aTopNodes.length; i += 1 ){
 			oTopNode = aTopNodes[i];
-			if( !bIsFigure ){
+			
+			if( bIsFigure && !oTopNode.inherits( "DzBone" ) ){
 				continue;
 			}
-			
+
 			if( i == 0 ){
 				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
 			} else {
@@ -717,7 +718,7 @@
 		}
 		
 		var nNodes = aNodes.length;
-		print(nNodes)
+
 		if( nNodes < 1 ){
 			return;
 		}

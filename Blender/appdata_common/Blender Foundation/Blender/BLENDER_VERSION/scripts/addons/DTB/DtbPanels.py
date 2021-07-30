@@ -247,7 +247,7 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
 
         l.operator("save.daz_settings", icon="DISK_DRIVE")
 
-
+#TODO: [BRIDGEBUGS-1] Commands Currently do not work as intended need to be refactored and reactivated. 
 class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_commands_daz"
     bl_label = "Commands List"
