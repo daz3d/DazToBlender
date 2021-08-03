@@ -29,6 +29,8 @@ def progress_bar(percent):
 
 class EnvProp:
     env_root = os.path.join(Global.getRootPath(), "ENV")
+    if bpy.context.window_manager.use_custom_path:
+        env_root = os.path.join(Global.get_custom_path() , "ENV")
 
     def __init__(self):
         Util.deleteEmptyDazCollection() # Remove Empty Collections
@@ -41,15 +43,16 @@ class EnvProp:
         self.set_default_settings()
         if os.path.exists(self.env_root)==False:
             return
+        current_dir = os.getcwd()
+        os.chdir(self.env_root)
         progress_bar(0)
         env_dirs = os.listdir(self.env_root)
         env_dirs = [f for f in env_dirs if os.path.isdir(os.path.join(self.env_root, f))]
-        
         int_progress = 100/len(env_dirs)
         for i in range(len(env_dirs)):
             Global.clear_variables()
             Global.setHomeTown(os.path.join(
-                                Global.getRootPath(), "ENV", "ENV" + str(i)
+                                self.env_root, "ENV" + str(i)
                                 ))
             Global.load_asset_name()
             Util.decideCurrentCollection('ENV')
@@ -60,6 +63,8 @@ class EnvProp:
         Global.setOpsMode("OBJECT")
         wm.progress_end()
         Versions.make_sun()
+        os.chdir(current_dir)
+        return {"FINISHED"}
 
     def set_default_settings(self):
         bpy.context.scene.render.engine = 'CYCLES'
@@ -187,11 +192,14 @@ class ReadFbx:
                     if self.is_armature_modified(obj) == False:
                         amod = obj.modifiers.new(type='ARMATURE', name="ama" + obj.name)
                         amod.object = amtr
+                self.pose.reposition_asset(obj, amtr)
             elif obj.type == 'EMPTY':
                 if obj.parent == amtr:
                     empty_objs.append(obj)
         Global.deselect()
         
+        
+
         #Apply rest pose        
         Versions.select(amtr, True)
         Versions.active_object(amtr)
@@ -206,14 +214,16 @@ class ReadFbx:
         
         #Fix and Check Bones to Hide
         for bone in bones:
-            if not self.pose.set_bone_head_tail(bone):
+            to_hide = self.pose.set_bone_head_tail(bone)
+            if not to_hide:
                 hides.append(bone.name)
                 continue
             if bone.name not in vertex_group_names:
                 if self.is_child_bone(amtr, bone, vertex_group_names) == False:
                     hides.append(bone.name)
                     continue
-            
+        
+        Global.setOpsMode("OBJECT")
         for obj in objs:
             Versions.select(obj, True)
             Versions.active_object(obj)
@@ -244,6 +254,8 @@ class ReadFbx:
         for hide in hides:
             amtr.data.bones.get(hide).hide = True
 
+        #Restore Pose.
+        self.pose.restore_env_pose(amtr)
     
     def create_controller(self):
         if 'daz_prop' in Util.colobjs('DAZ_HIDE'):
