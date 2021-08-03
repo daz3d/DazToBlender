@@ -192,7 +192,8 @@ class ReadFbx:
                     if self.is_armature_modified(obj) == False:
                         amod = obj.modifiers.new(type='ARMATURE', name="ama" + obj.name)
                         amod.object = amtr
-                self.pose.reposition_asset(obj, amtr)
+                if obj.data.name == amtr.name:
+                    self.pose.reposition_asset(obj, amtr)
             elif obj.type == 'EMPTY':
                 if obj.parent == amtr:
                     empty_objs.append(obj)
@@ -255,7 +256,7 @@ class ReadFbx:
             amtr.data.bones.get(hide).hide = True
 
         #Restore Pose.
-        self.pose.restore_env_pose(amtr)
+        # self.pose.restore_env_pose(amtr)
     
     def create_controller(self):
         if 'daz_prop' in Util.colobjs('DAZ_HIDE'):
