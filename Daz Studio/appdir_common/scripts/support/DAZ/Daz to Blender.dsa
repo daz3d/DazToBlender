@@ -2201,10 +2201,27 @@
 	function getMorphString( aExportableProperties ) 
 	{
         var sMorphString
-
         if ( aExportableProperties.length == 0 ){
-            return "";
-        }
+			s_aMorphNamesToExport = [];
+			sPresetFilePath = s_sPresetPath + "LastUsed.csv"
+            oFile = new DzFile( sPresetFilePath );
+			if( !oFile.open( DzFile.ReadOnly ) ){
+				print( String( "Unable to open \"%1\" for Reading." ).arg( sPresetFilePath ) );
+				return;
+			}
+			aMorphLines = oFile.readLines();
+			for( var i = 0; i < aMorphLines.length; i++ ){
+				sMorphLine = aMorphLines[i]
+				if( sMorphLine.indexOf( "\"Export\"" ) > 0 ){
+					aItems = sMorphLine.split(",");
+					sMorphName = aItems[0].replace("\"", "").replace("\"", "");
+					s_aMorphNamesToExport.push( sMorphName );
+				}	
+			}
+			sMorphString = s_aMorphNamesToExport.join( "\n1\n" );
+			sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
+			return sMorphString
+		};
         s_aMorphNamesToExport = [];
         sMorphString = "";
         for( var i = 0; i < aExportableProperties.length; i++ ){
