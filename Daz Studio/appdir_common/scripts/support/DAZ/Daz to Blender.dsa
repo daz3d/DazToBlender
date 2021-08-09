@@ -39,14 +39,16 @@
 
 
 	var s_sRootPath = "";
+	var s_sCustomPath = "";
 	var s_sPresetPath = "";
-	var s_sConfigJSON = "";
+	var s_sConfigPath = "";
 	
 	var s_sFbxPath = "";
 	var s_sMorphRules = "";
 	var s_oMorphLinks = {};
 	var s_aMorphNamesToExport = [];
 	var s_oSkeletonData = {};
+	var s_oSkeletonTransforms = {}
 	var s_oLimitsData = {};
 	var s_oHeadTailData = {};
 	var s_oJointOrientation = {};
@@ -66,6 +68,7 @@
 	// Setting variables
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
+	var s_bRemoveIncompatible;
 	var s_bIncludeMorphs;
 	var s_bCollectTextures;
 	
@@ -360,11 +363,14 @@
 					.arg( oExporter.getExtension() ) :
 				oExportMgr.getExportPath() );
 			
-			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/";
+			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/"
+			s_sFbxPath = sName + "/" + sName + nIdx + "/";
 			if( bAscii ){
 				sPath += "A_" + sName + ".fbx"
+				s_sFbxPath += "A_" + sName + ".fbx"
 			} else {
 				sPath += "B_" + sName + ".fbx"
+				s_sFbxPath += "B_" + sName + ".fbx"
 			}
 			
 			// If the user didn't cancel and the file doesn't already
@@ -376,8 +382,6 @@
 			// Clean up; don't leak memory
 			oExporter.deleteLater();
 			
-			//Store FBX Path
-			s_sFbxPath = sPath;
 		// We didn't find an exporter with the class name we wanted
 		} else {
 			// Inform the user
@@ -701,10 +705,11 @@
 		
 		for( var i = 0; i < aTopNodes.length; i += 1 ){
 			oTopNode = aTopNodes[i];
-			if( bIsFigure && oTopNode.name != "hip" ){
+			
+			if( bIsFigure && !oTopNode.inherits( "DzBone" ) ){
 				continue;
 			}
-			
+
 			if( i == 0 ){
 				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
 			} else {
@@ -713,6 +718,7 @@
 		}
 		
 		var nNodes = aNodes.length;
+
 		if( nNodes < 1 ){
 			return;
 		}
@@ -722,7 +728,7 @@
 		var vecPos;
 		var quatRot;
 		var mtxScale;
-		
+		s_oPoseData = {};
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
 			sObjectType = getObjectType( oNode );
@@ -949,16 +955,11 @@
 				s_sPresetPath = sPath;
 			}
 			if ( i == 5 ){
-				sConfigPath = sPath;
+				s_sConfigPath = sPath;
 			}
 			// Create Directories
 			oDir.setPath( sPath );
 			if( !oDir.exists() ){
-				if( i == 3 ){
-					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sPath ), 
-											qsTr( "Your Export Path" ), 
-											qsTr( "&Continue" ) );
-				}
 				oDir.mkdir( sPath );
 			};
 		};
@@ -970,7 +971,7 @@
 				
 			}
 			if( i == 1 ){
-				sConfigPath = sTempPath;
+				s_sConfigPath = sTempPath;
 			}
 			if( i == 2 ){
 				s_sPresetPath = sTempPath;
@@ -1004,7 +1005,16 @@
 		};
 		
 		// Find Users Daz Content Paths
-		findUsersContent( sConfigPath );
+		var aContentDir = findUsersContent( s_sConfigPath );
+		writeConfigPath( aContentDir );
+
+		// Replace RootPath if Custom Path is Enabled
+		if( useCustomPath() ){
+			sPath = sPath.replace( s_sRootPath, s_sCustomPath );
+			oDir.setPath( sPath );
+			s_sRootPath = s_sCustomPath;
+		};
+
 		var aDirs = []
 		// Delete Files
 		aFiles = oDir.getFilesFromDir( [], true );
@@ -1029,10 +1039,13 @@
 				}
 			}	
 		};
+
+		
 	};
 	/*********************************************************************/
-	// void : ...
-	function findUsersContent( sConfigPath ){
+	// Array : Find the Daz Paths where content is installed
+	function findUsersContent()
+	{
 		var oContentMgr = App.getContentMgr();
 		var nContentDirCount = oContentMgr.getNumContentDirectories();
 		var aContentDir = [];
@@ -1040,20 +1053,53 @@
 			var sContentDirPath = oContentMgr.getContentDirectoryPath( i );
 			aContentDir.push( sContentDirPath )
 		}
-		writeContentPath( sConfigPath, aContentDir )
+		return aContentDir
+		
 	}
 	/*********************************************************************/
 	// void : ...
-	function writeContentPath( sConfigPath, aContentDir ){
-		var sDazPath = sConfigPath + "daz_paths.json";
+	function writeConfigPath( aContentDir )
+	{
+		var sDazPath = s_sConfigPath + "daz_paths.json";
+		var oCurFile = new DzFile( sDazPath );
 		var oDazFile = new DzFile( sDazPath );
 		var oDazJson = {};
-		oDazJson["Content Directories"] = aContentDir;
+		oCurFile.open( DzFile.ReadOnly );
+		var sDazFile = oCurFile.read();
+		if ( sDazFile != "" ){
+			oDazJson = JSON.parse( sDazFile )
+		}
+		oCurFile.close()
 		oDazFile.open( DzFile.WriteOnly );
+
+		if( oDazJson["Custom Path"] ){
+			s_sCustomPath = oDazJson["Custom Path"];
+		}
+
+		oDazJson["Content Directories"] = aContentDir;
+		oDazJson["Default Path"] = s_sRootPath;
+		oDazJson["Custom Path"] = s_sCustomPath;
+		
 		oDazFile.write( JSON.stringify( oDazJson, null, 4 ) );
 		oDazFile.close();
 
-	}
+	};
+
+	/*********************************************************************/
+	// Boolean : Check if Custompath Should be Used.
+	function useCustomPath()
+	{
+		var sDazPath = s_sConfigPath + "daz_paths.json";
+		var oDazFile = new DzFile( sDazPath );
+		var oDazJson = {};
+		oDazFile.open( DzFile.ReadOnly );
+		var sDazFile = oDazFile.read()
+		if ( sDazFile ){
+			oDazJson = JSON.parse( sDazFile )
+		}
+		oDazFile.close();
+		return oDazJson["Use Custom Path"]
+	};
 
 	/*********************************************************************/
 	// void : ...
@@ -1133,6 +1179,13 @@
 		wIncludeAnimationsCbx.checked = false;
 		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 
+		// Checkbox to include animation data
+		var wRemoveIncompatible = new DzCheckBox( wSettingsDialog );
+		wRemoveIncompatible.text = "Remove any incompatible nodes";
+		wRemoveIncompatible.checked = false;
+		wSettingsDialog.addWidget( wRemoveIncompatible );
+
+
 		// Create Connections
 		wChooseMorphsBut.released.connect( oNode, executeMorphDialog );
 
@@ -1146,6 +1199,7 @@
 		s_bIncludeAnim = wIncludeAnimationsCbx.checked;
 		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		s_bCollectTextures = wCollectTexturesCbx.checked;
+		s_bRemoveIncompatible = wRemoveIncompatible.checked;
 
 		// When user Accepts the dialog
 		return true;
@@ -1202,7 +1256,8 @@
 		var sClassName = oNode.className();
 		var oAssetMgr = App.getAssetMgr();
 		var sContentType = oAssetMgr.getTypeForNode( oNode );
-		if( sClassName == "DzFigure" ){
+		if( sClassName == "DzFigure" 
+		   || sClassName == "DzLegacyFigure" ){
 			if( sContentType == "Actor/Character" 
 				|| sContentType == "Actor" ){
 				s_aFigures.push( oNode );
@@ -1820,10 +1875,12 @@
 	// Void : load bone's limits along with rotation orders
 	function loadFigureBoneData( oBaseNode )
 	{
-		if( !oBaseNode.inherits("DzFigure") ){
-			return;
+
+		if( !oBaseNode.inherits( "DzFigure" ) ){
+			if( !oBaseNode.inherits( "DzLegacyFigure" ) ){
+				return;
+			}
 		}
-		
 		var oSkeleton = oBaseNode.getSkeleton();
 		var aNodes = oSkeleton.getAllBones();
 		var numFollowers = oSkeleton.getNumFollowSkeletons();
@@ -1880,8 +1937,11 @@
 		oBaseNode.update();
 		oBaseNode.finalize();
 		var oFigure = new DzFigure();
+		
 		var oFigure = oBaseNode.getSkeleton();
-		var oSkinBinding = oFigure.getSkinBinding();
+		if ( oBaseNode.className() != "DzLegacyFigure" ){
+			var oSkinBinding = oFigure.getSkinBinding();
+		}
 		
 		for( var i = 0; i < nNodes; i += 1 ){
 			oNode = aNodes[i];
@@ -1910,9 +1970,11 @@
 			vecPrimaryAxis = getNodePrimaryAxis( oNode, nBoneLength );
 
 			vecHead = oNode.getOrigin( false );
-			oBoneBinding = oSkinBinding.findBoneBinding( oNode );
-			if( oBoneBinding ){
-				vecHead = oBoneBinding.getScaledOrigin();
+			if ( oBaseNode.className() != "DzLegacyFigure" ){
+				oBoneBinding = oSkinBinding.findBoneBinding( oNode );
+				if( oBoneBinding ){
+					vecHead = oBoneBinding.getScaledOrigin();
+				}
 			}
 			
 			vecTail = vecHead.add( vecPrimaryAxis );
@@ -2022,10 +2084,12 @@
 		if( !oDir.exists() ){
 			oDir.mkpath( sPath );
 		}
+		oDir.setPath( s_sRootPath )
 
 		var sNewTexture = String( "%1/%2" ).arg( sPath ).arg( sOrgImageName )
+		var sRelTexture = oDir.relativeFilePath( sNewTexture )
 		oOrigFile.copy( sNewTexture )
-		return sNewTexture
+		return sRelTexture
 		
 	};
 
@@ -2332,8 +2396,6 @@
 				}
 					
 			}
-			
-		
 
 			var oMorphLinkObj = {
 					"Label": oMorphProperty.getLabel(),
@@ -2342,6 +2404,7 @@
 					"Minimum": oMorphInfo.min,
 					"Maximum": oMorphInfo.max,
 					"isHidden": oMorphInfo.hidden,
+					"Path": oMorphInfo.path,
 					"Controlled Meshes" : aControlledMeshes
 			};
 			s_oMorphLinks[getPropertyName( oMorphProperty )] = oMorphLinkObj;
@@ -2379,6 +2442,61 @@
 	}
 
 	/*********************************************************************/
+	// Void: ...
+	function disconnectSkeleton( oNode )
+	{
+		if( oNode.inherits( "DzSkeleton" ) ){
+			var oSkeleton = oNode.getSkeleton();
+			var aNodes = oSkeleton.getAllBones();
+			for( var i = 0; i < aNodes.length; i += 1 ){
+				var oBoneNode = aNodes[i]
+				oXpos = oBoneNode.getXPosControl();	
+				oXrot = oBoneNode.getXRotControl();
+				oYpos = oBoneNode.getYPosControl();
+				oYrot = oBoneNode.getYRotControl();
+				oZpos = oBoneNode.getZPosControl();
+				oZrot = oBoneNode.getZRotControl();
+				s_oSkeletonTransforms[oBoneNode.name] = {}
+				aProperties = [oXpos, oXrot, oYpos, oYrot, oZpos, oZrot];
+				for( var j = 0; j < aProperties.length; j += 1 ){
+					var oProperty = aProperties[j]
+					s_oSkeletonTransforms[oBoneNode.name][oProperty.assetId] = oProperty.getValue();
+					oProperty.setOverrideControllers( true );
+				}
+			}
+		}
+		
+	}
+	
+	/*********************************************************************/
+	// Void: ...
+	function reconnectSkeleton( oNode )
+	{
+		if( oNode.inherits( "DzSkeleton" ) ){
+			var oSkeleton = oNode.getSkeleton();
+			var aNodes = oSkeleton.getAllBones();
+			var oAssetMgr = App.getAssetMgr();
+			for( var i = 0; i < aNodes.length; i += 1 ){
+				var oBoneNode = aNodes[i]
+				oXpos = oBoneNode.getXPosControl();	
+				oXrot = oBoneNode.getXRotControl();
+				oYpos = oBoneNode.getYPosControl();
+				oYrot = oBoneNode.getYRotControl();
+				oZpos = oBoneNode.getZPosControl();
+				oZrot = oBoneNode.getZRotControl();
+
+				aProperties = [oXpos, oXrot, oYpos, oYrot, oZpos, oZrot,];
+				for( var j = 0; j < aProperties.length; j += 1 ){
+					var oProperty = aProperties[j]
+					oProperty.setOverrideControllers( false );
+					oProperty.setValue( s_oSkeletonTransforms[oBoneNode.name][oProperty.assetId] );
+				}
+			}
+		}
+	}
+
+	/*********************************************************************/
+
 	// void : ...
 	function main()
 	{
@@ -2441,6 +2559,7 @@
 					s_sMorphRules = getMorphString( s_aExportableProperties );
 					loadMorphLinks( s_aExportableProperties, oFigure );
 					disconnectMorphs( s_aExportableProperties );
+					// disconnectSkeleton( oFigure );
 				};	
 				// Export Figure
 				loadFigureBoneData( oFigure );
@@ -2448,13 +2567,16 @@
 				setEyelashVisibility( oFigure, false );
 				exportOBJ( oFigure, s_sFig, i );
 				setEyelashVisibility( oFigure, true );
-				removeIncompatibleNodes( oFigure );
+				if( s_bRemoveIncompatible ){
+					removeIncompatibleNodes( oFigure );
+				}
 				exportFBX( oFigure, s_sFig, i , bDebugFBX );
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
 				reparentFigure( oFigure );
 				if ( s_bIncludeMorphs ){
 					reconnectMorphs( s_aExportableProperties );
+					// reconnectSkeleton( oFigure );
 				}
 
 				// Write data
@@ -2474,9 +2596,10 @@
 			var sEnvPath;
 			var sPoseFilename;
 			var sFileBasename;
+			
 			for( var i = 0; i < s_aEnvProp.length; i += 1 ){
 				oNode = s_aEnvProp[i];
-				
+
 				for( var j = 0; j < s_aEnvProp.length; j += 1 ){
 					setVisible( s_aEnvProp[j], i == j );
 				}
@@ -2485,8 +2608,10 @@
 				if( bIsBone ){
 					flattenObjectHierarchy( oNode );
 				}
+				else{
+					setLock( oNode, true, false );
+				}
 				
-				setLock( oNode, true, false );
 				
 				setSubDivLevelAll( oNode, 0 );
 				
@@ -2506,15 +2631,17 @@
 				
 				if( bIsBone ){
 					loadFigureBoneData( oNode );
+					loadPoseData( oNode, true );
 				} else {
-					loadPoseData( oNode, sPoseFilename, false );
+					loadPoseData( oNode, false );
 					writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
+					setLock( oNode, false, false );
 				}
 				updateName( oNode );
 				
 				writeConfiguration( oNode, sFileBasename );
 
-				setLock( oNode, false, false );
+				
 			}
 		}
 		

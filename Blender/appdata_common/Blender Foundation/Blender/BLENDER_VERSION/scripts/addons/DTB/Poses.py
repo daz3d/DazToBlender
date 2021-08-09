@@ -25,7 +25,7 @@ class Posing:
             self.select_figure()
             Global.setOpsMode("POSE")
         else:
-            self.bone_limits = dtu.get_bone_limits_dict()
+            self.bone_limits_dict = dtu.get_bone_limits_dict()
             self.skeleton_data_dict = dtu.get_skeleton_data_dict()
             self.pose_data_dict = dtu.get_pose_data_dict()
             self.bone_head_tail_dict = dtu.get_bone_head_tail_dict()
@@ -88,6 +88,54 @@ class Posing:
             return self.bone_head_tail_dict[bname]
         return None
     
+    # Taken from DazRigBlend and Adjusted for Environments
+    def reposition_asset(self, dobj, amtr):
+        self.del_empty = []
+        Global.deselect()
+        # Cycles through the objects and unparents the meshes from the figure.
+        if dobj.type == "MESH":
+            if dobj.parent == amtr:
+                Versions.select(dobj, True)
+                Versions.active_object(dobj)
+                bpy.ops.object.transform_apply(
+                    location=True, rotation=True, scale=True
+                )
+                bpy.ops.object.parent_clear()
+                Versions.select(dobj, False)
+        Global.deselect()
+
+        # Zero out the transforms on the Armature
+        Versions.select(amtr, True)
+        Versions.active_object(amtr)
+        Versions.show_x_ray(amtr)
+        Global.setOpsMode("POSE")
+        bpy.ops.pose.transforms_clear()
+        Global.setOpsMode("OBJECT")
+        bpy.ops.object.scale_clear()
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        Global.deselect()
+
+        # Reposition Object
+        Versions.select(dobj, True)
+        Versions.active_object(dobj)
+        dobj.rotation_euler.x += math.radians(90)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        for i in range(3):
+            dobj.lock_location[i] = True
+            dobj.lock_rotation[i] = True
+            dobj.lock_scale[i] = True
+        Global.deselect()
+
+        # Reparent to Armature
+        Versions.select(amtr, True)
+        Versions.active_object(amtr)
+        Global.setOpsMode("OBJECT")
+        Versions.select(dobj, True)
+        Versions.select(amtr, True)
+        bpy.ops.object.parent_set(type="ARMATURE")
+        Versions.select(dobj, False)
+        Versions.select(amtr, False)
+
     # TODO: Combine with Animation Version
     def set_bone_head_tail(self, bone):
         binfo = self.get_bone_head_tail_data(bone.name)
@@ -95,21 +143,22 @@ class Posing:
         if binfo is None:
             return False
         else:
+
             # set head
-            bone.head[0] = float(binfo[1])
-            bone.head[1] = -float(binfo[3])
-            bone.head[2] = float(binfo[2])
+            bone.head[0] = float(binfo[0])
+            bone.head[1] = -float(binfo[2])
+            bone.head[2] = float(binfo[1])
             
             # set tail
-            bone.tail[0] = float(binfo[4])
-            bone.tail[1] = -float(binfo[6])
-            bone.tail[2] = float(binfo[5])
+            bone.tail[0] = float(binfo[3])
+            bone.tail[1] = -float(binfo[5])
+            bone.tail[2] = float(binfo[4])
 
             # calculate roll aligning bone towards a vector
             align_axis_vec = mathutils.Vector((
-                                float(binfo[7]),
-                                -float(binfo[9]),
-                                float(binfo[8])
+                                float(binfo[6]),
+                                -float(binfo[8]),
+                                float(binfo[7])
                                 ))
             bone.align_roll(align_axis_vec)
             
@@ -127,6 +176,7 @@ class Posing:
         order = bone_limit[1]
         new_bone_limit = self.reorder_limits(order, bone_limit, bone.name)
         new_order = self.get_rotation_order(order)
+        bone["Daz Rotation Order"] = bone_limit[1]
         bone.rotation_mode = new_order
         bone.constraints.new('LIMIT_ROTATION')
         rot_limit = bone.constraints['Limit Rotation']
@@ -398,7 +448,7 @@ class Posing:
         elif order == 'ZYX':
             return 'YZX'
         elif order == "YXZ":
-            return 'YXZ'
+            return 'ZYX'
     
     
     def update_scale(self):
@@ -416,16 +466,43 @@ class Posing:
         pbs[root_name].scale[2] = scale
 
     
-    def make_pose(self):
+    def make_pose(self, use="FIG", armature=None):
         Global.setOpsMode("POSE")
         bone_limits = self.bone_limits_dict
         transform_data = self.pose_data_dict
-        self.fig_object_name = bpy.context.window_manager.choose_daz_figure
-        if self.fig_object_name == "null":
-            return
-        self.fig_object  = bpy.data.objects[self.fig_object_name]
-        pbs = self.fig_object.pose.bones
+        if use == "FIG":
+            self.fig_object_name = bpy.context.window_manager.choose_daz_figure
+            if self.fig_object_name == "null":
+                return
+            self.fig_object  = bpy.data.objects[self.fig_object_name]
+            pbs = self.fig_object.pose.bones
+        else:
+            pbs = armature.pose.bones
         for pb in pbs:
+            if pb.name == "root":
+                bname = pb.name
+                order = "YXZ"
+                new_order = self.get_rotation_order(order)
+                pb.rotation_mode = new_order
+                
+                if "root" in transform_data.keys():
+                    position = transform_data[bname]["Position"]
+                    rotation = transform_data[bname]["Rotation"]
+                    for i in range(len(position)):
+                        position[i] = position[i] * Global.get_size()
+
+                    pbs[bname].location[0] = float(position[0])
+                    # Y invert (-Y) and Flip with Z
+                    pbs[bname].location[1] = -float(position[2])
+                    # Z invert (-Z) and Flip with Y
+                    pbs[bname].location[2] = float(position[1])
+                    
+                    # Rotation
+                    fixed_rotation = self.reorder_rotation(new_order,rotation,bname)
+                    pbs[bname].rotation_mode = order
+                    for i in range(len(rotation)):      
+                        pbs[bname].rotation_euler[i] = math.radians(float(fixed_rotation[i]))
+                    pbs[bname].rotation_mode = new_order
             if "Daz Rotation Order" in pb.keys():
                 order = pb["Daz Rotation Order"]
                 bname = pb.name
@@ -434,7 +511,6 @@ class Posing:
                     
                     position = transform_data[bname]["Position"]
                     rotation = transform_data[bname]["Rotation"]
-                    
                     # Position
                     if bname == "hip":
                         if self.get_offset() != 0:
@@ -445,7 +521,7 @@ class Posing:
                     pbs[bname].location[0] = float(position[0])
                     # Y invert (-Y)
                     pbs[bname].location[1] = -float(position[1])
-                    # Z invert (-Z)
+                    # Z invert (-Z) 
                     pbs[bname].location[2] = -float(position[2])
                     
                     
@@ -457,19 +533,19 @@ class Posing:
                     pbs[bname].rotation_mode = new_order
                     
         if (bpy.context.window_manager.add_pose_lib):
-            if self.pose_lib_check():
-                self.add_pose(transform_data)
-            else:
-                num = ""
-                if ".0" in self.fig_object_name:
-                    num = " " + self.fig_object_name[-1]
-                bpy.ops.pose.select_all(action="SELECT")
-                bpy.ops.poselib.pose_add(frame=0, name=str(self.fig_object["Asset Name"] + " Pose"))
-                action = bpy.data.actions["PoseLib"]
-                action.name = self.fig_object["Asset Name"] + num + " Pose Library"
-                bpy.ops.pose.select_all(action="DESELECT")
+            if use == "FIG":
+                if self.pose_lib_check():
+                    self.add_pose(transform_data)
+                    num = ""
+                    if ".0" in self.fig_object_name:
+                        num = " " + self.fig_object_name[-1]
+                    bpy.ops.pose.select_all(action="SELECT")
+                    bpy.ops.poselib.pose_add(frame=0, name=str(self.fig_object["Asset Name"] + " Pose"))
+                    action = bpy.data.actions["PoseLib"]
+                    action.name = self.fig_object["Asset Name"] + num + " Pose Library"
+                    bpy.ops.pose.select_all(action="DESELECT")
 
-    
+        
     def pose_lib_check(self):
         if ".0" in self.fig_object_name:
             num = " " + self.fig_object_name[-1]
@@ -506,3 +582,8 @@ class Posing:
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode("POSE")
         self.make_pose()
+
+    def restore_env_pose(self, amtr):
+        Versions.active_object(amtr)
+        Global.setOpsMode("POSE")
+        self.make_pose("ENV", amtr)
