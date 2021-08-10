@@ -71,9 +71,11 @@
 	var s_bRemoveIncompatible;
 	var s_bIncludeMorphs;
 	var s_bCollectTextures;
+	var s_bAutoWeights;
 	
-	
-	
+	// Static Widgets
+	var s_wAdvWgt;
+
 // --- START Sub Script ----
 	/**********************************************************************
 	
@@ -411,7 +413,7 @@
 	// - Minor changes for this specific use case
 	
 	// void : ...
-	function exportOBJ( oNode, sName, nIdx )
+	function exportOBJ( oNode, sName, nIdx, bSelected )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -490,9 +492,9 @@
 			// If the version is 4.5.0.114 or newer
 			if( App.version64 >= 0x0004000500000072 ){
 				// Do not limit export to selection
-				oSettings.setBoolValue( "SelectedOnly", false );
+				oSettings.setBoolValue( "SelectedOnly", bSelected );
 				// Do not limit export to the selected roots
-				oSettings.setBoolValue( "SelectedRootsOnly", false );
+				oSettings.setBoolValue( "SelectedRootsOnly", bSelected );
 				// Do not limit export to the primary selected root;
 				// this setting overrides SelectedRootsOnly
 				oSettings.setBoolValue( "PrimaryRootOnly", false );
@@ -530,9 +532,18 @@
 					.arg( oNode.name )
 					.arg( oExporter.getExtension() ) :
 				oExportMgr.getExportPath() );
-			
-			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/" + sName+ ".obj";
-			
+			var sRootDir = s_sRootPath + sName + "/" 
+			var sDir = sRootDir + sName + nIdx + "/"
+			var sPath = sDir + sName+ ".obj";
+			var oTempDir = new DzDir( "" );
+			oTempDir.setPath( sRootDir )
+			if( !oTempDir.exists() ){
+				oTempDir.mkdir( sRootDir );
+			};
+			oTempDir.setPath( sDir )
+			if( !oTempDir.exists() ){
+				oTempDir.mkdir( sDir );
+			};
 			// If the user didn't cancel and the file doesn't already
 			// exist, or the user wants to overwrite it
 			if( sPath && MainWindow.checkExistingFile( sPath ) ){
@@ -552,7 +563,126 @@
 	};
 	
 // --- END export_obj_silent ----
+
+// --- START import_obj_silent ----
+	/**********************************************************************
 	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_obj_silent/start
+	
+	// - Minor changes for this specific use case
+	
+	// void : ...
+	function importOBJ( sName, nIdx )
+	{
+		// Get the import manager
+	var oImportMgr = App.getImportMgr();
+	// Define the class name the for Wavefront Object (*.obj) importer
+	var sClassName = "DzObjImporter";
+	// Find the importer
+	var oImporter = oImportMgr.findImporterByClassName( sClassName );
+	// If the importer exists
+	if( oImporter ){
+		// Create a settings object
+		var oSettings = new DzFileIOSettings();
+ 
+		// Fill the settings object with the default options from the importer
+		//oImporter.getDefaultOptions( oSettings );
+ 
+		// Define whether or not to show options
+		var bShowOptions = false;
+ 
+		// Define whether or not to show options before prompting for a path;
+		// requires 4.9.3.22 or later
+		var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+ 
+		// Get the options for the exporter
+		if( !oImporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+			// We're done...
+			return;
+		}
+ 
+		// Debug
+		//print( oSettings.toJsonString() );
+ 
+		// Set the desired settings for the importer
+		//oSettings.setStringValue( "Preset", "Poser (1 unit = 8ft)" );
+ 
+	 	// Set the scale to read the data
+		oSettings.setFloatValue( "Scale", 100.00 );
+		// Set the lateral axis to X
+		oSettings.setStringValue( "LatAxis", "X" );
+		// Set the vertical axis to Y
+		oSettings.setStringValue( "VertAxis", "Y" );
+		// Set the depth axis to Z
+		oSettings.setStringValue( "DepthAxis", "Z" );
+		// Do not invert the lateral axis
+		oSettings.setBoolValue( "InvertLat", false );
+		// Do not invert the vertical axis
+		oSettings.setBoolValue( "InvertVert", false );
+		// Do not invert the depth axis
+		oSettings.setBoolValue( "InvertDepth", false );
+		// Read vertex textures - UVs
+		oSettings.setBoolValue( "IncludeVT", true );
+		// Read facet groups
+		oSettings.setBoolValue( "IncludeG", true );
+		// Read surface groups
+		oSettings.setBoolValue( "IncludeUsemtl", true );
+ 
+		// Read the material library if it exists
+		oSettings.setBoolValue( "IncludeMtllib", true );
+ 
+ 
+		// If the version is 4.9.3.22 or newer
+		if( App.version64 >= 0x0004000900030016 ){
+			// Show individual settings in the dialog
+			oSettings.setBoolValue( "ShowIndividualSettings", false );
+		}
+ 
+		// Define whether or not to show the options after prompting for a file
+		oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+ 
+		// Debug
+		//print( oSettings.toJsonString() );
+ 
+		// Get the number of extensions supported by the importer
+		var nExtensions = oImporter.getNumExtensions();
+		// Pre-size the extensions array
+		var aExtensions = new Array( nExtensions );
+		// Iterate over the extensions, setting each element in the array
+		for( var i = 0; i < nExtensions; i += 1 ){
+			aExtensions[ i ] = String("*.%1").arg( oImporter.getExtension( i ) );
+		}
+		
+		var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/" + sName+ ".obj";
+
+		// If the user didn't cancel
+		if( sPath ){
+			// Read the file using the options specified
+			oImporter.readFile( sPath, oSettings );
+		}
+ 
+		// Clean up; don't leak memory
+		oImporter.deleteLater();
+		// We didn't find an importer with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr("An importer with the class name \"%1\" " +
+				"could not be found.").arg( sClassName ),
+				qsTr("Critical Error"), qsTr("&OK") );
+		}
+	}
+// --- END import_obj_silent ----
+
+
 	/*********************************************************************/
 	
 	// void : ...
@@ -1157,6 +1287,7 @@
         lytMorphs.margin = nMargin;
         lytMorphs.spacing = nMargin;
 		wSettingsDialog.addWidget( lytMorphs );
+		
 
 		// Checkbox to include morph data
 		var wIncludeMorphsCbx = new DzCheckBox( lytMorphs );
@@ -1179,15 +1310,41 @@
 		wIncludeAnimationsCbx.checked = false;
 		wSettingsDialog.addWidget( wIncludeAnimationsCbx );
 
-		// Checkbox to include animation data
-		var wRemoveIncompatible = new DzCheckBox( wSettingsDialog );
+		// Advanced Settings
+		
+		var wAdvanceSettings = new DzGroupBox( wSettingsDialog );	
+		wAdvanceSettings.title = "Advanced Settings";
+		wAdvanceSettings.checkable = true;
+		wAdvanceSettings.checked = false;
+		wAdvanceSettings.setFixedWidth( 200 );
+		wSettingsDialog.addWidget( wAdvanceSettings )
+		
+		// Create Advance Settings Layout
+		s_wAdvWgt = new DzWidget( wAdvanceSettings );
+		var lytAdvance = new DzVBoxLayout( s_wAdvWgt );
+		lytAdvance.margin = nMargin;
+        lytAdvance.spacing = nMargin;
+		
+		s_wAdvWgt.hide();
+
+		// Checkbox to Remove incompatible nodes
+		var wRemoveIncompatible = new DzCheckBox( s_wAdvWgt );
 		wRemoveIncompatible.text = "Remove any incompatible nodes";
 		wRemoveIncompatible.checked = false;
-		wSettingsDialog.addWidget( wRemoveIncompatible );
+		lytAdvance.addWidget( wRemoveIncompatible )
 
+		// Checkbox to use Transfer Utility
+		var wTransferUtil = new DzCheckBox( s_wAdvWgt );
+		wTransferUtil.text = "Auto-Weight";
+		wTransferUtil.checked = false;
+		wTransferUtil.whatsThis = "When a mesh like a button is not weighted it will not keep its location\
+When leaving daz to deal with we will be automatically transfer the weights from the parents."
+		lytAdvance.addWidget( wTransferUtil )
 
 		// Create Connections
 		wChooseMorphsBut.released.connect( oNode, executeMorphDialog );
+		wAdvanceSettings.toggled.connect( wAdvanceSettings.checked, handleShowAdvancedSetting)
+
 
 		// When user Cancels the dialog
 		if( !wSettingsDialog.exec() ){
@@ -1200,10 +1357,24 @@
 		s_bIncludeMorphs = wIncludeMorphsCbx.checked;
 		s_bCollectTextures = wCollectTexturesCbx.checked;
 		s_bRemoveIncompatible = wRemoveIncompatible.checked;
+		s_bAutoWeights = wTransferUtil.checked;
 
 		// When user Accepts the dialog
 		return true;
 	};
+	/*********************************************************************/
+	// Void : Display the advanced widget.
+	function handleShowAdvancedSetting( bChecked )
+	{	
+		if( bChecked ){
+			s_wAdvWgt.show()
+		}
+		else{
+			s_wAdvWgt.hide()
+		}
+		
+	}
+
 
 	/*********************************************************************/
 	// Bool : Executes Morph Dialog 
@@ -2510,7 +2681,189 @@
 				}
 			}
 		}
+	};
+	/*********************************************************************/
+	// Void: Deselect All Assets
+	function deSelectAll()
+	{
+				// Get list of nodes
+		var oSelItems = Scene.getSelectedNodeList();
+
+		// go through deselecting
+		for ( var i = 0 ; i < oSelItems.length ; i++ ) {
+			oSelItems[i].select( false );
+		}
 	}
+	/*********************************************************************/
+    // Object : ...
+    function getActiveMorphs( oNode )
+    {
+        var oObject;
+        var oShape;
+        var oProperty;
+        var oPresentation;
+        var sPropName;
+        var sPropLabel;
+        oActiveMorphs = {}
+        oObject = oNode.getObject();
+        if( oObject != null ){
+            oShape = oObject.getCurrentShape();
+        }
+        for( var i = 0; i < oNode.getNumProperties(); i++ ){
+            oProperty = oNode.getProperty( i );
+            sPropName = oProperty.getName();
+            sPropLabel = oProperty.getLabel();
+            oPresentation = oProperty.getPresentation();
+            if (oPresentation != undefined){
+				if( oProperty.getValue() > 0 ){
+					oActiveMorphs[sPropName] = {}
+					oActiveMorphs[sPropName].prop = oProperty
+					oActiveMorphs[sPropName].value = oProperty.getValue()						
+				}
+            }
+        }
+        if( oObject ){
+            for( var i = 0; i < oObject.getNumModifiers(); i++ ){
+                oModifer = oObject.getModifier( i );
+                sModName = oModifer.getName();
+                sModLabel = oModifer.getLabel();
+                if(oModifer.inherits( "DzMorph" ) ){
+                    for( var j = 0; j < oModifer.getNumProperties(); j++ ){
+                        oProperty = oModifer.getProperty( j );
+                        sPropName = oProperty.getName();
+                        sPropLabel = oProperty.getLabel();
+                        oPresentation = oProperty.getPresentation();
+                        if (oPresentation != undefined){
+							if( oProperty.getValue() > 0 ){
+								oActiveMorphs[sModName] = {}
+								oActiveMorphs[sModName].prop = oProperty
+								oActiveMorphs[sModName].value = oProperty.getValue()
+							}
+                        }
+                    }
+                }
+            }
+        }
+		return oActiveMorphs
+    };
+	/*********************************************************************/
+    // void : ...
+	function zeroOutMorphs( oActiveMorphs ){
+		aSkippedMorphs = ["XScale", "YScale", "ZScale", "Scale"]
+		for( sMorph in oActiveMorphs ){
+			oProperty = oActiveMorphs[sMorph].prop
+			if( aSkippedMorphs.indexOf( sMorph ) > -1 ){
+				oProperty.setValue( 1 )
+			}
+			else{
+				oProperty.setValue( 0 )
+			}
+			
+		}
+	}
+	/*********************************************************************/
+    // void : ...
+	function returnMorphValues( oActiveMorphs ){
+		for( sMorph in oActiveMorphs ){
+			oProperty = oActiveMorphs[sMorph].prop
+			nValue = oActiveMorphs[sMorph].value
+			oProperty.setValue( nValue )
+		}
+	}
+
+	/*********************************************************************/
+	// Bool : Runs Transfer Utility and return if it was a success or not.
+	function transferWeights( oSource, oTarget )
+	{
+		oTransfer = new DzTransferUtility();
+		oTransfer.assetType = DzTransferUtility.NodeAsset;
+		oTransfer.setSource( oSource );
+		oTransfer.setSourceBaseCurrent( true );
+		oTransfer.setTarget( oTarget );
+		oTransfer.setAdjustTargetBase( false );
+		oTransfer.setTransferBinding( true );
+		oTransfer.setFitToFigure( true );
+		oTransfer.setParentToFigure( true );
+		return oTransfer.doTransfer()
+	};
+	
+	/*********************************************************************/
+	function weightObjects( oBaseNode )
+	{
+		var aChildren = oBaseNode.getNodeChildren( false );
+		oActiveMorphs = getActiveMorphs( oBaseNode )
+		zeroOutMorphs( oActiveMorphs )
+		deSelectAll()
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			var aRemoved = [];
+			if( oNode.inherits("DzBone") ){
+				aRecursiveChildren = oNode.getNodeChildren( true );
+				for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
+					var oChild = aRecursiveChildren[j];
+					var oObject = oChild.getObject();
+					if( !oChild.isInScene() ){
+						continue
+					}
+					if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
+						oBaseNode.removeNodeChild( oChild, inPlace = true );
+					}
+					if( !( oChild.inherits( "DzSkeleton" ) ) 
+					   && !( oChild.inherits( "DzBone" ) )
+					   && oObject != null ){
+						if( oChild.getNodeParent().inherits("DzRigidFollowNode")){
+							oChild.getNodeParent().removeNodeChild( oChild, inPlace = true )
+							Scene.removeNode( oChild.getNodeParent() );
+						}
+						var bSuccess = transferWeights( oBaseNode, oChild );
+						if ( !bSuccess ){
+							Scene.removeNode( oChild );
+						}
+					}
+				}
+			}
+			else{
+				aRecursiveChildren = oNode.getNodeChildren( true );
+				for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
+					var oChild = aRecursiveChildren[j];
+					var oObject = oChild.getObject();
+					if( !oChild.isInScene() ){
+						continue
+					}
+					if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
+						oNode.removeNodeChild( oChild, inPlace = true );
+					}
+					if( !( oChild.inherits( "DzSkeleton" ) ) 
+					   && !( oChild.inherits( "DzBone" ) )
+					   && oObject != null ){
+						deSelectAll()
+						oChild.select( true )
+						sName = oChild.name
+						sLabel = oChild.getLabel()
+
+						var sPath = s_sRootPath +  "temp" + "/"  +  "temp" + sName + "/";
+						exportOBJ( oChild, "temp", sName, true )
+						var oParent = oChild.getNodeParent()
+						if( oParent.inherits("DzRigidFollowNode")){
+							Scene.removeNode( oChild );
+							Scene.removeNode( oParent );
+						}
+						else{
+							Scene.removeNode( oChild );
+						}
+						importOBJ( "temp", sName )
+						oImport = Scene.findNodeByLabel( "temp" );
+						oImport.setName( sName )
+						oImport.setLabel( sLabel )
+						var bSuccess = transferWeights( oNode, oImport );
+						if ( !bSuccess ){
+						}
+					}
+				}
+			}
+		}
+		returnMorphValues( oActiveMorphs )
+	};
 
 	/*********************************************************************/
 
@@ -2552,6 +2905,7 @@
 		var sFileBasename;
 		var sBaseDirectory; 
 
+		
 		if( s_nExportType == s_oExportTypes.Both
 		|| s_nExportType == s_oExportTypes.Figure ){
 			setHideRoot( false, false );
@@ -2559,6 +2913,7 @@
 			var oFigure;
 			for( var i = 0; i < s_aFigures.length; i += 1 ){
 				oFigure = s_aFigures[i];
+				
 				for( var j = 0; j < s_aFigures.length; j += 1 ){
 					setVisible( s_aFigures[j], i == j );
 				}
@@ -2566,7 +2921,15 @@
 				if( !promptSettings( oFigure ) ){
 					continue;
 				}
-				
+				if( s_bAutoWeights ){
+					if( MessageBox.warning(
+						qsTr( "Transfering the Weights will destroy the current state of your scene save your scene before exporting." ),
+						s_sToolName, qsTr( "&Continue" ), qsTr( "&Cancel" ) ) == 1 ){
+						return;
+					}
+					weightObjects( oFigure )
+				}
+
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
 				setSubDivLevelAll( oFigure );
@@ -2582,7 +2945,7 @@
 				loadFigureBoneData( oFigure );
 				loadPoseData( oFigure, true );
 				setEyelashVisibility( oFigure, false );
-				exportOBJ( oFigure, s_sFig, i );
+				exportOBJ( oFigure, s_sFig, i, false );
 				setEyelashVisibility( oFigure, true );
 				if( s_bRemoveIncompatible ){
 					removeIncompatibleNodes( oFigure );
