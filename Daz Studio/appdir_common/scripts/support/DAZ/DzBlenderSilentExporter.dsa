@@ -1,0 +1,120 @@
+// DAZ Studio version 4.15.0.2 filetype DAZ Script
+
+(function(){
+    var s_sBridge = "Blender"
+    var s_oFileInfo = new DzFileInfo( getScriptFileName() );
+	var s_sScriptPath = s_oFileInfo.path();
+	if( s_sScriptPath === "" ){
+        // To be able to use the IDE Input your absolute Path.
+	    s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"
+    }
+
+    var s_sBridgeDialog = String( "Daz to %1" ).arg( s_sBridge )
+    
+    // --- START Sub Script ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/remote_operation/sub_script/start
+ 	
+ 	// - Extracted functions
+	// - Returns Scripts Paramater
+ 	// - Adjusted to be used within bridge
+	/*********************************************************************/
+	// Object? 
+	function executeSubScript( sScript, aArgs ){
+ 
+		/*********************************************************************/
+		// String : A function for retrieving a translation if one exists
+		function text( sText )
+		{
+			// If the version of the application supports qsTr()
+			if( typeof( qsTr ) != "undefined" ){
+				// Return the translated (if any) text
+				return qsTr( sText );
+			}
+	 
+			// Return the original text
+			return sText;
+		};
+	 
+		/*********************************************************************/
+		// Declare working variables
+		var sTitle, sMessage;
+	 
+		// Define common strings
+		var sButton = text( "&OK" );
+	 
+		// Define the base path of the script we'll call; without the file extension
+		var sBasePath = String( "%1/%2" ).arg( s_sScriptPath ).arg( sScript );
+		
+		// Create a script object
+		var oScript = new DzScript();
+	 
+		// Attempt to find our script; doing it this way, we can debug with an
+		// ascii file and distribute a binary [encrypted] file with the same name...
+		// without having to update the contents of the script or manually handle
+		// the file extensions; requires 3.0.1.5 or newer
+		var sScriptPath = oScript.getScriptFile( sBasePath );
+	 
+		// If a script is found
+		if( !sScriptPath.isEmpty() ){
+			// If the script loads
+			if( oScript.loadFromFile( sScriptPath ) ){
+				// Execute the script; pass in an array of arguments;
+				// passing in arguments requires 2.2.2.17 or newer
+				oScript.execute( aArgs );
+				return oScript.result();
+			// If the script doesn't load
+			} else {
+				// Define text variables for the message
+				sTitle = text( "Read Error" );
+				sMessage = text( "The '%1' file could not be loaded." ).arg( sScriptPath );
+				// Inform the user
+				MessageBox.information( sMessage, sTitle, sButton );
+			}
+		// If a script is not found
+		} else {
+			// Define text variables for the message
+			sTitle = text( "File Not Found" );
+			sMessage = text( "A '%1.ds(a|b|e)' file could not be found." ).arg( sBasePath );
+			// Inform the user
+			MessageBox.information( sMessage, sTitle, sButton );
+		}
+	};
+
+    /*********************************************************************/
+    function main()
+    {
+        var bSilent = true;
+        var nSubDivLevel = 0;
+        var bIncludeAnim = false;
+        var bRemoveIncompatible = false;
+        var bIncludeMorphs = false;
+        var bCollectTextures = false;
+        var bAutoWeights = true;
+        // Can send a path to autoexport morphs ../../Presets/Example_Morphs.csv
+        var sMorphPath = ""
+        executeSubScript( s_sBridgeDialog, [
+            bSilent,
+            nSubDivLevel,
+            bIncludeAnim,
+            bRemoveIncompatible,
+            bIncludeMorphs,
+            bCollectTextures,
+            bAutoWeights,
+            sMorphPath,
+        ] )
+    };
+
+    /*********************************************************************/
+    main()
+})();

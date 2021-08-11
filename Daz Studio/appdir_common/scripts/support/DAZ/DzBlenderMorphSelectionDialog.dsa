@@ -752,7 +752,7 @@
             savePresetFile( sFile );
         }
     };
-
+    
     /*********************************************************************/
     // Void : Saves out a preset.  If the path isn't supplied, it's saved as the last selection
     function savePresetFile( sFilePath )
@@ -784,6 +784,7 @@
         refreshPresetsCombo();
 
     };
+    
     /*********************************************************************/
     // Void : Check if the Morph Should be Disconnected
     function checkMorphConnections( oMorphInfo )

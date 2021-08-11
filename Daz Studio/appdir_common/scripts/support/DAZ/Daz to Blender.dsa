@@ -1,12 +1,14 @@
 // DAZ Studio version 4.12.0.86 filetype DAZ Script
 
-(function(){
+(function( aArgs ){
 	var s_sBridge = "Blender"
 	var s_sDazBridgeName = String( "Daz To %1" ).arg( s_sBridge )
 	var s_oFileInfo = new DzFileInfo( getScriptFileName() );
 	var s_sScriptPath = s_oFileInfo.path();
-	// To be able to use the IDE Input your absolute Path.
-	// s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"	
+	if( s_sScriptPath === "" ){
+        // To be able to use the IDE Input your absolute Path.
+	    s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"
+    }	
 	var s_sToolName = s_sDazBridgeName;
 	var s_sMorphDialog = String( "Dz%1MorphSelectionDialog" ).arg( s_sBridge )
 	s_oFileInfo.deleteLater();
@@ -42,6 +44,7 @@
 	var s_sCustomPath = "";
 	var s_sPresetPath = "";
 	var s_sConfigPath = "";
+	var s_sMorphPath = "";
 	
 	var s_sFbxPath = "";
 	var s_sMorphRules = "";
@@ -53,10 +56,6 @@
 	var s_oHeadTailData = {};
 	var s_oJointOrientation = {};
 	var s_oPoseData = {};
-
-	var s_nLenName = 0;
-	var s_nMaxName = 19;
-	var s_sAlf = "1234567890abcdefghijklmnopqrstuvwxyz";
 	
 	var s_vecDef = new DzVec3( 0, 0, 0 );
 	var s_quatDef = new DzQuat( 0, 0, 0, 1, true );
@@ -66,6 +65,7 @@
 	var s_oOrgName = {};
 
 	// Setting variables
+	var s_bSilent;
 	var s_nSubDivLevel;
 	var s_bIncludeAnim;
 	var s_bRemoveIncompatible;
@@ -682,20 +682,42 @@
 	}
 // --- END import_obj_silent ----
 
-
 	/*********************************************************************/
-	
-	// void : ...
-	function addBanner( wDlg, sImagePath )
-	{
-		var imgImage = new Image( sImagePath );
-		var pixImage = (new Pixmap()).fromImage( imgImage );
-		
-		var wLabel = new DzLabel( wDlg );
-		wLabel.pixmap = pixImage;
-		wDlg.addWidget( wLabel );
-	};
-	
+	/** 
+	* Void: initalizes any arguments passed to the silent exporter
+	*/
+    function initilizeArgs()
+    {
+        for( var i = 0, nArgs = aArgs.length; i < nArgs; i += 1 ){
+            vArg = aArgs[i];
+            if( i == 0 ){
+				s_bSilent = vArg;
+			}
+			else if( i == 1 ){
+				s_nSubDivLevel = vArg;
+			}
+			else if( i == 2 ){
+				s_bIncludeAnim = vArg;
+			}
+			else if( i == 3 ){
+				s_bRemoveIncompatible = vArg;
+			}
+			else if( i == 4 ){
+				s_bIncludeMorphs = vArg;
+			}
+			else if( i == 5 ){
+				s_bCollectTextures = vArg;
+			}
+			else if( i == 6 ){
+				s_bAutoWeights = vArg;
+			}
+			else if( i == 7 ){
+				s_sMorphPath = vArg;
+			}
+        }
+
+    };
+
 	/*********************************************************************/
 	// Array<Number> : ...
 	// TODO : refactor - efficiency
@@ -993,7 +1015,6 @@
 	
 	/*********************************************************************/
 	// String : ...
-	// TODO : rename
 	function getObjectType( oNode )
 	{
 		if( oNode.inherits( "DzBone" ) ){
@@ -1028,38 +1049,8 @@
 	
 	/*********************************************************************/
 	// void : ...
-	// Morph names that are too long will cause an error in Blender 2.79.
-	// Note: destructive - modifies the scene contents
-	function truncateSkeletonNames( oBaseNode )
-	{
-		var oNode;
-		var sName;
-		var sTmp;
-		
-		var nCount = 0;
-		var aChildren = oBaseNode.getNodeChildren( true );
-		for( var i = 0; i < aChildren.length; i += 1 ){
-			oNode = aChildren[i];
-			sName = oNode.name;
-			if( sName.length >= s_nMaxName ){
-				sTmp = sName.substring( 0, s_nMaxName-2 );
-				nCount = nCount % 36;
-				sTmp = sTmp + "_" + s_sAlf.substr( nCount, 1 );
-				oNode.name = sTmp;
-				s_nLenName = s_nMaxName;
-				nCount = nCount + 1;
-			} else {
-				if( sName.length > s_nLenName ){
-					s_nLenName = sName.length;
-				}
-			}
-		}
-	};
-	
-	/*********************************************************************/
-	// void : ...
 	// Delete previous export
-	// TODO : Create a Config folder to Hold the User's Daz Directories
+	// ISSUE : Currently the Both Enum is handled incorrectly new logic is needed
 	function prepareForExport( nType )
 	{
 		var oDir = new DzDir( "" );
@@ -1081,12 +1072,6 @@
 			sPath = s_sRootPath + aRoot[i] + "/";
 			s_sRootPath = sPath;
 
-			if ( i == 4 ){
-				s_sPresetPath = sPath;
-			}
-			if ( i == 5 ){
-				s_sConfigPath = sPath;
-			}
 			// Create Directories
 			oDir.setPath( sPath );
 			if( !oDir.exists() ){
@@ -1098,17 +1083,20 @@
 			var sTempPath = sPath + aFolders[i] + "/";
 			if( i == 0 ){
 				s_sRootPath = sTempPath;
-				
 			}
 			if( i == 1 ){
 				s_sConfigPath = sTempPath;
 			}
 			if( i == 2 ){
 				s_sPresetPath = sTempPath;
+				if( s_sMorphPath == "" ){
+					s_sMorphPath = s_sPresetPath + "LastUsed.csv"
+				}
 			}
 			// Create Directories
 			oDir.setPath( sTempPath );
 			if( !oDir.exists() ){
+				
 				if( i == 0 ){
 					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sTempPath ), 
 											qsTr( "Your Export Path" ), 
@@ -1127,7 +1115,12 @@
 			sPath = s_sRootPath + aSubs[1] + "/"
 			sType = aSubs[1]	
 			};	
-
+		
+		if( nType == s_oExportTypes.Both ){
+			sPath = s_sRootPath 
+			sType = aSubs[0]	
+		}
+		
 		// Create Directories
 		oDir.setPath( sPath );
 		if( !oDir.exists() ){
@@ -1249,6 +1242,7 @@
 			}
 		}
 	};
+	
 	/*********************************************************************/
 	// Bool : ...
 	// Export Settings Dialog
@@ -1298,11 +1292,6 @@
 		var wChooseMorphsBut = new DzPushButton( lytMorphs );
 		wChooseMorphsBut.text = "Choose Morphs";
 		
-		// Checkbox to collect textures at export
-		var wCollectTexturesCbx = new DzCheckBox( wSettingsDialog );
-		wCollectTexturesCbx.text = "Collect Textures";
-		wCollectTexturesCbx.checked = false;
-		wSettingsDialog.addWidget( wCollectTexturesCbx );
 
 		// Checkbox to include animation data
 		var wIncludeAnimationsCbx = new DzCheckBox( wSettingsDialog );
@@ -1326,6 +1315,12 @@
         lytAdvance.spacing = nMargin;
 		
 		s_wAdvWgt.hide();
+
+		// Checkbox to collect textures at export
+		var wCollectTexturesCbx = new DzCheckBox( s_wAdvWgt );
+		wCollectTexturesCbx.text = "Collect Textures";
+		wCollectTexturesCbx.checked = false;
+		lytAdvance.addWidget( wCollectTexturesCbx );
 
 		// Checkbox to Remove incompatible nodes
 		var wRemoveIncompatible = new DzCheckBox( s_wAdvWgt );
@@ -1373,8 +1368,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 			s_wAdvWgt.hide()
 		}
 		
-	}
-
+	};
 
 	/*********************************************************************/
 	// Bool : Executes Morph Dialog 
@@ -1942,7 +1936,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		} else{
 			return -1;
 		}
-	}
+	};
 
 	/*********************************************************************/
 	// Number : Get the direction of the bone's look at axis. 1 or -1
@@ -2040,7 +2034,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 	{
 		var vecAlongBone = oNode.getEndPoint().subtract( oNode.getOrigin() );
 		return vecAlongBone.length();
-	}
+	};
 
 	/*********************************************************************/
 	// Void : load bone's limits along with rotation orders
@@ -2179,9 +2173,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 	};
 	
 	/*********************************************************************/	
-	// void : ...
-	// Note: Configure DTU File
-	// TO DO: Grab Subdivision info and Morphs Exporting
+	// void : Configure DTU File
 	function writeConfiguration( oNode, sFilename, sDir )
 	{
 		var sDtufilename = sFilename + ".dtu";
@@ -2263,7 +2255,6 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		return sRelTexture
 		
 	};
-
 
 	/*********************************************************************/	
 	// Array : ...
@@ -2374,9 +2365,9 @@ When leaving daz to deal with we will be automatically transfer the weights from
         var sMorphString
         if ( aExportableProperties.length == 0 ){
 			s_aMorphNamesToExport = [];
-			sPresetFilePath = s_sPresetPath + "LastUsed.csv"
-            oFile = new DzFile( sPresetFilePath );
-			if( !oFile.open( DzFile.ReadOnly ) ){
+			print(s_sMorphPath)
+            oFile = new DzFile( s_sMorphPath );
+			if( !oFile.open( DzFile.ReadOnly ) ){ 
 				print( String( "Unable to open \"%1\" for Reading." ).arg( sPresetFilePath ) );
 				return;
 			}
@@ -2683,19 +2674,64 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		}
 	};
 	/*********************************************************************/
-	// Void: Deselect All Assets
+	/**
+	* Void : Helper function to create the temp directory if it doesn't exist
+	*/
+	function addTempDirectory()
+	{
+		sTempPath = s_sRootPath + "/" + "temp"
+		var oDir = new DzDir( "" );
+		oDir.setPath( sTempPath );
+		if( !oDir.exists() ){
+			oDir.mkdir( sTempPath );
+		};
+	};
+
+	/*********************************************************************/
+	/**  
+	* Void : Helper function to remove temporary files form a path
+	* @param  {string} sPath Path of the temp folder used to export/import the obj
+	*/
+	function cleanUpTempFiles( sPath )
+	{
+		var oDir = new DzDir( "" );
+
+		oDir.setPath( sPath );
+
+		var aDirs = []
+		// Delete Files
+		aFiles = oDir.getFilesFromDir( [], true );
+		for( var j = 0; j < aFiles.length; j += 1 ){
+			oDir.remove( aFiles[j] );
+
+		}
+		// Delete Dirs
+		oDir.rmdir();
+	};
+
+	/*********************************************************************/
+	/** 
+	* Void : Helper function to deselect everything in the scene.
+	*/
 	function deSelectAll()
 	{
-				// Get list of nodes
+		// Get list of nodes
 		var oSelItems = Scene.getSelectedNodeList();
 
 		// go through deselecting
 		for ( var i = 0 ; i < oSelItems.length ; i++ ) {
 			oSelItems[i].select( false );
 		}
-	}
+	};
+
 	/*********************************************************************/
-    // Object : ...
+    /** 
+	* /** 
+	* Object : Helper function to deselect everything in the scene.
+	* @summary If the description is long, write your summary here. Otherwise, feel free to remove this.
+	* @param {DzNode} oNode - a given figure that has morphs
+	* @return {Object} Contains all the active morphs on the node given with its property and value
+	*/
     function getActiveMorphs( oNode )
     {
         var oObject;
@@ -2746,8 +2782,12 @@ When leaving daz to deal with we will be automatically transfer the weights from
         }
 		return oActiveMorphs
     };
+
 	/*********************************************************************/
-    // void : ...
+	/** 
+	* Void: Applys the default values of the morphs that are active
+	* @param {Object} oActiveMorphs - All the active morphs found on the specific figure.
+	*/   
 	function zeroOutMorphs( oActiveMorphs ){
 		aSkippedMorphs = ["XScale", "YScale", "ZScale", "Scale"]
 		for( sMorph in oActiveMorphs ){
@@ -2760,19 +2800,28 @@ When leaving daz to deal with we will be automatically transfer the weights from
 			}
 			
 		}
-	}
+	};
+
 	/*********************************************************************/
-    // void : ...
+    /** 
+	* Void: Applys the user input values of the morphs that are active
+	* @param {Object} oActiveMorphs - All the active morphs found on the specific figure.
+	*/  
 	function returnMorphValues( oActiveMorphs ){
 		for( sMorph in oActiveMorphs ){
 			oProperty = oActiveMorphs[sMorph].prop
 			nValue = oActiveMorphs[sMorph].value
 			oProperty.setValue( nValue )
 		}
-	}
+	};
 
 	/*********************************************************************/
-	// Bool : Runs Transfer Utility and return if it was a success or not.
+	/** 
+	*  Bool : Runs Transfer Utility and return if it was a success or not.
+	* @param {DzNode} oSource - Source Figure used to get the weights
+	* @param {DzNode} oTarget - Target prop which is unweighted and needs auto-weights
+	* @return {Boolean} Returns if the DzTransferUtility was a success or not
+	*/ 
 	function transferWeights( oSource, oTarget )
 	{
 		oTransfer = new DzTransferUtility();
@@ -2786,120 +2835,116 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		oTransfer.setParentToFigure( true );
 		return oTransfer.doTransfer()
 	};
+
+	/*********************************************************************/
+	/** 
+	* Void: Cycles through the Children of the Parents and does loop for Auto-Weights
+	* @param {DzNode} oSource - Source Figure used to get the weights
+	* @param {DzNode} oParent - Parent Figure used for find the Children
+	*/
+	function findingPropsToWeight( oSource, oParent )
+	{
+		aRecursiveChildren = oParent.getNodeChildren( true );
+		for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
+			var oChild = aRecursiveChildren[j];
+			var oObject = oChild.getObject();
+			if( !oChild.isInScene() ){
+				continue
+			}
+			if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
+				oSource.removeNodeChild( oChild, inPlace = true );
+			}
+			if( !( oChild.inherits( "DzSkeleton" ) ) 
+				&& !( oChild.inherits( "DzBone" ) )
+				&& oObject != null ){
+				deSelectAll()
+				oChild.select( true )
+				sName = oChild.name
+				sLabel = oChild.getLabel()
+
+				var sPath = s_sRootPath +  "temp" + "/"  +  "temp" + sName + "/";
+				exportOBJ( oChild, "temp", sName, true )
+				var oAbvChild = oChild.getNodeParent()
+				if( oAbvChild.inherits("DzRigidFollowNode")){
+					Scene.removeNode( oChild );
+					Scene.removeNode( oAbvChild );
+				}
+				else{
+					Scene.removeNode( oChild );
+				}
+				importOBJ( "temp", sName )
+				oImport = Scene.findNodeByLabel( "temp" );
+				oImport.setName( sName )
+				oImport.setLabel( sLabel )
+				var bSuccess = transferWeights( oSource, oImport );
+				cleanUpTempFiles( sPath );
+			}
+		}
+	};
 	
 	/*********************************************************************/
+	/** 
+	* Void: Used to run the Auto-Weight logic, This is Destructive and break user's scene
+	* @param {DzNode} oBaseNode - The Top Node of the hierachy
+	*/
 	function weightObjects( oBaseNode )
 	{
 		var aChildren = oBaseNode.getNodeChildren( false );
 		oActiveMorphs = getActiveMorphs( oBaseNode )
 		zeroOutMorphs( oActiveMorphs )
 		deSelectAll()
+		addTempDirectory()
 		for( var i = 0; i < aChildren.length; i += 1 ){
 			oNode = aChildren[i];
 			var aRemoved = [];
 			if( oNode.inherits("DzBone") ){
-				aRecursiveChildren = oNode.getNodeChildren( true );
-				for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
-					var oChild = aRecursiveChildren[j];
-					var oObject = oChild.getObject();
-					if( !oChild.isInScene() ){
-						continue
-					}
-					if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
-						oBaseNode.removeNodeChild( oChild, inPlace = true );
-					}
-					if( !( oChild.inherits( "DzSkeleton" ) ) 
-					   && !( oChild.inherits( "DzBone" ) )
-					   && oObject != null ){
-						if( oChild.getNodeParent().inherits("DzRigidFollowNode")){
-							oChild.getNodeParent().removeNodeChild( oChild, inPlace = true )
-							Scene.removeNode( oChild.getNodeParent() );
-						}
-						var bSuccess = transferWeights( oBaseNode, oChild );
-						if ( !bSuccess ){
-							Scene.removeNode( oChild );
-						}
-					}
-				}
+				findingPropsToWeight( oBaseNode, oNode )
 			}
 			else{
-				aRecursiveChildren = oNode.getNodeChildren( true );
-				for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
-					var oChild = aRecursiveChildren[j];
-					var oObject = oChild.getObject();
-					if( !oChild.isInScene() ){
-						continue
-					}
-					if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
-						oNode.removeNodeChild( oChild, inPlace = true );
-					}
-					if( !( oChild.inherits( "DzSkeleton" ) ) 
-					   && !( oChild.inherits( "DzBone" ) )
-					   && oObject != null ){
-						deSelectAll()
-						oChild.select( true )
-						sName = oChild.name
-						sLabel = oChild.getLabel()
-
-						var sPath = s_sRootPath +  "temp" + "/"  +  "temp" + sName + "/";
-						exportOBJ( oChild, "temp", sName, true )
-						var oParent = oChild.getNodeParent()
-						if( oParent.inherits("DzRigidFollowNode")){
-							Scene.removeNode( oChild );
-							Scene.removeNode( oParent );
-						}
-						else{
-							Scene.removeNode( oChild );
-						}
-						importOBJ( "temp", sName )
-						oImport = Scene.findNodeByLabel( "temp" );
-						oImport.setName( sName )
-						oImport.setLabel( sLabel )
-						var bSuccess = transferWeights( oNode, oImport );
-						if ( !bSuccess ){
-						}
-					}
-				}
+				findingPropsToWeight( oNode, oNode )
 			}
 		}
 		returnMorphValues( oActiveMorphs )
 	};
 
 	/*********************************************************************/
-
 	// void : ...
 	function main()
 	{
 		var bDebugFBX = false;
-		
+		initilizeArgs()
 		buildRootLists();
 		
-		if( s_aFigures.length > 2 ){
-			if( MessageBox.warning(
-				qsTr( "Transferring 3 or more figures with clothing or hair may freeze and stop." ),
-				s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+		if( !s_bSilent ){
+			if( s_aFigures.length > 2 ){
+				if( MessageBox.warning(
+					qsTr( "Transferring 3 or more figures with clothing or hair may freeze and stop." ),
+					s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+					return;
+				}
+			}
+			
+			if( s_aFigures.length == 0 && s_aEnvProp.length == 0 ){
+				return;
+			} else if( s_aFigures.length > 0 && s_aEnvProp.length > 0 ){
+				s_nExportType = s_oExportTypes.Both;
+			} else if( s_aEnvProp.length == 0 ){
+				s_nExportType = s_oExportTypes.Figure;
+			} else if( s_aFigures.length == 0 ){
+				s_nExportType = s_oExportTypes.EnvProp;
+			}
+			
+			if( s_nExportType == s_oExportTypes.Both ){
+				s_nExportType = promptExportType();
+			}
+			
+			if( s_nExportType == s_oExportTypes.None ){
 				return;
 			}
 		}
-		
-		if( s_aFigures.length == 0 && s_aEnvProp.length == 0 ){
-			return;
-		} else if( s_aFigures.length > 0 && s_aEnvProp.length > 0 ){
-			s_nExportType = s_oExportTypes.Both;
-		} else if( s_aEnvProp.length == 0 ){
-			s_nExportType = s_oExportTypes.Figure;
-		} else if( s_aFigures.length == 0 ){
-			s_nExportType = s_oExportTypes.EnvProp;
+		else{
+			s_nExportType= s_oExportTypes.Both
 		}
-		
-		if( s_nExportType == s_oExportTypes.Both ){
-			s_nExportType = promptExportType();
-		}
-		
-		if( s_nExportType == s_oExportTypes.None ){
-			return;
-		}
-		
 		prepareForExport( s_nExportType );
 		
 		var sFileBasename;
@@ -2917,16 +2962,19 @@ When leaving daz to deal with we will be automatically transfer the weights from
 				for( var j = 0; j < s_aFigures.length; j += 1 ){
 					setVisible( s_aFigures[j], i == j );
 				}
-				
-				if( !promptSettings( oFigure ) ){
-					continue;
+				if( !s_bSilent ){
+					if( !promptSettings( oFigure ) ){
+						continue;
+					}
 				}
 				if( s_bAutoWeights ){
-					if( MessageBox.warning(
-						qsTr( "Transfering the Weights will destroy the current state of your scene save your scene before exporting." ),
-						s_sToolName, qsTr( "&Continue" ), qsTr( "&Cancel" ) ) == 1 ){
-						return;
-					}
+					if( !s_bSilent ){
+						if( MessageBox.warning(
+							qsTr( "Transfering the Weights will destroy the current state of your scene save your scene before exporting." ),
+							s_sToolName, qsTr( "&Continue" ), qsTr( "&Cancel" ) ) == 1 ){
+							return;
+						}
+					};
 					weightObjects( oFigure )
 				}
 
@@ -3032,4 +3080,4 @@ When leaving daz to deal with we will be automatically transfer the weights from
 	/*********************************************************************/
 	main();
 
-})();
+})( getArguments() );
