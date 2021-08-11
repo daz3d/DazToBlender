@@ -254,7 +254,7 @@
 	// - Minor changes for this specific use case
 	
 	// void : ...
-	function exportFBX( oNode, sName, nIdx, bAscii )
+	function exportFBX( oNode, sName, nIdx, suffix, bAscii )
 	{
 		// Get the export manager
 		var oExportMgr = App.getExportMgr();
@@ -366,12 +366,12 @@
 				oExportMgr.getExportPath() );
 			
 			var sPath = s_sRootPath + sName + "/" + sName + nIdx + "/"
-			s_sFbxPath = sName + "/" + sName + nIdx + "/";
+			s_sFbxPath = s_sRootPath + sName + "/" + sName + nIdx + "/";
 			if( bAscii ){
 				sPath += "A_" + sName + ".fbx"
 				s_sFbxPath += "A_" + sName + ".fbx"
 			} else {
-				sPath += "B_" + sName + ".fbx"
+				sPath += "B_" + sName + suffix + ".fbx"
 				s_sFbxPath += "B_" + sName + ".fbx"
 			}
 			
@@ -1863,6 +1863,17 @@ When leaving daz to deal with we will be automatically transfer the weights from
 			setSubDivLevel( oNode, nLev );
 		}
 	};
+	/*********************************************************************/
+	function setSubdivision( oBaseNode, isHD )
+	{
+		if( s_nSubDivLevel > 0 && isHD ){
+			nLev = s_nSubDivLevel;
+		}
+		else{
+			nLev = 0;
+		}
+		setSubDivLevel( oBaseNode, nLev );
+	}
 	
 	/*********************************************************************/
 	// void : ...
@@ -2173,7 +2184,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 	};
 	
 	/*********************************************************************/	
-	// void : Configure DTU File
+	// String : Configure DTU File
 	function writeConfiguration( oNode, sFilename, sDir )
 	{
 		var sDtufilename = sFilename + ".dtu";
@@ -2230,6 +2241,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		oDtufile.open( DzFile.WriteOnly );
 		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
 		oDtufile.close();
+		return sDtufilename
 	};
 	/*********************************************************************/
 	// String : Writes Texture and returns new Path
@@ -2365,7 +2377,6 @@ When leaving daz to deal with we will be automatically transfer the weights from
         var sMorphString
         if ( aExportableProperties.length == 0 ){
 			s_aMorphNamesToExport = [];
-			print(s_sMorphPath)
             oFile = new DzFile( s_sMorphPath );
 			if( !oFile.open( DzFile.ReadOnly ) ){ 
 				print( String( "Unable to open \"%1\" for Reading." ).arg( sPresetFilePath ) );
@@ -2906,6 +2917,17 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		}
 		returnMorphValues( oActiveMorphs )
 	};
+	/*********************************************************************/
+	function processFBX( sDtufilename )
+	{
+		oProcess = new DzProcess()
+		oProcess.communication = DzProcess.Stdin | DzProcess.Stdout | DzProcess.Stderr;	
+		oProcess.arguments = [String( 'DzFBXBridges.exe "%1"' ).arg( sDtufilename ) ]
+		print( String( 'DzFBXBridges.exe "%1"' ).arg( sDtufilename ) )
+		connect( oProcess, "readyReadStdout()", "readStdout" );
+		connect( oProcess, "readyReadStderr()", "readStderr" );
+		oProcess.start()
+	}
 
 	/*********************************************************************/
 	// void : ...
@@ -2980,7 +3002,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 
 				setLock( oFigure, true, true );
 				makeEndDir( i, s_sFig );
-				setSubDivLevelAll( oFigure );
+				
 				
 				// Morph Export
 				if( s_bIncludeMorphs ){
@@ -2992,13 +3014,26 @@ When leaving daz to deal with we will be automatically transfer the weights from
 				// Export Figure
 				loadFigureBoneData( oFigure );
 				loadPoseData( oFigure, true );
-				setEyelashVisibility( oFigure, false );
-				exportOBJ( oFigure, s_sFig, i, false );
-				setEyelashVisibility( oFigure, true );
+				
 				if( s_bRemoveIncompatible ){
 					removeIncompatibleNodes( oFigure );
 				}
-				exportFBX( oFigure, s_sFig, i , bDebugFBX );
+				if( s_nSubDivLevel > 0 ){
+					setSubdivision( oFigure, true );
+					setEyelashVisibility( oFigure, false );
+					exportOBJ( oFigure, s_sFig, i, false );
+					setEyelashVisibility( oFigure, true );
+					exportFBX( oFigure, s_sFig, i , "_HD" , bDebugFBX );
+					setSubdivision( oFigure, false );
+					exportFBX( oFigure, s_sFig, i , "_base" , bDebugFBX );
+				}
+				else{
+					setSubdivision( oFigure, false );
+					setEyelashVisibility( oFigure, false );
+					exportOBJ( oFigure, s_sFig, i, false );
+					setEyelashVisibility( oFigure, true );
+					exportFBX( oFigure, s_sFig, i , "" ,bDebugFBX );
+				}
 				setLock( oFigure, false, true );
 				restorePose( oFigure );
 				reparentFigure( oFigure );
@@ -3011,7 +3046,11 @@ When leaving daz to deal with we will be automatically transfer the weights from
 				sFileBasename = String( "%1%2/%2%3/%2" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				sBaseDirectory = String( "%1%2/%2%3" ).arg( s_sRootPath ).arg( s_sFig ).arg( i );
 				writeParentingData( oFigure, sFileBasename + ".dat" );
-				writeConfiguration( oFigure, sFileBasename, sBaseDirectory );
+				sDtufilename = writeConfiguration( oFigure, sFileBasename, sBaseDirectory );
+				if( s_nSubDivLevel > 0 ){
+					processFBX( sDtufilename )
+				}
+				
 
 			}
 		}

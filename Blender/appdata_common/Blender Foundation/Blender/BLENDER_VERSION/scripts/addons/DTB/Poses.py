@@ -457,13 +457,26 @@ class Posing:
         if self.fig_object_name == "null":
             return
         self.fig_object  = bpy.data.objects[self.fig_object_name]
+        scale = self.get_scale()
+        children = Global.get_children(self.fig_object)
+        for obj in children:
+            if obj.type == "MESH":
+                for modifier in obj.modifiers:
+                    if modifier.type=='ARMATURE' and modifier.object is not None:
+                        modifier.object = None
         pbs = self.fig_object.pose.bones
         root_bone = pbs[0]
         root_name = root_bone.name
         scale = self.get_scale()
         pbs[root_name].scale[0] = scale
         pbs[root_name].scale[1] = scale
-        pbs[root_name].scale[2] = scale
+        pbs[root_name].scale[2] = scale   
+        bpy.ops.pose.armature_apply()
+        for obj in children:
+            if obj.type == "MESH":
+                for modifier in obj.modifiers:
+                    if modifier.type=='ARMATURE' and modifier.object is None:
+                        modifier.object = self.fig_object 
 
     
     def make_pose(self, use="FIG", armature=None):
