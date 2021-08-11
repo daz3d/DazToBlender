@@ -1,0 +1,23 @@
+// DAZ Studio version 4.15.0.2 filetype DAZ Script
+
+(function(){
+	var s_sBridge = "Blender"
+    var s_oFileInfo = new DzFileInfo( getScriptFileName() );
+	var s_sScriptPath = s_oFileInfo.path();
+	if( s_sScriptPath === "" ){
+        // To be able to use the IDE Input your absolute Path.
+	    s_sScriptPath = "D:/GitRepos/DazToBlender/Daz Studio/appdir_common/scripts/support/DAZ"
+    }
+    var s_sBridgeExporter = String( "Dz%1SilentExporter.dsa" ).arg( s_sBridge )
+
+    function main()
+    {
+        sScenePath = "D:/Daz 3D/Scenes/Sample.duf"
+        Scene.clear()
+        App.getContentMgr().openNativeFile( sScenePath, true );
+		include(s_sScriptPath + "/" + s_sBridgeExporter)
+    };
+
+    /*********************************************************************/
+    main()
+})();
