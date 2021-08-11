@@ -2495,8 +2495,11 @@ When leaving daz to deal with we will be automatically transfer the weights from
 				oOwnerNode = oOwnerNode.getOwner();
 				if( oOwnerNode.inherits( "DzBone" ) ){
 					sBoneName = oOwnerNode.name;
+					nTempCtrlMeshes = aControlledMeshes.length
 					aControlledMeshes = checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
-					break
+					if( aControlledMeshes.length > nTempCtrlMeshes ){
+						break
+					}
 				}	
 			}		
 		}
