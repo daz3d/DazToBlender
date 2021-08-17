@@ -4,6 +4,7 @@
     - [Getting Started](./)
     - [Manual Install](./beginner/manualInstall.md)
 - [Advanced](./advanced/advanced.md)
+    - [Higher Subdivisions](./advanced/subdivsions.md)
     - [Dealing with Buttons](./advanced/autoWeights.md)
 - [Developers](./developers/introductions.md)
     - [Getting Started](./developers/gettingStarted.md)

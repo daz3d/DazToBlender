@@ -2921,12 +2921,16 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		returnMorphValues( oActiveMorphs )
 	};
 	/*********************************************************************/
+	/** 
+	* Void: Used to run the Auto-Weight logic, This is Destructive and break user's scene
+	* @param {String} sDtufilename - Path for the DTU File
+	*/
 	function processFBX( sDtufilename )
 	{
 		oProcess = new DzProcess()
 		oProcess.communication = DzProcess.Stdin | DzProcess.Stdout | DzProcess.Stderr;	
-		oProcess.arguments = [String( 'DzFBXBridges.exe "%1"' ).arg( sDtufilename ) ]
-		print( String( 'DzFBXBridges.exe "%1"' ).arg( sDtufilename ) )
+		oProcess.arguments = [String( '%2/dzBridgeUtils/DzFBXBridges.exe "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ) ]
+		print( String( '"%2/dzBridgeUtil/DzFBXBridges.exe" "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ) )
 		connect( oProcess, "readyReadStdout()", "readStdout" );
 		connect( oProcess, "readyReadStderr()", "readStderr" );
 		oProcess.start()
