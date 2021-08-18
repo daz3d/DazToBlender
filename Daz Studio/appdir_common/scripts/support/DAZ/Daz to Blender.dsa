@@ -72,6 +72,7 @@
 	var s_bIncludeMorphs;
 	var s_bCollectTextures;
 	var s_bAutoWeights;
+	var s_bNewSubdiv;
 	
 	// Static Widgets
 	var s_wAdvWgt;
@@ -714,6 +715,9 @@
 			else if( i == 7 ){
 				s_sMorphPath = vArg;
 			}
+			else if( i == 8 ){
+				s_bNewSubdiv = vArg;
+			}
         }
 
     };
@@ -1328,6 +1332,12 @@
 		wRemoveIncompatible.checked = false;
 		lytAdvance.addWidget( wRemoveIncompatible )
 
+		// Checkbox to Use New Subdiv Export
+		var wNewSubdiv = new DzCheckBox( s_wAdvWgt );
+		wNewSubdiv.text = "Use New Subdivision Export";
+		wNewSubdiv.checked = false;
+		lytAdvance.addWidget( wNewSubdiv )
+
 		// Checkbox to use Transfer Utility
 		var wTransferUtil = new DzCheckBox( s_wAdvWgt );
 		wTransferUtil.text = "Auto-Weight";
@@ -1353,6 +1363,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 		s_bCollectTextures = wCollectTexturesCbx.checked;
 		s_bRemoveIncompatible = wRemoveIncompatible.checked;
 		s_bAutoWeights = wTransferUtil.checked;
+		s_bNewSubdiv = wNewSubdiv.checked;
 
 		// When user Accepts the dialog
 		return true;
@@ -2922,18 +2933,41 @@ When leaving daz to deal with we will be automatically transfer the weights from
 	};
 	/*********************************************************************/
 	/** 
-	* Void: Used to run the Auto-Weight logic, This is Destructive and break user's scene
+	* Void: Used to run the DzFBXBridges and allow the skin weights to be transferred
 	* @param {String} sDtufilename - Path for the DTU File
-	*/
+	*/ 
 	function processFBX( sDtufilename )
 	{
 		oProcess = new DzProcess()
 		oProcess.communication = DzProcess.Stdin | DzProcess.Stdout | DzProcess.Stderr;	
-		oProcess.arguments = [String( '%2/dzBridgeUtils/DzFBXBridges.exe "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ) ]
-		print( String( '"%2/dzBridgeUtil/DzFBXBridges.exe" "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ) )
-		connect( oProcess, "readyReadStdout()", "readStdout" );
-		connect( oProcess, "readyReadStderr()", "readStderr" );
+		oProcess.arguments = [String( '%2/dzBridgeUtils/DzFBXBridges.exe "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ) ];
+		print(String( '%2/dzBridgeUtils/DzFBXBridges.exe "%1"' ).arg( sDtufilename ).arg( s_sScriptPath ))
+		connect( oProcess, "readyReadStdout()", this, "readStdout" );
+		connect( oProcess, "readyReadStderr()", this, "readStderr" );
 		oProcess.start()
+	};
+	
+ 
+	/*********************************************************************/
+	/** 
+	* Void: Used to check if the fbx sdk 2020 exists in the path needed
+	*/
+	function isSubdivPrereq()
+	{
+		if( s_bNewSubdiv ){
+			oFileInfo = new DzFileInfo( String( '%1/dzBridgeUtils/libfbxsdk.dll' ).arg( s_sScriptPath ) );
+			if( !oFileInfo.exists() && MessageBox.warning(
+				qsTr( "To use subdivision the FBX SDK 2020 is needed." ),
+				s_sToolName, qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+				return;
+			}
+			else{
+				return true
+			}
+		}
+		else{
+			return
+		}
 	}
 
 	/*********************************************************************/
@@ -2996,7 +3030,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 						continue;
 					}
 				}
-				if( s_bAutoWeights ){
+				if( s_bAutoWeights ){ 
 					if( !s_bSilent ){
 						if( MessageBox.warning(
 							qsTr( "Transfering the Weights will destroy the current state of your scene save your scene before exporting." ),
@@ -3025,7 +3059,7 @@ When leaving daz to deal with we will be automatically transfer the weights from
 				if( s_bRemoveIncompatible ){
 					removeIncompatibleNodes( oFigure );
 				}
-				if( s_nSubDivLevel > 0 ){
+				if( s_nSubDivLevel > 0 && isSubdivPrereq() ){
 					setSubdivision( oFigure, true );
 					setEyelashVisibility( oFigure, false );
 					exportOBJ( oFigure, s_sFig, i, false );

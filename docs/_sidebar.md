@@ -12,4 +12,4 @@
     - [Daz Studio](./developers/dazStudio.md)
         - [Using the Script IDE](./developers/dazIde.md)
 
-- [Changelog](./changelog.md)
+- [Changelog](./changeLog.md)

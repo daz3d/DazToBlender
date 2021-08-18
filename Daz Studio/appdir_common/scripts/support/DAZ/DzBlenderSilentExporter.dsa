@@ -95,7 +95,7 @@
     function main()
     {
         var bSilent = true;
-        var nSubDivLevel = 0;
+        var nSubDivLevel = 1;
         var bIncludeAnim = false;
         var bRemoveIncompatible = false;
         var bIncludeMorphs = false;
@@ -103,6 +103,7 @@
         var bAutoWeights = true;
         // Can send a path to autoexport morphs ../../Presets/Example_Morphs.csv
         var sMorphPath = ""
+		var bNewSubdiv = true
         executeSubScript( s_sBridgeDialog, [
             bSilent,
             nSubDivLevel,
@@ -112,6 +113,7 @@
             bCollectTextures,
             bAutoWeights,
             sMorphPath,
+			bNewSubdiv
         ] )
     };
 
