@@ -2,6 +2,7 @@
 
 - [Beginners](./)
     - [Getting Started](./)
+    - [Exporting Morphs out of Daz](./beginner/morphExport.md)
     - [Manual Install](./beginner/manualInstall.md)
 - [Advanced](./advanced/advanced.md)
     - [Higher Subdivisions](./advanced/subdivsions.md)
