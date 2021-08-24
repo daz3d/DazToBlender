@@ -261,8 +261,9 @@ include( g_sBridgeDialog ); // Dependencies : DzBridgeHelper
 					oBridgePose.loadPoseData( oNode, true );
 					oBridgeWriter = new DzBridgeWriter( oBridgeExporter, oBridgeFigure, oBridgePose, oBridgeDialog )
 				} else {
+					oBridgeFigure = new DzBridgeFigure( oNode );
 					oBridgePose.loadPoseData( oNode, false );
-					oBridgeWriter = new DzBridgeWriter( oBridgeExporter, {}, oBridgePose, oBridgeDialog )
+					oBridgeWriter = new DzBridgeWriter( oBridgeExporter, oBridgeFigure, oBridgePose, oBridgeDialog )
 					oBridgeWriter.writeMemo( sEnvPath + "nobone.txt", "not skeleton" );
 					oBridgeExporter.setLock( oNode, false, false );
 				}
