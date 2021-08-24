@@ -291,7 +291,7 @@ function DzBridgeExporter( sDazBridgeName,
 			if( oDelDir.exists() ){
 				sDirName = oDelDir.dirName()
 				oDelDir.rmdir( sDelPath );
-				if( oDelDir.cdUp() && sDirName != sType ){
+				if( oDelDir.cdUp() && sDirName != this.sType ){
 					oDelDir.rmdir()
 				}
 			}	
