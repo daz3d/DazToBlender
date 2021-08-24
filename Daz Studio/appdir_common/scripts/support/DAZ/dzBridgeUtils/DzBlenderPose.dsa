@@ -1,0 +1,140 @@
+
+
+/** 
+* Constructs the data of the Pose to be Exported out of Daz.
+* @class
+* @constructor
+*/
+function DzBridgePose()
+{
+    this.init()
+};
+
+	/*********************************************************************/
+	DzBridgePose.prototype = Object.create( DzBridgeHelpers.prototype )
+	DzBridgePose.constructor = DzBridgePose
+	DzBridgePose.superclass = DzBridgeHelpers.prototype
+
+    /*********************************************************************/
+    DzBridgePose.prototype.init = function()
+    {
+        this.aPoseData = [];
+        this.oPoseData = {};
+        DzBridgePose.superclass.init.call( this );
+    };
+
+    /*********************************************************************/
+	// void : ...
+	DzBridgePose.prototype.loadPoseData = function( oBaseNode, bIsFigure )
+	{	
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		if( aTopNodes.length == 0 && !bIsFigure ){
+			aTopNodes.push( oBaseNode );
+		}
+		
+		var oTopNode;
+		
+		var aNodes = [];
+		
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			
+			if( bIsFigure && !oTopNode.inherits( "DzBone" ) ){
+				continue;
+			}
+
+			if( i == 0 ){
+				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
+			} else {
+				aNodes = aNodes.concat( oTopNode, oTopNode.getNodeChildren( true ) );
+			}
+		}
+		
+		var nNodes = aNodes.length;
+
+		if( nNodes < 1 ){
+			return;
+		}
+		
+		var oNode;
+		var sObjectType;
+		var vecPos;
+		var quatRot;
+		var mtxScale;
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			sObjectType = this.getObjectType( oNode );
+			vecPos = oNode.getLocalPos();
+			quatRot = oNode.getLocalRot();
+			mtxScale = oNode.getLocalScale();
+			oParent = oNode.getNodeParent();
+			this.aPoseData.push( [ oNode.name, sObjectType, vecPos, quatRot, mtxScale ] );
+			sLabel = oNode.getLabel();	
+			sName = oNode.name;		
+			oName = this.oPoseData[sName] = {};
+			oName["Name"] = sName;
+			oName["Label"] = sLabel;
+			oName["Object Type"] = sObjectType;
+			if(sObjectType == "MESH"){
+				oName["Object"] = oNode.getObject().name; 
+			}
+			else{
+				oName["Object"] = "EMPTY"
+			};
+			oName["Position"] = [
+				vecPos.x,
+				vecPos.y,
+				vecPos.z
+			];
+			oName["Rotation"] = [
+				oNode.getXRotControl().getLocalValue(),
+				oNode.getYRotControl().getLocalValue(),
+				oNode.getZRotControl().getLocalValue(),
+				];
+			oName["Scale"] = [
+				mtxScale.m11,
+				mtxScale.m22,
+				mtxScale.m33
+			];	
+		}
+	
+		
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	DzBridgePose.prototype.restorePose = function( oBaseNode )
+	{
+		var oTopNode;
+		var aNodes;
+		var oNode;
+		var aPose;
+		
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			aNodes = oTopNode.getNodeChildren( true );
+			aNodes.push( oTopNode );
+			aNodes.unshift( oBaseNode );
+			for( var j = 0; j < aNodes.length; j += 1 ){
+				oNode = aNodes[j];
+				if( this.getMeshType( oNode ) != this.oMeshTypes.Bone && j > 0 ){
+					continue;
+				}
+				
+				for( var k = 0; k < this.aPoseData.length; k += 1 ){
+					aPose = this.aPoseData[k];
+					if( aPose[0] == oNode.name ){
+						oNode.setLocalPos( aPose[2] );
+						oNode.setLocalRot( aPose[3] );
+						oNode.setLocalScale( aPose[4] );
+						break;
+					}
+				}
+			}
+		}
+	};

@@ -1,0 +1,156 @@
+/** 
+* Handles the changes of Subdivision for Daz and the new Export Method.
+* @class
+* @constructor
+* @param {String} sScriptPath
+* @param {DzBridgeDialog} oBridgeDialog
+*/
+function DzBridgeSubdivision( sScriptPath, oBridgeDialog )
+{
+    this.init( sScriptPath, oBridgeDialog )
+};
+
+    /*********************************************************************/
+    DzBridgeSubdivision.prototype.init = function( sScriptPath, oBridgeDialog )
+    {
+        this.sScriptPath = sScriptPath;
+        this.bNewSubdiv = oBridgeDialog.bNewSubdiv;
+        this.aSubdivisionCombos = oBridgeDialog.aSubdivisionCombos;
+    };
+
+    /*********************************************************************/
+	/** 
+	* Void: Used to export out the subdivisions chosen by user. 
+	* @param {Boolean} bSubdivEnabled - Based on user's input to export out Subdivisions.
+	*/
+    DzBridgeSubdivision.prototype.lockSubdivisionProperties = function( bSubdivEnabled )
+    {
+        for( var i = 0; i < this.aSubdivisionCombos.length; i++ ){
+            var oSubdivInfo = this.aSubdivisionCombos[i]
+            oNode = oSubdivInfo.node;
+            oObject = oNode.getObject();
+            if( oObject ){
+                oShape = oObject.getCurrentShape();
+                oGeo = oShape.getGeometry();
+                if( oGeo ){
+                    nVertCount = oGeo.getNumVertices();
+                    for( var i = 0; i < oShape.getNumProperties(); i++ ){
+                        oProperty = oShape.getProperty( i );
+                        oPropName = oProperty.getName();
+						if( oPropName == "lodlevel" ){
+                            if( bSubdivEnabled ){
+                                oProperty.setValue( 1 )
+                            }
+                            else{
+                                oProperty.setValue( 0 )
+                            }
+                        }
+                        if( oPropName == "SubDIALevel" ){
+                            oProperty.lock( false );
+                            if( bSubdivEnabled ){
+                                var nTargetValue = oSubdivInfo.currentItem;
+                                oProperty.setDoubleValue( nTargetValue )
+                            }
+                            else{
+                                oProperty.setDoubleValue( 0.0 )
+                            }
+                            oProperty.lock( true )
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+	/*********************************************************************/
+	/** 
+	* Void: Used to run the DzFBXBridges and allow the skin weights to be transferred
+	* @param {String} sDtufilename - Path for the DTU File
+	*/ 
+	DzBridgeSubdivision.prototype.processFBX = function( sDtufilename )
+	{
+		oProcess = new DzProcess()
+		oProcess.communication = DzProcess.Stdin | DzProcess.Stdout | DzProcess.Stderr;	
+		oProcess.arguments = [String( '"%2/dzBridgeUtils/DzFBXBridges.exe" "%1"' ).arg( sDtufilename ).arg( this.sScriptPath ) ];
+		print(String( '"%2/dzBridgeUtils/DzFBXBridges.exe" "%1"' ).arg( sDtufilename ).arg( this.sScriptPath ))
+		connect( oProcess, "readyReadStdout()", this, "readStdout" );
+		connect( oProcess, "readyReadStderr()", this, "readStderr" );
+		oProcess.start()
+	};
+	
+ 
+	/*********************************************************************/
+	/** 
+	* Void: Used to check if the fbx sdk 2020 exists in the path needed
+	*/
+	DzBridgeSubdivision.prototype.isSubdivPrereq = function()
+	{
+		if( this.bNewSubdiv ){
+			oFileInfo = new DzFileInfo( String( '%1/dzBridgeUtils/libfbxsdk.dll' ).arg( this.sScriptPath ) );
+			if( !oFileInfo.exists() && MessageBox.warning(
+				qsTr( "To use subdivision the FBX SDK 2020 is needed." ),
+				"Subdivisions Error", qsTr( "&OK" ), qsTr( "&Cancel" ) ) == 1 ){
+				return;
+			}
+			else{
+				return true
+			}
+		}
+		else{
+			return
+		}
+	};
+
+    /*********************************************************************/
+	// void : ...
+	// Apply subdivision levels to figures and genitals.
+	DzBridgeSubdivision.prototype.setSubDivLevelAll = function( oBaseNode )
+	{
+		var bIsBody;
+		var bIsGen;
+		var nLev;
+		var oNode;
+		
+		var aNodes = Scene.getNodeList();
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			this.setSubDivLevel( oNode, nLev );
+		}
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	DzBridgeSubdivision.prototype.setSubDivLevel = function( oNode, nLevel )
+	{
+		var aProps = [ "lodlevel", "SubDIALevel" ];
+		var oObject = oNode.getObject();
+		if( !oObject ){
+			return;
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return;
+		}
+		
+		var oProp;
+		for( var i = 0; i < aProps.length; i += 1 ){
+			oProp = oShape.findProperty( aProps[i] );
+			if( oProp ){
+				if( oProp.isLocked() ){
+					oProp.lock( false );
+				}
+				
+				if( i == 0 && nLevel == 0 ){
+					oProp.setValue( "Basic" );
+				} else {
+					oProp.setValue( nLevel );
+				}
+				
+				if( nLevel > 0 ){
+					oProp.lock( true );
+				}
+			}
+		}
+	};
+	

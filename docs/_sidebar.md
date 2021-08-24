@@ -12,5 +12,6 @@
         - [Directory Breakdown](./developers/directory.md)
     - [Daz Studio](./developers/dazStudio.md)
         - [Using the Script IDE](./developers/dazIde.md)
+        - [API](./developers/api/dazstudio.md)
 
 - [Changelog](./changeLog.md)

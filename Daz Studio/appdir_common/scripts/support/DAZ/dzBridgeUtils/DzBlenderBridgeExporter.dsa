@@ -1,0 +1,304 @@
+
+/** 
+* Used to Export out Daz 
+* @class
+* @constructor
+* @param {String} sDazBridgeName
+* @param {String} sScriptPath
+* @param {DzBridgeScene} oBridgeScene
+*/
+function DzBridgeExporter( sDazBridgeName, 
+                           sScriptPath,
+                           oBridgeScene )
+{  
+    this.init( sDazBridgeName, 
+               sScriptPath,
+               oBridgeScene );
+};
+	/*********************************************************************/
+	DzBridgeExporter.prototype = Object.create( DzBridgeMorphs.prototype )
+	DzBridgeExporter.constructor = DzBridgeExporter
+	DzBridgeExporter.superclass = DzBridgeMorphs.prototype
+
+    /*********************************************************************/
+	/** 
+	* Void : Initilizes Variables
+	* @param {String} sDazBridgeName
+	* @param {String} sScriptPath
+	* @param {DzBridgeScene} oBridgeScene
+	*/
+    DzBridgeExporter.prototype.init = function( sDazBridgeName, 
+                                                sScriptPath,
+                                                oBridgeScene )
+    {	/** 
+		* Name of Bridge 
+		* @type {String}
+		*/
+        this.sDazBridgeName = sDazBridgeName;
+
+		/** 
+		* Path to the the Export Directory
+		* @type {String}
+		*/
+        this.sRootPath = ""
+		/** 
+		* Path to the Custom Export Directory
+		* @type {String}
+		*/
+        this.sCustomPath = "";
+		/** 
+		* Path to the Preset Folder
+		* @type {String}
+		*/
+	    this.sPresetPath = "";
+		/** 
+		* Path to the Configs Folder
+		* @type {String}
+		*/
+	    this.sConfigPath = "";
+		/** 
+		* LastUsed.csv from Morph Dialog
+		* @type {String}
+		*/
+	    this.sMorphPath = "";
+		/** 
+		* Path to FBX File
+		* @type {String}
+		*/
+	    this.sFbxPath = "";
+
+		this.sType = "";
+
+		this.nExportType = 0;
+
+		DzBridgeExporter.superclass.init.call( this,
+			sDazBridgeName, 
+			sScriptPath,
+			this.sRootPath,
+			this.sFbxPath );
+
+        this.prepareForExport( oBridgeScene )
+		
+		DzBridgeExporter.superclass.init.call( this,
+			sDazBridgeName, 
+			sScriptPath,
+			this.sRootPath,
+			this.sFbxPath );
+        
+    };
+
+    /*********************************************************************/
+	/** 
+	* Void : Delete previous export and recreate directories if needed
+	* ISSUE : Currently the Both Enum is handled incorrectly new logic is needed
+	* TODO: Refactor logic
+	* @param {DzBridgeScene} oBridgeScene
+	* @memberof DzBridgeExporter
+	*/
+	DzBridgeExporter.prototype.prepareForExport = function( oBridgeScene )
+	{
+		var oDir = new DzDir( "" );
+		var sPath = oDir.homePath() + "/";
+		
+		this.sRootPath = sPath;
+		
+		var aRoot = ["Documents","DAZ 3D", "Bridges", this.sDazBridgeName] 
+		var aFolders = ["Exports", "Config", "Presets"];
+
+		this.sType = oBridgeScene.getExportName();
+        this.nExportType = oBridgeScene.getExportType();
+
+		for( var i = 0; i < aRoot.length; i += 1 ){
+			// Create Base Directory
+			sPath = this.sRootPath + aRoot[i] + "/";
+			this.sRootPath = sPath;
+
+			// Create Directories
+			oDir.setPath( sPath );
+			if( !oDir.exists() ){
+				oDir.mkdir( sPath );
+			};
+		};
+		for( var i = 0; i < aFolders.length; i += 1 ){
+			// Create Folders 
+			var sTempPath = sPath + aFolders[i] + "/";
+			if( i == 0 ){
+				this.sRootPath = sTempPath;
+			}
+			if( i == 1 ){
+				this.sConfigPath = sTempPath;
+			}
+			if( i == 2 ){
+				this.sPresetPath = sTempPath;
+				if( this.sMorphPath == "" ){
+					this.sMorphPath = this.sPresetPath + "LastUsed.csv"
+				}
+			}
+			// Create Directories
+			oDir.setPath( sTempPath );
+			if( !oDir.exists() ){
+				if( i == 0 ){
+					MessageBox.information( qsTr( "You can manually locate your export files here:\n%1" ).arg( sTempPath ), 
+											qsTr( "Your Export Path" ), 
+											qsTr( "&Continue" ) );
+				}
+				oDir.mkdir( sTempPath );
+			}
+		}
+		
+	};
+	
+	/*********************************************************************/
+	// Array : Find the Daz Paths where content is installed
+	DzBridgeExporter.prototype.findUsersContent = function()
+	{
+		var oContentMgr = App.getContentMgr();
+		var nContentDirCount = oContentMgr.getNumContentDirectories();
+		var aContentDir = [];
+		for(var i=0; i < nContentDirCount; i++){
+			var sContentDirPath = oContentMgr.getContentDirectoryPath( i );
+			aContentDir.push( sContentDirPath )
+		}
+		return aContentDir
+		
+	}
+	/*********************************************************************/
+	// void : ...
+	DzBridgeExporter.prototype.writeConfigPath = function()
+	{
+		var aContentDir = this.findUsersContent( this.sConfigPath );
+		var sDazPath = this.sConfigPath + "daz_paths.json";
+		var oCurFile = new DzFile( sDazPath );
+		var oDazFile = new DzFile( sDazPath );
+		var oDazJson = {};
+		oCurFile.open( DzFile.ReadOnly );
+		var sDazFile = oCurFile.read();
+		if ( sDazFile != "" ){
+			oDazJson = JSON.parse( sDazFile )
+		}
+		oCurFile.close()
+		oDazFile.open( DzFile.WriteOnly );
+
+		if( oDazJson["Custom Path"] ){
+			this.sCustomPath = oDazJson["Custom Path"];
+		}
+
+		oDazJson["Content Directories"] = aContentDir;
+		oDazJson["Default Path"] = this.sRootPath;
+		oDazJson["Custom Path"] = this.sCustomPath;
+		
+		oDazFile.write( JSON.stringify( oDazJson, null, 4 ) );
+		oDazFile.close();
+
+	};
+
+	/*********************************************************************/
+	// Boolean : Check if Custompath Should be Used.
+	DzBridgeExporter.prototype.useCustomPath = function()
+	{
+		var sDazPath = this.sConfigPath + "daz_paths.json";
+		var oDazFile = new DzFile( sDazPath );
+		var oDazJson = {};
+		oDazFile.open( DzFile.ReadOnly );
+		var sDazFile = oDazFile.read()
+		if ( sDazFile ){
+			oDazJson = JSON.parse( sDazFile )
+		}
+		oDazFile.close();
+		return oDazJson["Use Custom Path"]
+	};
+
+    /*********************************************************************/
+	// void : ...
+	// TODO : refactor - efficiency
+	DzBridgeExporter.prototype.makeEndDir = function( nIdx, sName )
+	{
+		var oDir = new DzDir( "" );
+		
+		var sPath = this.sRootPath;
+		
+		var aSubs = [ sName, sName + nIdx ];
+		for( var i = 0; i < aSubs.length; i += 1 ){
+			sPath += aSubs[i] + "/";
+			oDir.setPath( sPath );
+			if( !oDir.exists() ){
+				oDir.mkdir( sPath );
+			}
+		}
+	};
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeExporter.prototype.createTypeDir = function( nExportType ) 
+	{
+		var oDir = new DzDir( "" );
+
+		var aSubs = [this.sEnv, this.sFig]
+
+		// Create Type Directories
+		if( nExportType == this.oExportTypes.EnvProp ){
+			this.sExportPath = this.sRootPath + aSubs[0] + "/"	
+			};
+		if( nExportType == this.oExportTypes.Figure ){
+			this.sExportPath = this.sRootPath + aSubs[1] + "/"	
+			};	
+		
+		if( nExportType == this.oExportTypes.Both ){
+			this.sExportPath = this.sRootPath + aSubs[0] + "/"
+		}
+	
+		// Create Directories
+		oDir.setPath( this.sExportPath );
+		if( !oDir.exists() ){
+			oDir.mkdir( this.sExportPath );
+		};
+		
+	};
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeExporter.prototype.clearExportDir = function()
+	{
+		var oDir = new DzDir( "" );
+		var sPath = ""
+		var aFiles;
+		var sDelPath;
+		var oDelDir = new DzDir( "" );
+
+		// Replace RootPath if Custom Path is Enabled
+		if( this.useCustomPath() ){
+			sPath = this.sExportPath.replace( this.sRootPath, this.sCustomPath );
+			oDir.setPath( sPath );
+			this.sRootPath = this.sCustomPath;
+		}
+
+		var aDirs = []
+		// Delete Files
+		aFiles = oDir.getFilesFromDir( [], true );
+		for( var j = 0; j < aFiles.length; j += 1 ){
+			var oFile = new DzFile( aFiles[j] );
+			var sFileName = oFile.fileName()
+			dir = oDir.relativeFilePath( aFiles[j] ).replace(  sFileName, "" )
+			aDirs.pushIfNotExists( dir );
+			oDir.remove( aFiles[j] );
+
+		}
+		
+		// Delete Dirs
+		for ( var j = 0; j < aDirs.length; j += 1 ){
+			sDelPath = sPath + aDirs[j]
+			oDelDir.setPath( sDelPath );
+			if( oDelDir.exists() ){
+				sDirName = oDelDir.dirName()
+				oDelDir.rmdir( sDelPath );
+				if( oDelDir.cdUp() && sDirName != sType ){
+					oDelDir.rmdir()
+				}
+			}	
+		}
+
+	};
+
+
+	
+

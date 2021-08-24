@@ -1,0 +1,8 @@
+{
+    "scripts": {
+        "dazstudio": "jsdoc2md -c jsdoc.json \"Daz Studio/appdir_common/scripts/support/DAZ/dzBridgeUtils/*.dsa\" > docs/developers/api/dazstudio.md"
+    },
+    "devDependencies": {
+        "jsdoc-to-markdown": "^7.0.1"
+    }
+}

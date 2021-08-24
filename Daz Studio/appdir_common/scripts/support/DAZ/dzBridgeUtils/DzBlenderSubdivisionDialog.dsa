@@ -1,0 +1,175 @@
+// DAZ Studio version 4.15.0.2 filetype DAZ Script
+
+(function( aArgs ){
+
+    var s_oNode;
+
+    var s_lytSubdivItemGrid = null
+    var s_wSubdivLvlGrid = null
+
+    var s_aSubdivisionCombos = Array();
+
+    /*********************************************************************/
+	/** 
+	* Void: initalizes any arguments passed to the silent exporter
+	*/
+    function initilizeArgs()
+    {
+        for( var i = 0, nArgs = aArgs.length; i < nArgs; i += 1 ){
+            vArg = aArgs[i];
+            if( i == 0 ){
+				s_oNode = vArg;
+			}
+        }
+
+    };
+    /*********************************************************************/
+    /** 
+	* Void: Constructor used to store the Subdivision info per Object
+	*/
+    function DzSubdivInfo( wComboBox, oNode, sNodeName, nCurrentItem )
+    {
+        this.widget = wComboBox;
+        this.node = oNode;
+        this.name = sNodeName;
+        this.currentItem = nCurrentItem;
+    };
+
+    /*********************************************************************/
+    /** 
+	* Void: Creates the UI for the Subdivsion Dialog
+    * @param  {DzWidget} wDlg - The parent Widget which is created by DzBasicDialog
+	*/
+    function subdivisionDialog( wDlg )
+    {
+        // Get the current style
+        var oStyle = App.getStyle();
+        // Get the general margin
+        var nMargin = oStyle.pixelMetric( "DZ_GeneralMargin" )
+
+        // Set the dialog title 
+        wDlg.caption = "Choose Subdivision Levels";
+
+        var wMainWgt = new DzWidget( wDlg );
+
+        var lytMain = new DzVBoxLayout( wMainWgt );
+        lytMain.margin = nMargin;
+        lytMain.spacing = nMargin;
+        
+        var wSubDivLabel = new DzLabel( wMainWgt )
+        wSubDivLabel.text = "Subdivision can greatly increase transfer time."
+        lytMain.addWidget( wSubDivLabel )
+
+        s_wSubdivLvlGrid = DzWidget( wMainWgt );
+        s_lytSubdivItemGrid = new DzGridLayout( s_wSubdivLvlGrid );
+        s_lytSubdivItemGrid.margin = nMargin;
+        s_lytSubdivItemGrid.spacing = nMargin;
+        lytMain.addWidget( s_wSubdivLvlGrid );
+
+        var wObjectLabel = new DzLabel( s_wSubdivLvlGrid );
+        wObjectLabel.text = "Object Name";
+        s_lytSubdivItemGrid.addWidget( wObjectLabel, 0, 0);
+
+        var wSubdivLvlLabel = new DzLabel( s_wSubdivLvlGrid );
+        wSubdivLvlLabel.text = "Subdivision Level";
+        s_lytSubdivItemGrid.addWidget( wSubdivLvlLabel, 0, 1);
+
+        var wBaseVertLabel = new DzLabel( s_wSubdivLvlGrid );
+        wBaseVertLabel.text = "Base Vert Count";
+        s_lytSubdivItemGrid.addWidget( wBaseVertLabel, 0, 2);
+
+        lytMain.addStretch()
+
+        wDlg.addWidget( wMainWgt );
+        wDlg.setFixedWidth( 800 );
+        wDlg.setFixedHeight( 800 );
+    
+    };
+
+    /*********************************************************************/
+    /** 
+	* Void: Used to create the items based on Node this script recieved.
+	*/
+    function prepareDialog()
+    {
+	    createList( s_oNode );
+    };
+
+    /*********************************************************************/
+    /** 
+	* Void: Creates the UI for the Subdivsion Dialog
+    * @param  {DzNode} oNode - The Parent Node used to create the items for the UI
+	*/
+    function createList( oNode )
+    {   
+        
+        oObject = oNode.getObject();
+        if ( oObject ){
+            oShape = oObject.getCurrentShape();
+            oGeo = oShape.getGeometry();
+            var nRow = s_lytSubdivItemGrid.rowCount();
+            var wNodeLabel = new DzLabel( s_wSubdivLvlGrid );
+            wNodeLabel.text = oNode.getLabel();
+            s_lytSubdivItemGrid.addWidget( wNodeLabel, nRow, 0);
+            var wSubdivComboBox = new DzComboBox( s_wSubdivLvlGrid );
+            wSubdivComboBox.addItem( "0" );
+            wSubdivComboBox.addItem( "1" );
+            wSubdivComboBox.addItem( "2" );
+            oSubdivInfo = new DzSubdivInfo( wSubdivComboBox, oNode, oNode.getName(), wSubdivComboBox.currentItem )
+            s_aSubdivisionCombos.push( oSubdivInfo );
+            s_lytSubdivItemGrid.addWidget( wSubdivComboBox, nRow, 1);
+            
+            wSubdivComboBox['currentIndexChanged(int)'].connect( wSubdivComboBox, handleSubdivisionLevelChanged )
+
+            if( oGeo ){
+                var nVertCount = oGeo.getNumVertices();
+                var wVertCount = new DzLabel( s_wSubdivLvlGrid );
+                wVertCount.text = nVertCount.toString();
+                s_lytSubdivItemGrid.addWidget( wVertCount, nRow, 2);
+            };
+        }
+        for( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+            oChildNode = oNode.getNodeChild( i )
+            createList( oChildNode )
+        }
+
+    };
+
+    /*********************************************************************/ 
+    /** 
+	* Void: Updates the to be exported level when user updates it in the UI. 
+	*/
+    function handleSubdivisionLevelChanged()
+    {
+        var oSubdivInfo;
+        for( var i = 0; i < s_aSubdivisionCombos.length; i++ ){
+            oSubdivInfo = s_aSubdivisionCombos[i]
+            if( this == oSubdivInfo.widget ){
+                oSubdivInfo.currentItem = this.currentItem
+            }
+        }
+    };
+   
+    /*********************************************************************/
+    /** 
+	* Void: Executes the Subdivision Dialog
+	*/
+    function main()
+    {
+        var wDlg = new DzBasicDialog();
+        initilizeArgs();
+        subdivisionDialog( wDlg );
+        prepareDialog();
+        // When user Cancels the dialog
+		if( !wDlg.exec() ){
+            return null;
+		} 
+        return true
+    };
+    
+    /*********************************************************************/
+    if(  main() ){
+        return s_aSubdivisionCombos
+    }
+    return []
+})( getArguments() );

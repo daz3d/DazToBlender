@@ -1,0 +1,1005 @@
+/** 
+* @class 
+* @constructor
+* @param {String} sDazBridgeName
+* @param {String} sScriptPath
+* @param {String} sRootPath
+* @param {String} sFbxPath
+*/
+function DzBridgeHelpers( sDazBridgeName, 
+						  sScriptPath,
+						  sRootPath,
+						  sFbxPath )
+{
+	this.init(  sDazBridgeName, 
+				sScriptPath,
+				sRootPath,
+				sFbxPath  );
+};
+
+	/**********************************************************************/
+	/** 
+	* Void : Initilizes Variables
+	* @param {String} sDazBridgeName
+	* @param {String} sScriptPath
+	* @param {String} sRootPath
+	* @param {String} sFbxPath
+	*/
+	DzBridgeHelpers.prototype.init = function(  sDazBridgeName, 
+												sScriptPath,
+												sRootPath,
+												sFbxPath )
+	{
+		/** 
+		* Name of Bridge 
+		* @type {String}
+		*/
+		this.sDazBridgeName = sDazBridgeName
+		/** 
+		* Path to the Export Directory
+		* @type {String}
+		*/
+		this.sRootPath = sRootPath;
+		/** 
+		* Path to where the executed script is located.
+		* @type {String}
+		*/
+		this.sScriptPath = sScriptPath;
+		/** 
+		* Path to FBX File
+		* @type {String}
+		*/
+		this.sFbxPath = sFbxPath;
+		/** 
+		* Keyword for Figure Exports
+		* @type {String}
+		*/
+		this.sFig = "FIG";
+		/** 
+		* Keyword for Env/Prop Exports
+		* @type {String}
+		*/
+		this.sEnv = "ENV";
+		/** 
+		* Used for the FBX Exporter to export user's Morphs
+		* @type {String}
+		*/
+		this.sMorphRules = "";
+		/** 
+		* Enable or Disable Animation Export
+		* @type {Boolean}
+		*/
+		this.bIncludeAnim;
+
+		/** 
+		*Types of Meshes
+		* @property {Number} Figure
+		* @property {Number} Mesh
+		* @property {Number} Other
+		* @property {Number} Bone
+		* @property {Number} NoFacets
+		* @property {Number} Empty
+		*/
+		this.oMeshTypes = {
+			"Figure" :3,
+			"Mesh" : 1,
+			"Other" : 0,
+			"Bone" : -1,
+			"NoFacets" : -2,
+			"Empty" : -3
+		};
+		/** 
+		*Types of Exports
+		* @property {Number} Both
+		* @property {Number} Figure
+		* @property {Number} EnvProp
+		* @property {Number} None
+		*/
+		this.oExportTypes = {
+			"Both" : 2,
+			"Figure" : 1,
+			"EnvProp" : 0,
+			"None" : -1
+		};
+	};
+
+// --- START Sub Script ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/remote_operation/sub_script/start
+ 	
+ 	// - Extracted functions
+	// - Returns Scripts Paramater
+ 	// - Adjusted to be used within bridge
+	/*********************************************************************/
+	/** 
+	* Object : Executes a Script with a given script name
+	* @param {String} sScript
+	* @param {Array} aArgs
+	* @return {Object} 
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.executeSubScript = function( sScript, aArgs ){
+ 
+		/*********************************************************************/
+		// String : A function for retrieving a translation if one exists
+		function text( sText )
+		{
+			// If the version of the application supports qsTr()
+			if( typeof( qsTr ) != "undefined" ){
+				// Return the translated (if any) text
+				return qsTr( sText );
+			}
+	 
+			// Return the original text
+			return sText;
+		};
+	 
+		/*********************************************************************/
+		// Declare working variables
+		var sTitle, sMessage;
+	 
+		// Define common strings
+		var sButton = text( "&OK" );
+	 
+		// Define the base path of the script we'll call; without the file extension
+		var sBasePath = String( "%1/%2" ).arg( this.sScriptPath ).arg( sScript );
+		// Create a script object
+		var oScript = new DzScript();
+	 
+		// Attempt to find our script; doing it this way, we can debug with an
+		// ascii file and distribute a binary [encrypted] file with the same name...
+		// without having to update the contents of the script or manually handle
+		// the file extensions; requires 3.0.1.5 or newer
+		var sScriptPath = oScript.getScriptFile( sBasePath );
+	 
+		// If a script is found
+		if( !sScriptPath.isEmpty() ){
+			// If the script loads
+			if( oScript.loadFromFile( sScriptPath ) ){
+				// Execute the script; pass in an array of arguments;
+				// passing in arguments requires 2.2.2.17 or newer
+				oScript.execute( aArgs );
+				return oScript.result();
+			// If the script doesn't load
+			} else {
+				// Define text variables for the message
+				sTitle = text( "Read Error" );
+				sMessage = text( "The '%1' file could not be loaded." ).arg( sScriptPath );
+				// Inform the user
+				MessageBox.information( sMessage, sTitle, sButton );
+			}
+		// If a script is not found
+		} else {
+			// Define text variables for the message
+			sTitle = text( "File Not Found" );
+			sMessage = text( "A '%1.ds(a|b|e)' file could not be found." ).arg( sBasePath );
+			// Inform the user
+			MessageBox.information( sMessage, sTitle, sButton );
+		}
+	};
+
+// --- END Sub Script ----
+	
+// --- START node_properties ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
+ 	
+ 	// - Extraccted functions
+
+	/*********************************************************************/
+	/** 
+	* Array<DzProperty> : A function for getting a list of the properties in a group
+	* @param {DzNode} oGroup
+	* @param {Boolean} bTraverse
+	* @param {Boolean} bRecurse
+	* @return {Array<DzProperty>} 
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.getGroupProperties = function( oGroup, bTraverse, bRecurse )
+	{
+		// Declare an array to hold properties
+		var aProperties = [];
+		
+		// If a group is not passed in
+		if( !oGroup ){
+			// We are done, return an empty array
+			return aProperties;
+		}
+		
+		// Get the number of proeprties in the group
+		var nProperties = oGroup.getNumProperties();
+		// Pre-size the properties array
+		aProperties = new Array( nProperties );
+		// Iterate over the properties, setting each element in the array
+		for( var i = 0; i < nProperties; i += 1 ){
+			// Assign the property to the position in the array
+			aProperties[ i ] = oGroup.getProperty( i );
+		}
+		
+		// If we are recursing
+		if( bRecurse ){
+			// Concatenate the properties array from child groups
+			aProperties = aProperties.concat(
+				this.getGroupProperties( oGroup.getFirstChild(), true, bRecurse ) );
+		}
+		
+		// If we are traversing
+		if( bTraverse ){
+			// Concatenate the properties array from sibling groups
+			aProperties = aProperties.concat(
+				this.getGroupProperties( oGroup.getNextSibling(), bTraverse, bRecurse ) );
+		}
+ 		
+		// Return the array of properties
+		return aProperties;
+	};
+	
+	/*********************************************************************/
+	/** 
+	* Array<DzProperty> : A function for getting the list properties for an element
+	* @param {DzNode} oGroup
+	* @param {Boolean} bTraverse
+	* @param {Boolean} bRecurse
+	* @return {Array<DzProperty>} 
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.getElementProperties = function( oElement, bTraverse, bRecurse )
+	{
+		// Get the property group tree for the element
+		var oPropertyGroupTree = oElement.getPropertyGroups();
+		
+		// If the application version is 4.9.4.101 or newer and we want all properties
+		if( App.version64 >= 0x0004000900040065 && bTraverse && bRecurse ){
+			// Return the properties for the element
+			return oPropertyGroupTree.getAllProperties();
+		}
+		
+		// Get the first group in the tree
+		var oPropertyGroup = oPropertyGroupTree.getFirstChild();
+		// Return the properties for the element
+		return this.getGroupProperties( oPropertyGroup, bTraverse, bRecurse );
+	};
+
+// --- END node_properties ----
+	
+	
+// --- START export_fbx_silent ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_fbx_silent/start
+	
+	// - Minor changes for this specific use case
+	/** 
+	* Void : Silently exports FBX
+	* @param {DzNode} oNode
+	* @param {String} sName
+	* @param {Number} nIdx
+	* @param {String} sSuffix
+	* @param {Boolean} bAscii
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.exportFBX = function( oNode, sName, nIdx, sSuffix, bAscii )
+	{
+		// Get the export manager
+		var oExportMgr = App.getExportMgr();
+		// Define the class name the for Autodesk Filmbox (*.fbx) exporter
+		var sClassName = "DzFbxExporter";
+		// Find the exporter
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		// If the exporter exists
+		if( oExporter ){
+			// Create a settings object
+			var oSettings = new DzFileIOSettings();
+			
+			// Define whether or not to show options
+			var bShowOptions = false;
+			
+			// Define whether or not to show options before prompting for a path;
+			// requires 4.9.3.22 or later
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			
+			// Get the options for the exporter
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				// We're done...
+				return;
+			}
+			
+			// Selected
+			oSettings.setBoolValue( "doSelected", false );
+			// No Hidden
+			oSettings.setBoolValue( "doVisible", true );
+			// Figures
+			oSettings.setBoolValue( "doFigures", true );
+			
+			var bIsEnv = sName.startsWith( this.sEnv );
+			// Props
+			oSettings.setBoolValue( "doProps", bIsEnv );
+			// Lights
+			oSettings.setBoolValue( "doLights", bIsEnv );
+			// Cameras
+			oSettings.setBoolValue( "doCameras", bIsEnv );
+			
+			// Animations
+			oSettings.setBoolValue( "doAnims", this.bIncludeAnim );
+			// Morphs
+			oSettings.setBoolValue( "doMorphs", true );
+			
+			// Fps
+			oSettings.setBoolValue( "doFps", true );
+			
+			// Morph Rules
+			// Format for rules is "Match1\nAction1\nMatch2\nAction2\nMatch3\nAction3",
+			// where Match# is a string to search for and Action# is one of Bake|Export|Ignore
+			// The names of the morphs are in the form: node_name.parameter_name
+			// The default action is to Bake
+			// So "FBMHeavy\nExport\nThin\nExport" would export all morphs that have FBMHeavy and all morphs that have Thin in the name
+			oSettings.setStringValue( "rules", this.sMorphRules );
+			
+			// Format
+			// Format for format is "Year# -- Type",
+			// where Year# is one of 2006|2009|2010|2011|2012|2013|2014 and
+			// Type is one of Ascii|Binary
+			if( bAscii ){
+				oSettings.setStringValue( "format", "FBX 2014 -- Ascii" );
+			} else {
+				oSettings.setStringValue( "format", "FBX 2014 -- Binary" );
+			}
+			
+			// Embed Textures
+			oSettings.setBoolValue( "doEmbed", false );
+			// Collect Textures To Folder
+			oSettings.setBoolValue( "doCopyTextures", false );
+			// Merge Diffuse and Opacity Textures
+			oSettings.setBoolValue( "doDiffuseOpacity", false );
+			// Merge Clothing Into Figure Skeleton
+			oSettings.setBoolValue( "doMergeClothing", true );
+			// Convert Clothing to Static Geometry
+			oSettings.setBoolValue( "doStaticClothing", false );
+			// Allow Degraded Skinning
+			oSettings.setBoolValue( "degradedSkinning", false );
+			// Allow Degraded Scaling
+			oSettings.setBoolValue( "degradedScaling", false );
+			// SubD Information
+			oSettings.setBoolValue( "doSubD", false );
+			// Collapse UV Tiles
+			//oSettings.setBoolValue( "doCollapseUVTiles", false );
+			
+			oSettings.setBoolValue( "doLocks", false );
+			oSettings.setBoolValue( "doLimits", false );
+			oSettings.setBoolValue( "doBaseFigurePoseOnly", false );
+			oSettings.setBoolValue( "doHelperScriptScripts", false );
+			oSettings.setBoolValue( "doMentalRayMaterials", false );
+			
+			// If the version is 4.9.3.22 or newer
+			if( App.version64 >= 0x0004000900030016 ){
+				// Define whether or not to show the options after prompting for a file;
+				// prior to 4.9.3.22 this exporter ignored this option entirely,
+				// running silent was implied by virtue of being run via script
+				oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			}
+			
+			// If we've got a node, construct the path using the
+			// exporter's last path, the node's name, and the
+			// exporter's extension...
+			// Otherwise, just use the exporter's last path
+			var sInitialPath = ( oNode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( oNode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			
+			var sPath = this.sRootPath + sName + "/" + sName + nIdx + "/"
+			this.sFbxPath = this.sRootPath + sName + "/" + sName + nIdx + "/";
+			if( bAscii ){
+				sPath += "A_" + sName + ".fbx"
+				this.sFbxPath += "A_" + sName + ".fbx"
+			} else {
+				sPath += "B_" + sName + sSuffix + ".fbx"
+				this.sFbxPath += "B_" + sName + ".fbx"
+			}
+			
+			// If the user didn't cancel and the file doesn't already
+			// exist, or the user wants to overwrite it
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				// Write the file using the options specified
+				oExporter.writeFile( sPath, oSettings );
+			}
+			// Clean up; don't leak memory
+			oExporter.deleteLater();
+			
+		// We didn't find an exporter with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr( "An exporter with the class name \"%1\" " +
+				"could not be found." ).arg( sClassName ),
+				this.sDazBridgeName, qsTr( "&OK" ) );
+		}
+	};
+	
+// --- END export_fbx_silent ----
+	
+	
+// --- START export_obj_silent ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	// Source: http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/export_obj_silent/start
+	
+	// - Minor changes for this specific use case
+	/** 
+	* Void : Silently exports OBJ
+	* @param {DzNode} oNode
+	* @param {String} sName
+	* @param {Number} nIdx
+	* @param {Boolean} bSelected
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.exportOBJ = function( oNode, sName, nIdx, bSelected )
+	{
+		// Get the export manager
+		var oExportMgr = App.getExportMgr();
+		// Define the class name the for Wavefront Object (*.obj) exporter
+		var sClassName = "DzObjExporter";
+		// Find the exporter
+		var oExporter = oExportMgr.findExporterByClassName( sClassName );
+		// If the exporter exists
+		if( oExporter ){
+			// Create a settings object
+			var oSettings = new DzFileIOSettings();
+			
+			// Define whether or not to show options
+			var bShowOptions = false;
+			
+			// Define whether or not to show options before prompting for a path;
+			// requires 4.9.3.22 or later
+			var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+			
+			// Get the options for the exporter
+			if( !oExporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+				// We're done...
+				return;
+			}
+			
+			// Set the scale to write the data
+			oSettings.setFloatValue( "Scale", 100.0 );
+			// Set the lateral axis to X
+			oSettings.setStringValue( "LatAxis", "X" );
+			// Set the vertical axis to Y
+			oSettings.setStringValue( "VertAxis", "Y" );
+			// Set the depth axis to Z
+			oSettings.setStringValue( "DepthAxis", "Z" );
+			// Do not invert the lateral axis
+			oSettings.setBoolValue( "InvertLat", false );
+			// Do not invert the vertical axis
+			oSettings.setBoolValue( "InvertVert", false );
+			// Do not invert the depth axis
+			oSettings.setBoolValue( "InvertDepth", false );
+			// Do not ignore the geometry of invisible nodes
+			oSettings.setBoolValue( "IgnoreInvisible", true );
+			// Do not weld seams between parent and child bones on legacy figures - deprecated
+			oSettings.setBoolValue( "WeldSeams", false );
+			// Do not remove vertices that are floating, connected to nothing - i.e. LOD
+			oSettings.setBoolValue( "RemoveUnusedVerts", true );
+			// Write vertex textures - UVs
+			oSettings.setBoolValue( "WriteVT", true );
+			// Do not write vertex normals
+			oSettings.setBoolValue( "WriteVN", false );
+			// Do not write object statements for each root node - i.e. figures, props
+			oSettings.setBoolValue( "WriteO", false );
+			
+			// Write facet groups
+			oSettings.setBoolValue( "WriteG", false );
+			// Write facet groups according to whatever the geometry already has
+			oSettings.setBoolValue( "GroupGeom", false );
+			// Do not write facet groups according to the node it is associated with
+			oSettings.setBoolValue( "GroupNodes", false );
+			// Do not write facet groups according to surface groups
+			oSettings.setBoolValue( "GroupSurfaces", false );
+			// Do not write one facet group
+			oSettings.setBoolValue( "GroupSingle", false );
+			
+			// Write surface groups
+			oSettings.setBoolValue( "WriteUsemtl", true );
+			
+			// Do not write a material library
+			oSettings.setBoolValue( "WriteMtllib", true );
+			
+			oSettings.setBoolValue( "OriginalMaps", true );
+			// Do not collect texture maps
+			oSettings.setBoolValue( "CollectMaps", false );
+			// Do not convert texture maps
+			oSettings.setBoolValue( "ConvertMaps", false );
+			
+			// If the version is 4.5.0.114 or newer
+			if( App.version64 >= 0x0004000500000072 ){
+				// Do not limit export to selection
+				oSettings.setBoolValue( "SelectedOnly", bSelected );
+				// Do not limit export to the selected roots
+				oSettings.setBoolValue( "SelectedRootsOnly", bSelected );
+				// Do not limit export to the primary selected root;
+				// this setting overrides SelectedRootsOnly
+				oSettings.setBoolValue( "PrimaryRootOnly", false );
+				// Do not export items that are parented to the selection
+				oSettings.setBoolValue( "IncludeParented", false );
+				// Do not triangulate n-gons
+				oSettings.setBoolValue( "TriangulateNgons", false );
+			}
+			
+			// If the version is 4.9.3.22 or newer
+			if( App.version64 >= 0x0004000900030016 ){
+				// Do not collapse UVs Tiles
+				oSettings.setBoolValue( "CollapseUVTiles", false );
+				
+				// Show individual settings in the dialog
+				oSettings.setBoolValue( "ShowIndividualSettings", false );
+			}
+			
+			// If the version is 4.10.0.73 or newer
+			if( App.version64 >= 0x0004000a00000049 ){
+				// Set floating point precision; default is 8
+				oSettings.setIntValue( "FloatPrecision", 6 );
+			}
+			
+			// Define whether or not to show the options after prompting for a file
+			oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+			
+			// If we've got a node, construct the path using the
+			// exporter's last path, the node's name, and the
+			// exporter's extension...
+			// Otherwise, just use the exporter's last path
+			var sInitialPath = ( oNode ?
+				String( "%1/%2.%3" )
+					.arg( oExportMgr.getExportPath() )
+					.arg( oNode.name )
+					.arg( oExporter.getExtension() ) :
+				oExportMgr.getExportPath() );
+			var sRootDir = this.sRootPath + sName + "/" 
+			var sDir = sRootDir + sName + nIdx + "/"
+			var sPath = sDir + sName+ ".obj";
+			var oTempDir = new DzDir( "" );
+			oTempDir.setPath( sRootDir )
+			if( !oTempDir.exists() ){
+				oTempDir.mkdir( sRootDir );
+			};
+			oTempDir.setPath( sDir )
+			if( !oTempDir.exists() ){
+				oTempDir.mkdir( sDir );
+			};
+			// If the user didn't cancel and the file doesn't already
+			// exist, or the user wants to overwrite it
+			if( sPath && MainWindow.checkExistingFile( sPath ) ){
+				// Write the file using the options specified
+				oExporter.writeFile( sPath, oSettings );
+			}
+			
+			// Clean up; don't leak memory
+			oExporter.deleteLater();
+		// We didn't find an exporter with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr( "An exporter with the class name \"%1\" " +
+				"could not be found." ).arg( sClassName ),
+				this.sDazBridgeName, qsTr( "&OK" ) );
+		}
+	};
+	
+// --- END export_obj_silent ----
+
+// --- START import_obj_silent ----
+	/**********************************************************************
+	
+		The following is derived from a work published as part of the
+		Daz Script Documentation. This portion of the script, and/or any
+		portion thereof, may only be used in accordance with the
+		following license:
+	
+		Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+		- http://creativecommons.org/licenses/by/3.0
+	
+	**********************************************************************/
+	http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/import_obj_silent/start	
+	// - Minor changes for this specific use case
+	/** 
+	* Void : Silently imports OBJ
+	* @param {String} sName
+	* @param {Number} nIdx
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.importOBJ = function( sName, nIdx )
+	{
+		// Get the import manager
+	var oImportMgr = App.getImportMgr();
+	// Define the class name the for Wavefront Object (*.obj) importer
+	var sClassName = "DzObjImporter";
+	// Find the importer
+	var oImporter = oImportMgr.findImporterByClassName( sClassName );
+	// If the importer exists
+	if( oImporter ){
+		// Create a settings object
+		var oSettings = new DzFileIOSettings();
+ 
+		// Fill the settings object with the default options from the importer
+		//oImporter.getDefaultOptions( oSettings );
+ 
+		// Define whether or not to show options
+		var bShowOptions = false;
+ 
+		// Define whether or not to show options before prompting for a path;
+		// requires 4.9.3.22 or later
+		var bOptionsBeforeFile = (bShowOptions && App.version64 >= 0x0004000900030016);
+ 
+		// Get the options for the exporter
+		if( !oImporter.getOptions( oSettings, bShowOptions && bOptionsBeforeFile, "" ) ){
+			// We're done...
+			return;
+		}
+ 
+		// Debug
+		//print( oSettings.toJsonString() );
+ 
+		// Set the desired settings for the importer
+		//oSettings.setStringValue( "Preset", "Poser (1 unit = 8ft)" );
+ 
+	 	// Set the scale to read the data
+		oSettings.setFloatValue( "Scale", 100.00 );
+		// Set the lateral axis to X
+		oSettings.setStringValue( "LatAxis", "X" );
+		// Set the vertical axis to Y
+		oSettings.setStringValue( "VertAxis", "Y" );
+		// Set the depth axis to Z
+		oSettings.setStringValue( "DepthAxis", "Z" );
+		// Do not invert the lateral axis
+		oSettings.setBoolValue( "InvertLat", false );
+		// Do not invert the vertical axis
+		oSettings.setBoolValue( "InvertVert", false );
+		// Do not invert the depth axis
+		oSettings.setBoolValue( "InvertDepth", false );
+		// Read vertex textures - UVs
+		oSettings.setBoolValue( "IncludeVT", true );
+		// Read facet groups
+		oSettings.setBoolValue( "IncludeG", true );
+		// Read surface groups
+		oSettings.setBoolValue( "IncludeUsemtl", true );
+ 
+		// Read the material library if it exists
+		oSettings.setBoolValue( "IncludeMtllib", true );
+ 
+ 
+		// If the version is 4.9.3.22 or newer
+		if( App.version64 >= 0x0004000900030016 ){
+			// Show individual settings in the dialog
+			oSettings.setBoolValue( "ShowIndividualSettings", false );
+		}
+ 
+		// Define whether or not to show the options after prompting for a file
+		oSettings.setIntValue( "RunSilent", (bShowOptions && !bOptionsBeforeFile ? 0 : 1) );
+ 
+		// Debug
+		//print( oSettings.toJsonString() );
+ 
+		// Get the number of extensions supported by the importer
+		var nExtensions = oImporter.getNumExtensions();
+		// Pre-size the extensions array
+		var aExtensions = new Array( nExtensions );
+		// Iterate over the extensions, setting each element in the array
+		for( var i = 0; i < nExtensions; i += 1 ){
+			aExtensions[ i ] = String("*.%1").arg( oImporter.getExtension( i ) );
+		}
+		
+		var sPath = this.sRootPath + sName + "/" + sName + nIdx + "/" + sName+ ".obj";
+
+		// If the user didn't cancel
+		if( sPath ){
+			// Read the file using the options specified
+			oImporter.readFile( sPath, oSettings );
+		}
+ 
+		// Clean up; don't leak memory
+		oImporter.deleteLater();
+		// We didn't find an importer with the class name we wanted
+		} else {
+			// Inform the user
+			MessageBox.critical( qsTr("An importer with the class name \"%1\" " +
+				"could not be found.").arg( sClassName ),
+				qsTr("Critical Error"), qsTr("&OK") );
+		}
+	}
+// --- END import_obj_silent ----
+
+	/**********************************************************************/
+	/** 
+	* String : Get the name of the Property
+	* @param {DzProperty} oProperty 
+	* @return {String} - Returns the name of the property
+	*/
+	
+	DzBridgeHelpers.prototype.getPropertyName = function( oProperty )
+	{
+		var sPropertyName = oProperty.name;
+		var oOwnerProperty = oProperty.getOwner();
+		if( oOwnerProperty.inherits( "DzMorph" ) ){
+			sPropertyName = oOwnerProperty.name;
+		}
+		return sPropertyName;
+	};
+
+	/*********************************************************************/
+	/**
+	* Void : Helper function to create the temp directory if it doesn't exist
+	*/
+	DzBridgeHelpers.prototype.addTempDirectory = function()
+	{
+		sTempPath = this.sRootPath + "/" + "temp"
+		var oDir = new DzDir( "" );
+		oDir.setPath( sTempPath );
+		if( !oDir.exists() ){
+			oDir.mkdir( sTempPath );
+		};
+	};
+
+	/*********************************************************************/
+	/**  
+	* Void : Helper function to remove temporary files form a path
+	* @param  {string} sPath - Path of the temp folder used to export/import the obj
+	*/
+	DzBridgeHelpers.prototype.cleanUpTempFiles = function( sPath )
+	{
+		var oDir = new DzDir( "" );
+
+		oDir.setPath( sPath );
+
+		var aDirs = []
+		// Delete Files
+		aFiles = oDir.getFilesFromDir( [], true );
+		for( var j = 0; j < aFiles.length; j += 1 ){
+			oDir.remove( aFiles[j] );
+
+		}
+		// Delete Dirs
+		oDir.rmdir();
+	};
+
+	/*********************************************************************/
+	/** 
+	* Void : Helper function to deselect everything in the scene.
+	*/
+	DzBridgeHelpers.prototype.deSelectAll = function()
+	{
+		// Get list of nodes
+		var oSelItems = Scene.getSelectedNodeList();
+
+		// go through deselecting
+		for ( var i = 0 ; i < oSelItems.length ; i++ ) {
+			oSelItems[i].select( false );
+		}
+	};
+
+	/*********************************************************************/
+	/** 
+	* Void : Change lock based on given Boolean
+	* @param {DzProperty} oProperty
+	* @param {Boolean} bLock
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.changeLock = function( oProperty, bLock ) {
+		if ( ! oProperty ) {
+			return;
+		}
+		oProperty.lock( bLock );
+	}
+
+	/*********************************************************************/
+	/** 
+	* Void : Set lock for a node and all it's childen
+	* @param {DzNode} oBaseNode
+	* @param {Boolean} bLock
+	* @param {Boolean} bIsFigure
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.setLock = function( oBaseNode, bLock, bIsFigure )
+	{
+		var aNodes = oBaseNode.getNodeChildren( true );
+		if( !bIsFigure ){
+			aNodes.push( oBaseNode );
+		}
+				
+		var oNode;
+		var oTransform;
+
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( this.getObjectType( oNode ) == 'BONE' ){
+				continue;
+			}
+			// Translations
+			oTransform = oNode.getXPosControl();
+			this.changeLock( oTransform, bLock );
+			oTransform = oNode.getYPosControl();
+			this.changeLock( oTransform, bLock );
+			oTransform = oNode.getZPosControl();
+			this.changeLock( oTransform, bLock );
+			
+			// Rotations
+			oTransform = oNode.getXRotControl();
+			this.changeLock( oTransform, bLock );
+			oTransform = oNode.getYRotControl();
+			this.changeLock( oTransform, bLock );
+			oTransform = oNode.getZRotControl();
+			this.changeLock( oTransform, bLock );
+			
+			// Scale
+			oTransform = oNode.getScaleControl();
+			this.changeLock( oTransform, bLock );
+			oTransform = oNode.getXScaleControl();
+			this.changeLock( oTransform, bLock );
+			curTransform = oNode.getYScaleControl();
+			this.changeLock( oTransform, bLock );
+			curTransform = oNode.getZScaleControl();
+			this.changeLock( oTransform, bLock );
+		}
+	};
+	
+	/*********************************************************************/
+	/** 
+	* String : Find out what type of Object we have
+	* @param {DzNode} oNode
+	* @return {String} Object Type
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.getObjectType = function( oNode )
+	{
+		if( oNode.inherits( "DzBone" ) ){
+			return "BONE";
+		}
+		
+		if( oNode.inherits( "DzLight" ) ){
+			return "LIGHT";
+		}
+		
+		if( oNode.inherits( "DzCamera" ) ){
+			return "CAMERA";
+		}
+		
+		var oObject = oNode.getObject();
+		if( !oObject ){
+			return "EMPTY";
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return "EMPTY";
+		}
+		
+		var oMesh = oShape.getGeometry();
+		if( !oMesh ){
+			return "EMPTY";
+		}
+		
+		return "MESH";
+	};
+
+	/*********************************************************************/
+	/** 
+	* Array<String> : ...
+	* @param {DzNode} oParentNode
+	* @param {DzNode} oBaseNode
+	* @return {Array<String>} Parented nodes names
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.getParentingData = function( oParentNode, oBaseNode )
+	{
+		var aData = [];
+		
+		var oNode;
+		var sName;
+		
+		var aNodes = oBaseNode.getNodeChildren( true );
+		aNodes.push( oBaseNode );
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( this.getMeshType( oNode ) <= this.oMeshTypes.Other ){
+				continue;
+			}
+			
+			sName = oNode.name;
+			for( var j = 1; j <= 10; j += 1 ){
+				if( !oNode.getLabel().endsWith( " (" + j + ")" ) ){
+					continue;
+				}
+				
+				sName += "_dup_" + j;
+			}
+			
+			aData.push( oParentNode.name + "," + sName );
+		}
+		
+		return aData;
+	};
+
+	/*********************************************************************/
+	/** 
+	* Number  : ...
+	* @param {DzNode} oNode
+	* @return {Number} Mesh Type
+	* @memberof DzBridgeHelpers
+	*/
+	DzBridgeHelpers.prototype.getMeshType = function( oNode )
+	{
+		if( !oNode ){
+			return this.oMeshTypes.Other; //0
+		}
+		
+		if( oNode.inherits( "DzBone" ) ){
+			return this.oMeshTypes.Bone; //-1
+		}
+		
+		var oObject = oNode.getObject();
+		if( !oObject ){
+			return this.oMeshTypes.Empty; //-3
+		}
+		
+		var oShape = oObject.getCurrentShape();
+		if( !oShape ){
+			return this.oMeshTypes.Other; //0
+		}
+		
+		var oMesh = oShape.getGeometry();
+		if( !oMesh ){
+			return this.oMeshTypes.Other; //0
+		}
+		
+		var nFacets = oMesh.getNumFacets();
+		if( nFacets < 1 && oMesh.name.toLowerCase().indexOf( "eyebrow" ) < 0 ){
+			return this.oMeshTypes.NoFacets; //-2
+		}
+		
+		if( nFacets > 14000 ){
+			return this.oMeshTypes.Figure; //3
+		}
+		
+		if( oNode.isRootNode() ){
+			return this.oMeshTypes.Other; //0
+		}
+		
+		return this.oMeshTypes.Mesh; //1
+	};
+
+	

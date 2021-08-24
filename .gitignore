@@ -4,3 +4,4 @@ __pycache__
 .vscode
 *.blend1
 *.dll
+node_modules

@@ -1,0 +1,121 @@
+
+/** 
+* Edits needed to export out Environements and Props.
+* TODO: Change logic to match Unreal Export
+* @class
+* @constructor
+*/
+function DzBridgeEnvironment()
+{
+    this.init()
+};	
+
+	/*********************************************************************/
+	DzBridgeEnvironment.prototype = Object.create( DzBridgeHelpers.prototype )
+	DzBridgeEnvironment.constructor = DzBridgeEnvironment
+	DzBridgeEnvironment.superclass = DzBridgeHelpers.prototype
+
+    /*********************************************************************/
+    DzBridgeEnvironment.prototype.init = function()
+    {
+		this.oOrgName = {}
+		DzBridgeEnvironment.superclass.init.call( this )
+    };
+
+    /*********************************************************************/
+	// Destructive Changes the names of the Assets in Daz
+	// void : ...
+	DzBridgeEnvironment.prototype.updateName = function( oBaseNode, bIsFigure )
+	{
+		s_aPoseData = [];
+		
+		var aTopNodes = oBaseNode.getNodeChildren( false );
+		if( aTopNodes.length == 0 && !bIsFigure ){
+			aTopNodes.push( oBaseNode );
+		}
+		
+		var oTopNode;
+		
+		var aNodes = [];
+		
+		for( var i = 0; i < aTopNodes.length; i += 1 ){
+			oTopNode = aTopNodes[i];
+			if( bIsFigure && oTopNode.name != "hip" ){
+				continue;
+			}
+			
+			if( i == 0 ){
+				aNodes = aNodes.concat( oBaseNode, oTopNode, oTopNode.getNodeChildren( true ) );
+			} else {
+				aNodes = aNodes.concat( oTopNode, oTopNode.getNodeChildren( true ) );
+			}
+		}
+		
+		var nNodes = aNodes.length;
+		if( nNodes < 1 ){
+			return;
+		}
+		
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			sLabel =oNode.getLabel();
+			sName = oNode.name;
+			if( sLabel in this.oOrgName ){
+				oNode.setName(this.oOrgName[sLabel])
+			}
+			else{
+				this.oOrgName[sLabel] = sName
+				oNode.setName( sLabel )
+			}
+			
+		};
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// The mesh attached to the bone moves directly under the figure
+	// Note: destructive - modifies the scene contents
+	DzBridgeEnvironment.prototype.flattenObjectHierarchy = function( oBaseNode )
+	{
+		var oChildLvl1;
+		var vecChildLvl1Pos;
+		var quatChildLvl1Rot;
+		
+		var aChildrenLvl2;
+		var oChildLvl2;
+		var vecChildLvl2Pos;
+		var quatChildLvl2Rot;
+		
+		var aChildrenLvl1 = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildrenLvl1.length; i += 1 ){
+			oChildLvl1 = aChildrenLvl1[i];
+			if( this.getMeshType( oChildLvl1 ) != this.oMeshTypes.Empty ){
+				continue;
+			}
+			
+			vecChildLvl1Pos = oChildLvl1.getLocalPos();
+			quatChildLvl1Rot = oChildLvl1.getLocalRot();
+			
+			aChildrenLvl2 = oChildLvl1.getNodeChildren( true );
+			for( var j = 0; j < aChildrenLvl2.length; j += 1 ){
+				oChildLvl2 = aChildrenLvl2[j];
+				
+				vecChildLvl2Pos = oChildLvl2.getLocalPos();
+				quatChildLvl2Rot = oChildLvl2.getLocalRot();
+				
+				vecChildLvl2Pos.x += vecChildLvl1Pos.x;
+				vecChildLvl2Pos.y += vecChildLvl1Pos.y;
+				vecChildLvl2Pos.z += vecChildLvl1Pos.z;
+				
+				quatChildLvl2Rot.x += quatChildLvl1Rot.x;
+				quatChildLvl2Rot.y += quatChildLvl1Rot.y;
+				quatChildLvl2Rot.z += quatChildLvl1Rot.z;
+				
+				oChildLvl2.setLocalPos( vecChildLvl2Pos );
+				oChildLvl2.setLocalRot( quatChildLvl2Rot );
+				
+				oBaseNode.addNodeChild( oChildLvl2 );
+			}
+		}
+	};
+		

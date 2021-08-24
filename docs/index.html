@@ -4,27 +4,54 @@
   <meta charset="UTF-8">
   <title>Documentation</title>
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <meta name="description" content="Description">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+
+  <title>Daz To Blender</title>
+  <meta name="description" content="Daz to Blender Official Documentation">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
+
+  
 </head>
+
+    <!-- Plugins that are needed before app configuration. -->
+
 <body>
   <div id="app"></div>
   <script>
     window.$docsify = {
-      name: '',
-      repo: '',
-      loadSidebar : true,
-    }
+            name: 'Daz To Blender', // TODO: Update.
+            repo: "https://github.com/daz3d/DazToBlender",
+            auto2top: true,
+            coverpage: false,
+            loadSidebar: true,
+            subMaxLevel: 2,
+
+            
+      }
   </script>
   <!-- Docsify v4 -->
-  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/external-script.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/ga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-edit-on-github"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
+
+  <style>
+    :root {
+      /* Reduce the font size */
+      --base-font-size: 14px;
+  
+      /* Change the theme color hue */
+      --theme-hue: 200;
+  
+      /* Change the sidebar bullets */
+      --sidebar-nav-link-before-content: '-';
+    }
+  </style>
 </body>
 </html>

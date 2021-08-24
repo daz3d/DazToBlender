@@ -6,3 +6,9 @@ http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/script
 http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/properties/node_properties/start
 http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/actions/action_custom_create/start
 http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/actions/action_custom_remove/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/remote_operation/sub_script/start
+http://docs.daz3d.com/doku.php/public/software/dazstudio/4/referenceguide/scripting/api_reference/samples/file_io/import_obj_silent/start
+
+DzFBXBridge.exe has been derived by cocktailboy licensed under the [MIT License](https://github.com/cocktailboy/daz-to-ue4-subd-skin/blob/master/LICENSE)
+The original code can be found here.
+https://github.com/cocktailboy/daz-to-ue4-subd-skin

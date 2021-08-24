@@ -3,7 +3,6 @@
 (function( aArgs ){
     // Imported Arguments
     var s_oNode;
-    var s_sDazBridgeName = "";
     var s_sPresetPath = "";
 
     // Returned Values
@@ -54,9 +53,6 @@
                 if( vArg.indexOf( "Documents" ) > 0 ){
                     s_sPresetPath = vArg;
                 }
-                else{
-                    s_sDazBridgeName = vArg;
-                }
             }
         }
 
@@ -64,7 +60,7 @@
 
     /*********************************************************************/
     // void : ...
-    function morphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable, nCurrentValue, oNode )
+    function DzMorphInfo( sName, sLabel, sPath, sType, oProperty, sParent, bHidden, nMin, nMax, bDisable, nCurrentValue, oNode )
     {
         this.name = sName;
         this.label = sLabel;
@@ -250,12 +246,15 @@
         lytOther.addWidget( wVismesbut, 0, 1);
         s_wDisableConnections = new DzCheckBox( wAdvanceGroupBox );
         s_wDisableConnections.text = "Disable Links";
-        s_wDisableConnections.checked = true;
+        s_wDisableConnections.checked = false;
+        s_wDisableConnections.enabled = false;
         s_wDisableConnections.whatsThis = qsTr( "Disables the connections between each morph to deal with morph a being applied on its parent morph")
         lytAdv.addWidget( s_wDisableConnections, 0, 1 );
         var wAddConnectedMorphs = new DzPushButton( wAdvanceGroupBox );
         wAddConnectedMorphs.text = "Find Connected Morphs";
+        wAddConnectedMorphs.enabled = false;
         lytAdv.addWidget( wAddConnectedMorphs, 1, 1, 1, 2 );
+        
         
         
         // Center List of morphs based on tree selection
@@ -441,7 +440,7 @@
             if (oPresentation != undefined){
                 sPath = oNode.getLabel() + "/" + oProperty.getPath();
                 sParent = sPath.split( "/" )[0];
-                oMorphInfo = new morphInfo(
+                oMorphInfo = new DzMorphInfo(
                     sPropName,
                     sPropLabel,
                     sPath,
@@ -501,7 +500,7 @@
                         if (oPresentation != undefined){
                             sPath = oNode.getLabel() + "/" + oProperty.getPath();
                             sParent = sPath.split( "/" )[0];
-                            oMorphInfo = new morphInfo(
+                            oMorphInfo = new DzMorphInfo(
                                 sModName,
                                 sPropLabel,
                                 sPath,

@@ -1,0 +1,394 @@
+
+/** 
+* Constructs any data needed for Figures and Helper Functions for Export
+* @class
+* @constructor
+* @param {DzNode} oFigure
+*/
+function DzBridgeFigure( oFigure )
+{
+    this.init( oFigure )
+};
+	/*********************************************************************/
+	DzBridgeFigure.prototype = Object.create( DzBridgeHelpers.prototype )
+	DzBridgeFigure.constructor = DzBridgeFigure
+	DzBridgeFigure.superclass = DzBridgeHelpers.prototype
+
+    /*********************************************************************/
+    DzBridgeFigure.prototype.init = function( oFigure )
+    {
+        this.oSkeletonData = {};
+        this.oLimitsData = {};
+        this.oHeadTailData = {};
+        this.oJointOrientation = {};
+        this.oFigure = oFigure;
+        DzBridgeFigure.superclass.init.call( this );
+    }
+    /*********************************************************************/
+	// Void : load bone's limits along with rotation orders
+	DzBridgeFigure.prototype.loadFigureBoneData = function()
+	{
+
+		if( !this.oFigure.inherits( "DzFigure" ) ){
+			if( !this.oFigure.inherits( "DzLegacyFigure" ) ){
+				return;
+			}
+		}
+		var oSkeleton = this.oFigure.getSkeleton();
+		var aNodes = oSkeleton.getAllBones();
+		var numFollowers = oSkeleton.getNumFollowSkeletons();
+		var oFollowSkeleton;
+		var aFollowNodes;
+		var oFollowNode;
+		var bIsNewNode;
+		
+		// Collect followers' bones that does not exist in the main skeleton
+		for( var i = 0; i < numFollowers; i += 1 ){
+			oFollowSkeleton = oSkeleton.getFollowSkeleton( i );
+			aFollowNodes = oFollowSkeleton.getAllBones();
+			for( var j = 0; j < aFollowNodes.length; j += 1 ){
+				oFollowNode = aFollowNodes[j];
+				bIsNewNode = false;
+				for( var k = 0; k < aNodes.length; k += 1 ){
+					if( oFollowNode.name == aNodes[k].name ){
+						bIsNewNode = true;
+						break;
+					}
+				}
+
+				if( bIsNewNode == false ){
+					aNodes = aNodes.concat( aFollowNodes[j] );
+				}
+			}
+		}
+		
+		var nNodes = aNodes.length;
+		if( nNodes == 0 ){
+			return;
+		}
+		
+		var oNode;
+		var sRotOrder;
+		var nXRotMin;
+		var nXRotMax;
+		var nYRotMin;
+		var nYRotMax;
+		var nZRotMin;
+		var nZRotMax;
+		var nXOrientation;
+		var nYOrientation;
+		var nZOrientation;
+		var vecOffset;
+		
+		// To account for the scale on the skeleton due to morphs
+		var nSkeletonScale = this.oFigure.getScaleControl().getValue();
+		this.oSkeletonData["skeletonScale"] = ["skeletonScale", nSkeletonScale];
+		// To account for offset on the hip bone.
+		vecOffset = this.getBoneOffset(aNodes[0])
+		this.oSkeletonData["offset"] = ["offset", vecOffset.y];
+
+		this.oFigure.update();
+		this.oFigure.finalize();
+		var oFigure = new DzFigure();
+		
+		var oFigure = this.oFigure.getSkeleton();
+		if ( this.oFigure.className() != "DzLegacyFigure" ){
+			var oSkinBinding = oFigure.getSkinBinding();
+		}
+		
+		for( var i = 0; i < nNodes; i += 1 ){
+			oNode = aNodes[i];
+			
+			sRotOrder = oNode.getRotationOrder().toString();
+			nXRotMin = oNode.getXRotControl().getMin();
+			nXRotMax = oNode.getXRotControl().getMax();
+			nYRotMin = oNode.getYRotControl().getMin();
+			nYRotMax = oNode.getYRotControl().getMax();
+			nZRotMin = oNode.getZRotControl().getMin();
+			nZRotMax = oNode.getZRotControl().getMax();
+			nXOrientation = oNode.getOrientXControl().getValue();
+			nYOrientation = oNode.getOrientYControl().getValue();
+			nZOrientation = oNode.getOrientZControl().getValue();
+			quatOrientation = oNode.getOrientation();
+
+			this.oLimitsData[oNode.getName()] = [
+				oNode.getName(),
+				sRotOrder,
+				nXRotMin, nXRotMax,
+				nYRotMin, nYRotMax,
+				nZRotMin, nZRotMax
+				];
+
+			nBoneLength = this.getBoneNodeLength( oNode );
+			vecPrimaryAxis = this.getNodePrimaryAxis( oNode, nBoneLength );
+
+			vecHead = oNode.getOrigin( false );
+			if ( this.oFigure.className() != "DzLegacyFigure" ){
+				oBoneBinding = oSkinBinding.findBoneBinding( oNode );
+				if( oBoneBinding ){
+					vecHead = oBoneBinding.getScaledOrigin();
+				}
+			}
+			
+			vecTail = vecHead.add( vecPrimaryAxis );
+			vecSecondAxis = this.getNodeSecondAxis( oNode );
+			
+			this.oHeadTailData[oNode.getName()] = [
+				( vecHead.x + vecOffset.x ) * nSkeletonScale,
+				( vecHead.y + vecOffset.y ) * nSkeletonScale,
+				( vecHead.z + vecOffset.z ) * nSkeletonScale,
+				( vecTail.x + vecOffset.x ) * nSkeletonScale,
+				( vecTail.y + vecOffset.y ) * nSkeletonScale,
+				( vecTail.z + vecOffset.z ) * nSkeletonScale,
+				vecSecondAxis.x,
+				vecSecondAxis.y,
+				vecSecondAxis.z
+				]
+				.concat( this.getBoneTransformValues( oNode ) );
+
+			this.oJointOrientation[oNode.getName()] = [
+				sRotOrder,
+				nXOrientation,
+				nYOrientation,
+				nZOrientation,
+				quatOrientation.w,
+				quatOrientation.x,
+				quatOrientation.y,
+				quatOrientation.z
+			]
+			
+		}
+	};
+	
+    /*********************************************************************/
+	// Number : Get the sign of the input number
+	DzBridgeFigure.prototype.getSign = function( nInput )
+	{
+		if( nInput >= 0 ){
+			return 1;
+		} else{
+			return -1;
+		}
+	};
+
+	/*********************************************************************/
+	// Number : Get the direction of the bone's look at axis. 1 or -1
+	DzBridgeFigure.prototype.getLookAtDirection = function( oNode )
+	{
+		var vecLookAtAxis = oNode.getEndPoint().subtract( oNode.getOrigin() );
+		
+		var nSign = 1;
+		if( oNode.getRotationOrder().firstAxis == 0 ){
+			nSign = this.getSign( vecLookAtAxis.x );
+		} else if( oNode.getRotationOrder().firstAxis == 1 ){
+			nSign = this.getSign( vecLookAtAxis.y );
+		} else if( oNode.getRotationOrder().firstAxis == 2 ){
+			nSign = this.getSign( vecLookAtAxis.z );
+		}
+		
+		return nSign;
+	};
+
+	/*********************************************************************/
+	// DzVec3 : Get the second axis of the node
+	DzBridgeFigure.prototype.getNodeSecondAxis = function( oNode )
+	{
+		var vecSecondAxis = new DzVec3( 0, 0, 0 );
+		var nSign = this.getLookAtDirection( oNode );
+		
+		if( oNode.getRotationOrder().secondAxis == 0 ){
+			vecSecondAxis.x = nSign;
+		} else if( oNode.getRotationOrder().secondAxis == 1 ){
+			vecSecondAxis.y = nSign;
+		} else if( oNode.getRotationOrder().secondAxis == 2 ){
+			vecSecondAxis.z = nSign;
+		}
+		
+		var quatOrientation = oNode.getOrientation();
+		vecSecondAxis = quatOrientation.multVec( vecSecondAxis );
+		
+		return vecSecondAxis;
+	};
+
+	/*********************************************************************/
+	// DzVec3 : Get the primary axis of the node
+	DzBridgeFigure.prototype.getNodePrimaryAxis = function( oNode, nBoneLength )
+	{
+		var vecFirstAxis = new DzVec3( 0, 0, 0 );
+		var nSign = this.getLookAtDirection( oNode );
+		var nNodeScale = oNode.getScaleControl().getValue();
+		
+		if( oNode.getRotationOrder().firstAxis == 0 ){
+			nXScale = oNode.getXScaleControl().getValue();
+			vecFirstAxis.x = nBoneLength * nSign * nXScale * nNodeScale;
+		} else if( oNode.getRotationOrder().firstAxis == 1 ){
+			nYScale = oNode.getYScaleControl().getValue();
+			vecFirstAxis.y = nBoneLength * nSign * nYScale * nNodeScale;
+		} else if( oNode.getRotationOrder().firstAxis == 2 ){
+			nZScale = oNode.getZScaleControl().getValue();
+			vecFirstAxis.z = nBoneLength * nSign * nZScale * nNodeScale;
+		}
+		
+		var quatOrientation = oNode.getOrientation();
+		vecFirstAxis = quatOrientation.multVec( vecFirstAxis );
+		
+		return vecFirstAxis;
+	};
+	/*********************************************************************/
+	// DzVec3 : Checks if there is an offset for Parent bone
+	// TODO: Check if any other bones are changed with FBMs
+	DzBridgeFigure.prototype.getBoneOffset = function( oNode )
+	{
+		var vecOffset = new DzVec3( 0, 0, 0)
+		for( var i = 0; i < oNode.getNumProperties(); i++ ){
+			var oProperty = oNode.getProperty( i );
+			var sPropName = oProperty.getName();
+			// Currently only checking YTranslate
+			if( sPropName == "YTranslate" ){
+				var nControllerCount = oProperty.getNumControllers();
+				for( var j = 0; j < nControllerCount; j += 1 ){
+					var oErcLink = new DzERCLink();
+					oErcLink = oProperty.getController( j );
+					var oControllerProp = oErcLink.getProperty();
+					sControllerName = this.getPropertyName(oControllerProp);
+					if( oControllerProp.getDoubleValue() != 0 ){
+						vecOffset.y += oErcLink.scalar * oControllerProp.getDoubleValue();
+					};
+					
+				};
+			};
+		};
+		return vecOffset
+	};
+	
+	/*********************************************************************/
+	// Float : Get length of the bone
+	DzBridgeFigure.prototype.getBoneNodeLength = function( oNode )
+	{
+		var vecAlongBone = oNode.getEndPoint().subtract( oNode.getOrigin() );
+		return vecAlongBone.length();
+	};
+
+    /*********************************************************************/
+	// Array<Number> : ...
+	// TODO : refactor - efficiency
+	DzBridgeFigure.prototype.getBoneTransformValues = function( oNode )
+	{
+		var aPosRotScale = [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
+		
+		var aAxis = [ "X", "Y", "Z" ];
+		var regxWhitespace = /\s+/g;
+		
+		var oProperty;
+		var oOwner;
+		var aNames;
+		var sAxis;
+		var sLabel;
+		var sName;
+		
+		var aProperties = this.getElementProperties( oNode, true, true );
+		for( var i = 0; i < aProperties.length; i += 1 ){
+			oProperty = aProperties[i];
+			oOwner = oProperty.getOwner();
+			if( !oOwner.inherits( "DzBone" ) ){
+				continue;
+			}
+			
+			for( var j = 0; j < aAxis.length; j += 1 ){
+				sAxis = aAxis[j];
+				aNames = [ sAxis + "Translate", sAxis + "Rotate" ];//Skip sAxis + "Scale"
+				for( var k = 0; k < aNames.length; k += 1 ){
+					sName = aNames[k];
+					if( oProperty.name == sName ){
+						if( !oProperty.isHidden() ){
+							sLabel = oProperty.getLabel().toLowerCase().replace( regxWhitespace, "" );
+							sName = sName.toLowerCase().replace( regxWhitespace, "" );
+							if( !sName.startsWith( sLabel ) ){
+								aPosRotScale[k*3+j] = 1;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return aPosRotScale;
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// No eyelashes on .OBJ
+	DzBridgeFigure.prototype.setEyelashVisibility = function( oBaseNode, bOnOff )
+	{
+		var oNode;
+		
+		var aHide = [ "Eyelashes", "Eye_1", "Eye_2", "_Shell" ];
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			if( oNode.getNodeParent() == oBaseNode ){
+				for( var j = 0; j < aHide.length; j += 1 ){ 
+					if( oNode.name.indexOf( aHide[j] ) > 0 ){
+						oNode.setVisible( bOnOff );
+					}
+				}
+			}
+		}
+	};
+	
+    /*********************************************************************/
+	// Boolean : ...
+	DzBridgeFigure.prototype.isGenital = function( oNode )
+	{
+		var aKeys = [ "genital", "malegen_" ];
+		if( this.getMeshType( oNode ) <= this.oMeshTypes.Other ){
+			return false;
+		}
+		
+		var sName = oNode.name.toLowerCase();
+		for( var i = 0; i < aKeys.length; i += 1 ){
+			if( sName.length == 2 && sName == aKeys[i]
+			|| sName.length > 2 && sName.indexOf( aKeys[i] ) >= 0 ){
+				if( oNode.findNodeChild( "hip", false ) ){
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// Mesh consisting of only edges and points cannot be FBX transferred.
+	// Even if it is invisible, it will be transferred, so there is no choice but to delete it.
+	// Note: destructive - modifies the scene contents
+	DzBridgeFigure.prototype.removeIncompatibleNodes = function( oBaseNode )
+	{
+		var oNode;
+		
+		var aNodes = oBaseNode.getNodeChildren( true );
+		var aDelNodes = new Array( aNodes.length );
+		
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( oNode.isRootNode() ){
+				continue;
+			}
+			
+			if( this.getMeshType( oNode ) == this.oMeshTypes.NoFacets ){
+				aDelNodes[i] = oNode;
+			}
+		}
+		
+		aDelNodes = aDelNodes.filter( Boolean );
+		
+		for( var i = 0; i < aDelNodes.length; i += 1 ){
+			oNode = aDelNodes[i];
+			oBaseNode.removeNodeChild( oNode, true );
+			oNode.setVisible( false );
+			if( oNode.getLabel().endsWith( "dForce" ) ){
+				Scene.removeNode( oNode );
+			}
+		}
+	};

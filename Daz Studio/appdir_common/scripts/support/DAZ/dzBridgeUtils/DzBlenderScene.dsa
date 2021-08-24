@@ -1,0 +1,235 @@
+/** 
+* Used to Create the type of Exports that exist in the scene
+* @class
+* @constructor
+*/
+function DzBridgeScene()
+{
+    this.init()
+};
+DzBridgeScene.prototype = Object.create( DzBridgeHelpers.prototype );
+DzBridgeScene.constructor = DzBridgeScene;
+DzBridgeScene.superclass = DzBridgeHelpers.prototype;
+
+	/*********************************************************************/
+    DzBridgeScene.prototype.init = function()
+    {
+        this.aFigures = [];
+        this.aEnvProp = [];
+		this.aToReparent = [];
+		this.aRemoved = [];
+		DzBridgeScene.superclass.init.call( this )
+    };
+
+    /*********************************************************************/
+	/** 
+	* Used to Create the type of Exports that exist in the scene
+	* @param {DzNode} oChildNode - the Child node of the RootNodes Found
+	* @return {String} Daz Content Type of given Node.
+	* @memberof DzBridgeScene
+	*/
+	DzBridgeScene.prototype.checkChildType = function( oChildNode )
+	{
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oChildNode );
+		return sContentType
+	};
+
+	/*********************************************************************/
+	// TODO: Add a UI to allow the user to choose how they wish to export every asset
+	// void : Check the node and what type of export it is. 
+	DzBridgeScene.prototype.findRootNodes = function( oNode )
+	{
+		var oParent;
+		var oOrgParent;
+		var aChildFigures = [];
+		var sClassName = oNode.className();
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
+		if( sClassName == "DzFigure" 
+		   || sClassName == "DzLegacyFigure" ){
+			if( sContentType == "Actor/Character" 
+				|| sContentType == "Actor" ){
+				this.aFigures.push( oNode );
+				return
+			}
+			else{
+				this.aEnvProp.push( oNode );
+				return
+			}
+		}
+		if( sClassName == "DzGroupNode" ){
+			aChildren = oNode.getNodeChildren( true );
+			for( var j = 0; j < aChildren.length; j += 1 ){
+				oChildNode = aChildren[j]
+				sContentType = this.checkChildType( oChildNode );
+				if( sContentType == "Actor/Character"
+					|| sContentType == "Actor" && oChildNode.findNodeChild( "hip", false )){
+					aChildFigures.push( oChildNode )
+				}
+			}
+			if( aChildFigures.length > 0 ){
+				for( var i = 0; i < aChildFigures.length; i++ ){
+					var oChild = aChildFigures[i]
+					this.aFigures.push( oChild )
+					oParent = oChild.getNodeParent();
+					if( oParent == oNode ){
+						oNode.removeNodeChild( oChild, inPlace = true );
+					}
+					else{
+						oOrgParent = oParent
+						while( oParent != null ){
+							oParent.removeNodeChild( oChild, inPlace = true );
+							oParent = oChild.getNodeParent();
+						}
+						oParent = oOrgParent;
+					}
+					var aParentChain = new Array ( oParent, oChild );
+					this.aToReparent.push( aParentChain );
+				}
+				return
+			}
+			else{
+				this.aEnvProp.push( oNode );
+				return
+			}
+
+		}
+		else{
+			this.aEnvProp.push( oNode );
+			return
+		} 
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	// TODO : refactor - use oNode.assetUri instead of oNode.name
+	DzBridgeScene.prototype.buildRootLists = function()
+	{
+		var oNode;
+		var aChildren;
+		
+		var aNodes = Scene.getNodeList();
+		for( var i = 0; i < aNodes.length; i += 1 ){
+			oNode = aNodes[i];
+			if( !oNode.isVisible() ){
+				if( oNode.isRootNode() ){ 
+					oNode.setVisible( true );
+					aChildren = oNode.getNodeChildren( true );
+					for( var j = 0; j < aChildren.length; j += 1 ){
+						aChildren[j].setVisible( true );
+					}
+				}
+				continue;
+			}
+	
+			if( oNode.isRootNode() && oNode.isVisible() ){
+				this.findRootNodes( oNode )
+			}
+		}
+	};
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeScene.prototype.reparentFigure = function( oFigure )
+	{
+		var aPair
+		for( var i = 0; i < this.aToReparent.length; i++ ){
+			aPair = this.aToReparent[i]
+			if( aPair[1] == oFigure ){
+				aPair[0].addNodeChild( oFigure, inPlace = true)
+				return
+			}
+		}
+	};
+
+	/*********************************************************************/
+	DzBridgeScene.prototype.getExportType = function()
+	{
+		if( this.aFigures.length == 0 && this.aEnvProp.length == 0 ){
+			return this.oExportTypes.None;
+		}
+		else if( this.aEnvProp.length == 0 ){
+			return this.oExportTypes.Figure;
+		}
+		else if( this.aFigures.length == 0 ){
+			return this.oExportTypes.EnvProp;
+		}
+		else{
+			return this.oExportTypes.Both;
+		}
+	};
+
+	/*********************************************************************/
+	DzBridgeScene.prototype.getExportName = function()
+	{
+		nExportType = this.getExportType();
+		if( nExportType == this.oExportTypes.Figure){
+			return this.sFig
+		}
+		else if( nExportType == this.oExportTypes.EnvProp ){
+			return this.sEnv
+		}
+		else{
+			return this.sFig
+		}
+	};
+
+	/*********************************************************************/
+	/** 
+	* Based on user's input we will remove the type of export they do not want.
+	* @param {Number} nExportType - The type recieve from DzBridgeDialog.promptExportType
+	*/
+	DzBridgeScene.prototype.overrideExportType = function( nExportType )
+	{	
+		if( nExportType == this.oExportTypes.Figure){
+			this.aRemoved = this.aEnvProp;
+			this.aEnvProp = [];
+			return
+		}
+		else if( nExportType == this.oExportTypes.Both ){
+			return
+		}
+		else{
+			this.aRemoved = this.aFigures;
+			this.aFigures = [];
+			return
+		}
+	};
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeScene.prototype.setHideRoot = function( bIsFigure, bYesNo )
+	{
+		if( bIsFigure ){
+			for( var i = 0; i < this.aFigures.length; i += 1 ){
+				this.setVisible( this.aFigures[i], bYesNo );
+			}
+			for( var i = 0; i < this.aRemoved.length; i += 1 ){
+				this.setVisible( this.aRemoved[i], bYesNo );
+			}
+		} else {
+			for( var i = 0; i < this.aEnvProp.length; i += 1 ){
+				this.setVisible( this.aEnvProp[i], bYesNo );
+			}
+			for( var i = 0; i < this.aRemoved.length; i += 1 ){
+				this.setVisible( this.aRemoved[i], bYesNo );
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	// void : ...
+	DzBridgeScene.prototype.setVisible = function( oBaseNode, bYesNo )
+	{
+		var aChildren = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			aChildren[i].setVisible( bYesNo );
+		}
+		
+		oBaseNode.setVisible( bYesNo );
+	};
+	
+
+
+

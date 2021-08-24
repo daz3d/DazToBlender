@@ -1,0 +1,407 @@
+
+/** 
+* Constructs the data of Morphs to be exported out of Daz.
+* @class
+* @constructor
+* @param {String} sDazBridgeName
+* @param {String} sScriptPath
+* @param {String} sRootPath
+* @param {String} sFbxPath
+*/
+function DzBridgeMorphs(sDazBridgeName, 
+                        sScriptPath,
+                        sRootPath,
+                        sFbxPath ) 
+{
+    this.init(sDazBridgeName, 
+              sScriptPath,
+              sRootPath,
+              sFbxPath ) 
+    
+};
+	/*********************************************************************/
+	DzBridgeMorphs.prototype = Object.create( DzBridgeHelpers.prototype )
+	DzBridgeMorphs.constructor = DzBridgeMorphs
+	DzBridgeMorphs.superclass = DzBridgeHelpers.prototype
+
+    /*********************************************************************/
+    DzBridgeMorphs.prototype.init = function( sDazBridgeName, 
+    sScriptPath,
+    sRootPath,
+    sFbxPath )
+    {
+        DzBridgeMorphs.superclass.init.call(  this,
+                                              sDazBridgeName, 
+                                              sScriptPath,
+                                              sRootPath,
+                                              sFbxPath);
+        this.sMorphPath = "";
+        this.oMorphLinks = {};
+        this.aMorphNamesToExport = [];
+        this.oSkeletonTransforms = {};
+    }
+    /*********************************************************************/
+	/** 
+	* String : Converts the user's chosen morphs to a string for the fbx exporter
+	* @param {Array<DzMorphInfo>} aExportableProperties - contains the info needed to export the morphs out of Daz
+	* @return {String} Contains all the active morphs on the node given with its property and value
+	*/
+	DzBridgeMorphs.prototype.getMorphString = function( aExportableProperties ) 
+	{
+        var sMorphString
+        if ( aExportableProperties.length == 0 ){
+			this.aMorphNamesToExport = [];
+            oFile = new DzFile( this.sMorphPath );
+			if( !oFile.open( DzFile.ReadOnly ) ){ 
+				print( String( "Unable to open \"%1\" for Reading." ).arg( this.sMorphPath ) );
+				return;
+			}
+			aMorphLines = oFile.readLines();
+			for( var i = 0; i < aMorphLines.length; i++ ){
+				sMorphLine = aMorphLines[i]
+				if( sMorphLine.indexOf( "\"Export\"" ) > 0 ){
+					aItems = sMorphLine.split(",");
+					sMorphName = aItems[0].replace("\"", "").replace("\"", "");
+					this.aMorphNamesToExport.push( sMorphName );
+				}	
+			}
+			sMorphString = this.aMorphNamesToExport.join( "\n1\n" );
+			sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
+			return sMorphString
+		};
+        this.aMorphNamesToExport = [];
+        sMorphString = "";
+        for( var i = 0; i < aExportableProperties.length; i++ ){
+            oMorphInfo = aExportableProperties[i]
+            this.aMorphNamesToExport.push( oMorphInfo.name );
+        }
+        sMorphString = this.aMorphNamesToExport.join("\n1\n");
+        sMorphString += "\n1\n.CTRLVS\n2\nAnything\n0";
+        this.sMorphRules = sMorphString
+    };
+	
+	/*********************************************************************/
+    /** 
+	* Object : Used to get the necessary data from the erclink for keyed data
+	* @param {DzERCLink} oErc - ERCLink to the Morph Property
+    * @param {Number} nIdx - index for key value of the ERCLink
+	* @return {Object} Contains the Keyed Data Rotation and Value
+	*/
+	DzBridgeMorphs.prototype.getErcKeyed = function( oErc, nIdx )
+	{
+		var oKey = {}
+		oKey["Rotate"] = oErc.getKey( nIdx );
+		oKey["Value"] = oErc.getKeyValue( nIdx );
+		
+		return oKey
+	};
+
+	/*********************************************************************/
+    /** 
+	* Array : Find if Morph Exists on Children, Useful for FACS as they have their own versions.
+	* @param {DzNode} oNode - the Root Node/ Character that owns the morph
+    * @param {Array<String>} aControlledMeshes - an Array for the morph that contains the current Objects that should have the morph.
+    * @param {String} sMorphName - Name of the Morph we are checking for
+	* @return {Array<String>} the Recieved Array with any objects found to contain the morph
+	*/
+	DzBridgeMorphs.prototype.checkForMorphOnChild = function( oNode, aControlledMeshes, sMorphName )
+	{
+		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+			oChildNode = oNode.getNodeChild( i );
+			if( oChildNode.inherits( "DzFigure" ) ){
+				oObject = oChildNode.getObject();
+				if( oObject ){
+					oModifer = oObject.findModifier( sMorphName );
+					if( oModifer ){
+						aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
+					}
+				}
+			}
+		}
+		return aControlledMeshes
+	};
+
+	/*********************************************************************/
+	/** 
+	* Array : Find if Bone exists on Children and if it is weighted to see if we should export the morph on it
+	* @param {DzNode} oNode - the Root Node/ Character that owns the morph
+    * @param {String} sBoneName - the bone from the skeleton of the Root Node
+    * @param {Array<String>} aControlledMeshes - an Array for the morph that contains the current Objects that should have the morph.
+	* @return {Array<String>} the Recieved Array with any objects found to contain the morph
+	*/
+	DzBridgeMorphs.prototype.checkForBoneInChild = function( oNode, sBoneName, aControlledMeshes )
+	{
+		for ( var i = 0; i < oNode.getNumNodeChildren(); i++ ){
+			oChildNode = oNode.getNodeChild( i );
+			if( oChildNode.inherits( "DzFigure" ) ){
+				oSkeleton = oChildNode.getSkeleton();
+				oChildBone = oSkeleton.findBone( sBoneName );
+				if( !oChildBone ){
+					continue
+				}
+				// get the weight map Handler
+				var oWeightMapHandler = oSkeleton.getWeightMapHandler();
+				var oSkinBinding= oWeightMapHandler.getSkinBinding();	
+				var oBoneBinding = oSkinBinding.findBoneBinding( sBoneName );    
+				if( oBoneBinding ){
+					aControlledMeshes.pushIfNotExists( oChildNode.name + ".Shape" );
+				}
+			}
+		}
+		return aControlledMeshes
+	};
+
+	/*********************************************************************/
+    /** 
+	* Array : Check if the bone is an alias on the morph property
+	* @param {DzNode} oNode - the Root Node/ Character that owns the morph
+    * @param {DzProperty} oMorphProperty - 
+    * @param {Array<String>} aControlledMeshes - an Array for the morph that contains the current Objects that should have the morph.
+	* @return {Array<String>} the Recieved Array with any objects found to contain the morph
+	*/
+	DzBridgeMorphs.prototype.checkForBoneInAlias = function( oNode, oMorphProperty, aControlledMeshes )
+	{
+		for( var l = 0; l < oMorphProperty.getNumAliases(); l++ ){
+			var oAlias = oMorphProperty.getAlias( l );
+			var oBone = oAlias.getOwner();
+			var sBoneName;
+			if( oBone.inherits("DzBone") ){
+				sBoneName = oBone.name;
+				aControlledMeshes = this.checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+			}
+		}
+		return aControlledMeshes
+	}
+	
+	/*********************************************************************/
+    /** 
+	* Array : Used as the main driver to find if we should include the morph on the child mesh.
+	* @param {DzNode} oNode - the Root Node/ Character that owns the morph
+    * @param {DzProperty} oMorphProperty - 
+	* @return {Array<String>} the Array with any objects found to contain the morph
+	*/
+	DzBridgeMorphs.prototype.checkMorphControlsChildren = function( oNode, oMorphProperty )
+	{
+		var aControlledMeshes = [];
+		var sBoneName;
+		var oOwnerNode;
+		var oSlaveControler;
+
+		aControlledMeshes.push(oNode.name + ".Shape");
+		var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+		for( var j = 0; j < nSlaveControllerCount; j ++ ){
+			oSlaveControler = oMorphProperty.getSlaveController( j );
+			oOwnerNode = oSlaveControler.getOwner();
+			if( oOwnerNode ){
+				oOwnerNode = oOwnerNode.getOwner();
+				if( oOwnerNode.inherits( "DzBone" ) ){
+					sBoneName = oOwnerNode.name;
+					nTempCtrlMeshes = aControlledMeshes.length
+					aControlledMeshes = this.checkForBoneInChild( oNode, sBoneName, aControlledMeshes );
+					if( aControlledMeshes.length > nTempCtrlMeshes ){
+						break
+					}
+				}	
+			}		
+		}
+		if( !sBoneName ){
+			aControlledMeshes = this.checkForBoneInAlias( oNode, oMorphProperty, aControlledMeshes )
+		}	
+		return aControlledMeshes
+	};
+
+	/*********************************************************************/
+    /** 
+	* Void : Load morph links to be exported out of the DTU
+    * @param {Array<DzMorphInfo>} aExportableProperties - contains the info needed to export the morphs out of Daz
+	* @param {DzNode} oNode - the Root Node/Character that owns the morph
+	*/
+	DzBridgeMorphs.prototype.loadMorphLinks = function( aExportableProperties, oNode )
+	{
+		// Load all the controller links on the properties
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			var nControllerCount = oMorphProperty.getNumControllers();
+			var aLinks = [];
+			var aSubLinks = []
+			var sBoneName;
+			var oOwnerNode;
+
+			// Keep Morphs that are control bone placement 
+			var aControlledMeshes = this.checkMorphControlsChildren( oNode, oMorphProperty );
+			// Keep for the Children Nodes' Morphs
+			var oMorphInfoNode = oMorphInfo.node;
+			if( oMorphInfoNode != undefined ){
+				if( oMorphInfoNode.name != oNode.name ){
+					aControlledMeshes.pushIfNotExists( oMorphInfo.node.name + ".Shape" );
+				}
+			}
+			// Check if Morph has its own version on Children
+			aControlledMeshes = this.checkForMorphOnChild( oNode, aControlledMeshes, oMorphInfo.name )
+			
+			for( var j = 0; j < nControllerCount; j += 1 ){
+				var oErcLink = new DzERCLink();
+				oErcLink = oMorphProperty.getController( j );
+				var oControllerProp = oErcLink.getProperty();
+				
+				var oLink = {
+					"Bone": "None",
+					"Property": this.getPropertyName( oControllerProp ),
+					"Type": oErcLink.type,
+					"Scalar": oErcLink.scalar,
+					"Addend": oErcLink.addend,
+					
+				};
+				if( oErcLink.type == 6 ){
+					oLink["Key Type"] = oErcLink.keyInterpolation;
+					var oKeys = {}
+					for( var k = 0; k < oErcLink.getNumKeyValues(); k++ ){
+						oKey = this.getErcKeyed( oErcLink, k );
+						
+						sKey = String( "%1 %2" ).arg( "Key" ).arg( k );
+						oKeys[sKey] = oKey;
+					}
+					oLink["Keys"] = oKeys;
+				}
+				oOwnerNode = oControllerProp.getOwner();
+				if( oOwnerNode.inherits( "DzBone" ) ){
+					sBoneName = oOwnerNode.name 
+					aControlledMeshes = this.checkForBoneInChild( oNode, sBoneName, aControlledMeshes )
+					oLink["Bone"] = oOwnerNode.name
+				}
+				aLinks.push( oLink );
+			}
+
+			var nSlaveControllerCount = oMorphProperty.getNumSlaveControllers();
+			for( var j = 0; j < nSlaveControllerCount; j ++ ){
+				var oErcLink = new DzERCLink()
+				oErcLink = oMorphProperty.getSlaveController( j );
+				oOwnerNode = oErcLink.getOwner();
+				if ( oOwnerNode ){
+					oBoneNode = oOwnerNode.getOwner();
+					if( oBoneNode.inherits( "DzBone" ) ){
+						var oLink = {
+							"Bone": oBoneNode.name,
+							"Property": oOwnerNode.name,
+							"Type": oErcLink.type,
+							"Scalar": oErcLink.scalar,
+							"Addend": oErcLink.addend,
+							
+						};
+						aSubLinks.push( oLink );
+					}	
+				}
+					
+			}
+
+			var oMorphLinkObj = {
+					"Label": oMorphProperty.getLabel(),
+					"Links": aLinks,
+					"SubLinks" : aSubLinks,
+					"Minimum": oMorphInfo.min,
+					"Maximum": oMorphInfo.max,
+					"isHidden": oMorphInfo.hidden,
+					"Path": oMorphInfo.path,
+					"Controlled Meshes" : aControlledMeshes
+			};
+			this.oMorphLinks[this.getPropertyName( oMorphProperty )] = oMorphLinkObj;
+		}
+		
+		return;		
+	};
+	/*********************************************************************/
+	/** 
+	* Void : disconnect the controllers from driving other morphs
+    * @param {Array<DzMorphInfo>} aExportableProperties - contains the info needed to export the morphs out of Daz
+	*/
+	DzBridgeMorphs.prototype.disconnectMorphs = function( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			
+			if( oMorphInfo.disable == true){
+				oMorphProperty.setValue( 0 );
+				oMorphProperty.setOverrideControllers( true );
+			}
+		}
+	}
+	
+	/*********************************************************************/
+	/** 
+	* Void : reconnect the controllers from driving other morphs
+    * @param {Array<DzMorphInfo>} aExportableProperties - contains the info needed to export the morphs out of Daz
+	*/
+	DzBridgeMorphs.prototype.reconnectMorphs = function( aExportableProperties )
+	{
+		for( var i = 0; i < aExportableProperties.length; i += 1 ){
+			var oMorphInfo = aExportableProperties[i]
+			var oMorphProperty = oMorphInfo.property;
+			if( oMorphInfo.disable ){
+				oMorphProperty.setOverrideControllers( false );
+				oMorphProperty.setValue( oMorphInfo.value );
+			}
+		}
+	}
+
+	/*********************************************************************/
+	/** 
+	* Void : Disconnect the skeleton so their arent driven by morphs
+	* @param {DzNode} oNode - the Root Node/Character 
+	*/
+	DzBridgeMorphs.prototype.disconnectSkeleton = function( oNode )
+	{
+		if( oNode.inherits( "DzSkeleton" ) ){
+			var oSkeleton = oNode.getSkeleton();
+			var aNodes = oSkeleton.getAllBones();
+			for( var i = 0; i < aNodes.length; i += 1 ){
+				var oBoneNode = aNodes[i]
+				oXpos = oBoneNode.getXPosControl();	
+				oXrot = oBoneNode.getXRotControl();
+				oYpos = oBoneNode.getYPosControl();
+				oYrot = oBoneNode.getYRotControl();
+				oZpos = oBoneNode.getZPosControl();
+				oZrot = oBoneNode.getZRotControl();
+				this.oSkeletonTransforms[oBoneNode.name] = {}
+				aProperties = [oXpos, oXrot, oYpos, oYrot, oZpos, oZrot];
+				for( var j = 0; j < aProperties.length; j += 1 ){
+					var oProperty = aProperties[j]
+					this.oSkeletonTransforms[oBoneNode.name][oProperty.assetId] = oProperty.getValue();
+					oProperty.setOverrideControllers( true );
+				}
+			}
+		}
+		
+	}
+	
+	/*********************************************************************/
+	/** 
+	* Void : Reconnect the skeleton so their arent driven by morphs
+	* @param {DzNode} oNode - the Root Node/Character 
+	*/
+	DzBridgeMorphs.prototype.reconnectSkeleton = function( oNode )
+	{
+		if( oNode.inherits( "DzSkeleton" ) ){
+			var oSkeleton = oNode.getSkeleton();
+			var aNodes = oSkeleton.getAllBones();
+			var oAssetMgr = App.getAssetMgr();
+			for( var i = 0; i < aNodes.length; i += 1 ){
+				var oBoneNode = aNodes[i]
+				oXpos = oBoneNode.getXPosControl();	
+				oXrot = oBoneNode.getXRotControl();
+				oYpos = oBoneNode.getYPosControl();
+				oYrot = oBoneNode.getYRotControl();
+				oZpos = oBoneNode.getZPosControl();
+				oZrot = oBoneNode.getZRotControl();
+
+				aProperties = [oXpos, oXrot, oYpos, oYrot, oZpos, oZrot,];
+				for( var j = 0; j < aProperties.length; j += 1 ){
+					var oProperty = aProperties[j]
+					oProperty.setOverrideControllers( false );
+					oProperty.setValue( this.oSkeletonTransforms[oBoneNode.name][oProperty.assetId] );
+				}
+			}
+		}
+	};
+	/*********************************************************************/

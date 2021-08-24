@@ -1,0 +1,205 @@
+/** 
+* Used to weight non-skinned geometry on Nodes with a skeleton
+* @class
+* @constructor
+* @param {String} sRootPath
+*/
+function DzBridgeAutoWeight( sRootPath )
+{
+    this.init( sRootPath )
+};
+DzBridgeAutoWeight.prototype = Object.create( DzBridgeHelpers.prototype )
+DzBridgeAutoWeight.constructor = DzBridgeAutoWeight
+DzBridgeAutoWeight.superclass = DzBridgeHelpers.prototype
+
+    /*********************************************************************/
+    DzBridgeAutoWeight.prototype.init = function( sRootPath )
+    {
+        DzBridgeAutoWeight.superclass.init.call(this, "", "", sRootPath, "")
+    }
+	/*********************************************************************/
+    /** 
+	* Object : Helper function to deselect everything in the scene.
+	* @param {DzNode} oNode - a given figure that has morphs
+	* @return {DzNode} Contains all the active morphs on the node given with its property and value
+	* @memberof DzBridgeAutoWeight
+	*/
+    DzBridgeAutoWeight.prototype.getActiveMorphs = function( oNode )
+    {
+        var oObject;
+        var oShape;
+        var oProperty;
+        var oPresentation;
+        var sPropName;
+        var sPropLabel;
+        oActiveMorphs = {}
+        oObject = oNode.getObject();
+        if( oObject != null ){
+            oShape = oObject.getCurrentShape();
+        }
+        for( var i = 0; i < oNode.getNumProperties(); i++ ){
+            oProperty = oNode.getProperty( i );
+            sPropName = oProperty.getName();
+            sPropLabel = oProperty.getLabel();
+            oPresentation = oProperty.getPresentation();
+            if (oPresentation != undefined){
+				if( oProperty.getValue() > 0 ){
+					oActiveMorphs[sPropName] = {}
+					oActiveMorphs[sPropName].prop = oProperty
+					oActiveMorphs[sPropName].value = oProperty.getValue()						
+				}
+            }
+        }
+        if( oObject ){
+            for( var i = 0; i < oObject.getNumModifiers(); i++ ){
+                oModifer = oObject.getModifier( i );
+                sModName = oModifer.getName();
+                sModLabel = oModifer.getLabel();
+                if(oModifer.inherits( "DzMorph" ) ){
+                    for( var j = 0; j < oModifer.getNumProperties(); j++ ){
+                        oProperty = oModifer.getProperty( j );
+                        sPropName = oProperty.getName();
+                        sPropLabel = oProperty.getLabel();
+                        oPresentation = oProperty.getPresentation();
+                        if (oPresentation != undefined){
+							if( oProperty.getValue() > 0 ){
+								oActiveMorphs[sModName] = {}
+								oActiveMorphs[sModName].prop = oProperty
+								oActiveMorphs[sModName].value = oProperty.getValue()
+							}
+                        }
+                    }
+                }
+            }
+        }
+		return oActiveMorphs
+    };
+
+	/*********************************************************************/
+	/** 
+	* Void: Applys the default values of the morphs that are active
+	* @param {Object} oActiveMorphs - All the active morphs found on the specific figure.
+	* @memberof DzBridgeAutoWeight
+	*/   
+	DzBridgeAutoWeight.prototype.zeroOutMorphs = function( oActiveMorphs ){
+		aSkippedMorphs = ["XScale", "YScale", "ZScale", "Scale"]
+		for( sMorph in oActiveMorphs ){
+			oProperty = oActiveMorphs[sMorph].prop
+			if( aSkippedMorphs.indexOf( sMorph ) > -1 ){
+				oProperty.setValue( 1 )
+			}
+			else{
+				oProperty.setValue( 0 )
+			}
+			
+		}
+	};
+
+	/*********************************************************************/
+    /** 
+	* Void: Applys the user input values of the morphs that are active
+	* @param {Object} oActiveMorphs - All the active morphs found on the specific figure.
+	* @memberof DzBridgeAutoWeight
+	*/  
+	DzBridgeAutoWeight.prototype.returnMorphValues = function( oActiveMorphs ){
+		for( sMorph in oActiveMorphs ){
+			oProperty = oActiveMorphs[sMorph].prop
+			nValue = oActiveMorphs[sMorph].value
+			oProperty.setValue( nValue )
+		}
+	};
+
+	/*********************************************************************/
+	/** 
+	*  Bool : Runs Transfer Utility and return if it was a success or not.
+	* @param {DzNode} oSource - Source Figure used to get the weights
+	* @param {DzNode} oTarget - Target prop which is unweighted and needs auto-weights
+	* @return {Boolean} Returns if the DzTransferUtility was a success or not
+	* @memberof DzBridgeAutoWeight
+	*/ 
+	DzBridgeAutoWeight.prototype.transferWeights = function( oSource, oTarget )
+	{
+		oTransfer = new DzTransferUtility();
+		oTransfer.assetType = DzTransferUtility.NodeAsset;
+		oTransfer.setSource( oSource );
+		oTransfer.setSourceBaseCurrent( true );
+		oTransfer.setTarget( oTarget );
+		oTransfer.setAdjustTargetBase( false );
+		oTransfer.setTransferBinding( true );
+		oTransfer.setFitToFigure( true );
+		oTransfer.setParentToFigure( true );
+		return oTransfer.doTransfer()
+	};
+
+	/*********************************************************************/
+	/** 
+	* Void: Cycles through the Children of the Parents and does loop for Auto-Weights
+	* @param {DzNode} oSource - Source Figure used to get the weights
+	* @param {DzNode} oParent - Parent Figure used for find the Children
+	* @memberof DzBridgeAutoWeight
+	*/
+	DzBridgeAutoWeight.prototype.findingPropsToWeight = function( oSource, oParent )
+	{
+		aRecursiveChildren = oParent.getNodeChildren( true );
+		for( var j = 0; j < aRecursiveChildren.length; j += 1 ){
+			var oChild = aRecursiveChildren[j];
+			var oObject = oChild.getObject();
+			if( !oChild.isInScene() ){
+				continue
+			}
+			if( oChild.inherits( "DzFigure" ) && oChild.getNodeParent().inherits( "DzBone" ) ){
+				oSource.removeNodeChild( oChild, inPlace = true );
+			}
+			if( !( oChild.inherits( "DzSkeleton" ) ) 
+				&& !( oChild.inherits( "DzBone" ) )
+				&& oObject != null ){
+				this.deSelectAll()
+				oChild.select( true )
+				sName = oChild.name
+				sLabel = oChild.getLabel()
+
+				var sPath = this.sRootPath +  "temp" + "/"  +  "temp" + sName + "/";
+				this.exportOBJ( oChild, "temp", sName, true )
+				var oAbvChild = oChild.getNodeParent()
+				if( oAbvChild.inherits("DzRigidFollowNode")){
+					Scene.removeNode( oChild );
+					Scene.removeNode( oAbvChild );
+				}
+				else{
+					Scene.removeNode( oChild );
+				}
+				this.importOBJ( "temp", sName )
+				oImport = Scene.findNodeByLabel( "temp" );
+				oImport.setName( sName )
+				oImport.setLabel( sLabel )
+				var bSuccess = this.transferWeights( oSource, oImport );
+				this.cleanUpTempFiles( sPath );
+			}
+		}
+	};
+	
+	/*********************************************************************/
+	/** 
+	* Void: Used to run the Auto-Weight logic, This is Destructive and break user's scene
+	* @param {DzNode} oBaseNode - The Top Node of the hierachy
+	* @memberof DzBridgeAutoWeight
+	*/
+	DzBridgeAutoWeight.prototype.weightObjects = function( oBaseNode )
+	{
+		var aChildren = oBaseNode.getNodeChildren( false );
+		oActiveMorphs = this.getActiveMorphs( oBaseNode )
+		this.zeroOutMorphs( oActiveMorphs )
+		this.deSelectAll()
+		this.addTempDirectory()
+		for( var i = 0; i < aChildren.length; i += 1 ){
+			oNode = aChildren[i];
+			if( oNode.inherits("DzBone") ){
+				this.findingPropsToWeight( oBaseNode, oNode )
+			}
+			else{
+				this.findingPropsToWeight( oNode, oNode )
+			}
+		}
+		this.returnMorphValues( oActiveMorphs )
+	};
+    

@@ -7,6 +7,13 @@
 * License: [Apache License, Version 2.0][LicenseURL] - see ``LICENSE`` and ``NOTICE`` for more information.
 * Offical Release: [Daz to Blender Bridge][ProductURL]
 * Official Project: [github.com/daz3d/DazToBlender][RepositoryURL]
+# Daz To Blender
+---
+* Owner: [Daz 3D][OwnerURL] � [@Daz3d][TwitterURL]
+* License: [Apache License, Version 2.0][LicenseURL] - see ``LICENSE`` and ``NOTICE`` for more information.
+* Offical Release: [Daz to Blender Bridge][ProductURL]
+* Official Project: [github.com/daz3d/DazToBlender][RepositoryURL]
+
 
 ## Prerequisites
 ---

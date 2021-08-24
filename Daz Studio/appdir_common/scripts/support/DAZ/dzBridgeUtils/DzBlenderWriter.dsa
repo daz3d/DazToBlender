@@ -1,0 +1,310 @@
+/** 
+* Handles the changes of Subdivision for Daz and the new Export Method.
+* @class
+* @constructor
+* @param {DzBridgeExporter} oBridgeExporter
+* @param {DzBridgeFigure} oBridgeFigure
+* @param {DzBridgePose} oBridgePose
+* @param {DzBridgeDialog} oBridgeDialog
+*/
+function DzBridgeWriter( oBridgeExporter, oBridgeFigure, oBridgePose, oBridgeDialog )
+{
+    this.init( oBridgeExporter, oBridgeFigure, oBridgePose, oBridgeDialog )
+};
+	/**********************************************************************/
+	DzBridgeWriter.prototype = Object.create( DzBridgeHelpers.prototype )
+	DzBridgeWriter.constructor = DzBridgeWriter
+	DzBridgeWriter.superclass = DzBridgeHelpers.prototype
+
+    /**********************************************************************/
+    DzBridgeWriter.prototype.init = function( oBridgeExporter, oBridgeFigure, oBridgePose, oBridgeDialog )
+    {   
+        this.bCollectTextures = true;
+		this.oBridgeExporter = oBridgeExporter;
+		this.oBridgeFigure = oBridgeFigure;
+		this.aSubdivisionCombos = oBridgeDialog.aSubdivisionCombos;
+		this.bCollectTextures = oBridgeDialog.bCollectTextures;
+		this.oBridgePose = oBridgePose;
+		DzBridgeWriter.superclass.init.call( this );
+    };
+    /**********************************************************************/
+	
+	// String : Configure DTU File
+	DzBridgeWriter.prototype.writeConfiguration = function( oNode, sFilename, sDir )
+	{
+		var sDtufilename = sFilename + ".dtu";
+		var oDtufile = new DzFile( sDtufilename );
+		var oDtuJson = {};
+		var aChildren = oNode.getNodeChildren( true );
+		var nChildren = aChildren.length;
+		var oAssetMgr = App.getAssetMgr();
+		var sContentType = oAssetMgr.getTypeForNode( oNode );
+		oDtuJson["Asset Name"] = oNode.getLabel();
+		oDtuJson["Import Name"] = oNode.getName();
+		oDtuJson["Asset Type"] = sContentType;
+		oDtuJson["FBX File"] = this.oBridgeExporter.sFbxPath;
+		oDtuJson["Materials"] = [];
+		oDtuJson["Subdivisions"] = []
+		oDtuJson["MorphLinks"] = this.oBridgeExporter.oMorphLinks;
+		oDtuJson["MorphNames"] = this.oBridgeExporter.aMorphNamesToExport;
+		oDtuJson["SkeletonData"] = this.oBridgeFigure.oSkeletonData;
+		oDtuJson["HeadTailData"] = this.oBridgeFigure.oHeadTailData;
+		oDtuJson["JointOrientation"] = this.oBridgeFigure.oJointOrientation;
+		oDtuJson["LimitData"] = this.oBridgeFigure.oLimitsData;
+		oDtuJson["PoseData"] = this.oBridgePose.oPoseData;
+		
+		aFigureMats = this.writeMaterials( oNode, sDir );
+		oDtuJson["Materials"].push( aFigureMats );
+		if (nChildren > 0){
+			for ( var i = 0; i < nChildren; i++ ){
+				var oChild = aChildren[ i ]; 
+				aChildMats = this.writeMaterials( oChild, sDir );
+				if ( aChildMats != false ){
+					oDtuJson["Materials"].push( aChildMats );
+				}		
+			}
+		};
+		function combineMaterials( key, value ){
+			var aNewMaterials = [];
+			if( key == "Materials" ){
+				for (var i=0; i < value.length; i++ ){
+					var aNodeMats = value[i];
+					for (var k=0; k < aNodeMats.length; k++ ){
+						var aMat = aNodeMats[k];
+						aNewMaterials.push( aMat );
+					}
+				}
+				return aNewMaterials;
+			}
+			else{
+				return value;
+			}
+		};
+		
+		oDtuJson["Subdivisions"] = this.writeSubdivisions()
+
+		oDtufile.open( DzFile.WriteOnly );
+		oDtufile.write( JSON.stringify( oDtuJson, combineMaterials, 4 ) );
+		oDtufile.close();
+		return sDtufilename
+	};
+
+	/*********************************************************************/
+	// String : Writes Texture and returns new Path
+	DzBridgeWriter.prototype.writeTexture = function( sDir, sOrigTexture, sAssetName )
+	{
+		var oOrigFile = new DzFile( sOrigTexture );
+		var sOrgImageName = oOrigFile.fileName();
+		var sAbsPath = oOrigFile.absolutePath();
+		var aSplitPath = sAbsPath.split("Textures");
+		var sPath = String( "%1/%2/%3" ).arg( sDir ).arg( "Textures" ).arg( sAssetName );
+		
+		var oDir = new DzDir( "" );
+		oDir.setPath( sPath );
+		if( !oDir.exists() ){
+			oDir.mkpath( sPath );
+		}
+		oDir.setPath( this.oBridgeExporter.sRootPath )
+
+		var sNewTexture = String( "%1/%2" ).arg( sPath ).arg( sOrgImageName )
+		var sRelTexture = oDir.relativeFilePath( sNewTexture )
+		oOrigFile.copy( sNewTexture )
+		return sRelTexture
+		
+	};
+
+	/*********************************************************************/	
+	// Array : ...
+	// Note: Cycle through all the Materials on a Node and return an array
+	DzBridgeWriter.prototype.writeMaterials = function( oNode, sDir )
+	{	
+		var oObj = oNode.getObject();
+		if( oObj != null ){
+			var oShape = oObj.getCurrentShape();
+			var aMaterials = [];
+			if( oShape ){
+				for( var k = 0; k < oShape.getNumMaterials(); k++ ){
+					var oMaterialInfo = {};
+					var aProperties = [];
+					var oMat = oShape.getMaterial( k );
+					if( oMat ){	
+						oMaterialInfo["Asset Name"] = oNode.name;
+						oMaterialInfo["Asset Label"] = oNode.getLabel();
+						oMaterialInfo["Material Name"] = oMat.getName();
+						oMaterialInfo["Material Type"] = oMat.getMaterialName();
+						
+						// Get presentation and set material info
+						var oPresentation = oNode.getPresentation();
+						if( oPresentation != undefined ){
+							var sPresentationType = oPresentation.type
+							oMaterialInfo["Value"]  = sPresentationType;
+						}
+						else{
+							oMaterialInfo["Value"]  = "Unknown";
+						}
+
+						// Load all the porperties info
+						for( var i = 0; i < oMat.getNumProperties(); i++ ){
+							var oProperty = oMat.getProperty( i );
+							var oPropertyInfo = {};
+							
+							oPropertyInfo["Name"] = oProperty.getName();
+							oPropertyInfo["Label"] = oProperty.getLabel();
+							
+							var bImageProperty = oProperty.inherits( "DzImageProperty" );
+							var bColorProperty = oProperty.inherits( "DzColorProperty" );
+							var bNumericProperty = oProperty.inherits( "DzNumericProperty" );
+							var sTextureName = "";
+
+							if( bImageProperty ){
+								if(oProperty.getValue()){
+									sTextureName = oProperty.getValue().getFilename();	
+								}
+								oPropertyInfo["Value"] = oMat.getDiffuseColor().name;
+								oPropertyInfo["Data Type"] = "Texture";
+								oPropertyInfo["Texture"] = sTextureName;
+							}
+							else if( bColorProperty ){
+								if ( oProperty.getMapValue() ){
+									sTextureName = oProperty.getMapValue().getFilename();
+								}
+								oPropertyInfo["Value"] = oProperty.getColorValue().name;
+								oPropertyInfo["Data Type"] = "Color";
+								oPropertyInfo["Texture"] = sTextureName;
+							}
+							else if( bNumericProperty ){
+								if ( oProperty.getMapValue() ){
+									sTextureName = oProperty.getMapValue().getFilename();
+								}
+								oPropertyInfo["Value"] = oProperty.getValue();
+								oPropertyInfo["Data Type"] = "Double";
+								oPropertyInfo["Texture"] = sTextureName;
+							}
+							aProperties.push( oPropertyInfo );
+							if ( sTextureName != "" ){
+								if( this.bCollectTextures ){
+									sNewTexture = this.writeTexture( sDir, 
+																sTextureName,
+																oMaterialInfo["Asset Label"]);
+									oPropertyInfo["Texture"] = sNewTexture;
+								}
+							}
+						}
+						oMaterialInfo["Properties"] = aProperties;
+						
+						aMaterials.push( oMaterialInfo );
+					}
+				}						
+			}
+			return aMaterials
+		}
+		else{
+			return false
+		}
+	};
+
+    /*********************************************************************/
+	/** 
+	* Void: Writes out the subdivision levels that were chosen by the user to the DTU
+	* @return {Array<Object>} Contains the data that will be added to the DTU
+	*/
+    DzBridgeWriter.prototype.writeSubdivisions = function()
+    {
+        aSubdivisions = []
+        for( var i = 0; i < this.aSubdivisionCombos.length; i++ ){
+            var oSubdivInfo = this.aSubdivisionCombos[i]
+            var sNodeName = oSubdivInfo.name + ".Shape";
+            var nTargetValue = oSubdivInfo.currentItem;
+            oSubdivision = {
+                "Version" : 1,
+                "Asset Name" : sNodeName,
+                "Value" : nTargetValue
+                }
+            aSubdivisions.push( oSubdivision )
+        }
+        return aSubdivisions
+    };
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeWriter.prototype.writeParentingData = function( oBaseNode, sFilename )
+	{
+		var aData = [];
+		
+		var oChildLvl1;
+		
+		var aChildrenLvl2;
+		var oChildLvl2;
+		
+		var aChildrenLvl3;
+		var oChildLvl3;
+		
+		var nMeshType;
+		
+		var aChildrenLvl1 = oBaseNode.getNodeChildren( true );
+		for( var i = 0; i < aChildrenLvl1.length; i += 1 ){
+			oChildLvl1 = aChildrenLvl1[i];
+			
+			aChildrenLvl2 = oChildLvl1.getNodeChildren( false );
+			for( var j = 0; j < aChildrenLvl2.length; j += 1 ){
+				oChildLvl2 = aChildrenLvl2[j];
+				
+				nMeshType = this.getMeshType( oChildLvl2 );
+				//It's mesh(child)
+				if( nMeshType > this.oMeshTypes.Other ){
+					//Parent is bone
+					if( this.getMeshType( oChildLvl1 ) == this.oMeshTypes.Bone ){
+						aData = aData.concat( this.getParentingData( oChildLvl1, oChildLvl2 ) );
+					}
+				//It's Empty(Child)
+				} else if( nMeshType == this.oMeshTypes.Empty ){
+					aChildrenLvl3 = oChildLvl2.getNodeChildren( false );
+					for( var k = 0; k < aChildrenLvl3.length; k += 1 ){
+						oChildLvl3 = aChildrenLvl3[k];
+						//Grandchild is mesh.
+						//child's parent, parent child (sibling?) is bone
+						if( this.getMeshType( oChildLvl3 ) > this.oMeshTypes.Other ){
+							if( this.getMeshType( oChildLvl1.getNodeParent() ) == this.oMeshTypes.Bone ){
+								aData = aData.concat( this.getParentingData( oChildLvl1, oChildLvl3 ) );
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if( aData.length > 0 ){
+			this.writeDataFile( aData, sFilename );
+		}
+	};
+
+	/*********************************************************************/
+	// void : ...
+	// TODO : return success, error code, and/or message
+	DzBridgeWriter.prototype.writeDataFile = function( aData, sFilename )
+	{
+		var oFile = new DzFile( sFilename );
+		if( !oFile.open( DzFile.WriteOnly ) ){
+			print( String( "Unable to open \"%1\" for writing." ).arg( sFilename ) );
+			
+			return;
+		}
+		if (aData.constructor === Array){
+			for( var i = 0; i < aData.length; i += 1 ){
+				oFile.writeLine( aData[i] );
+			}
+		}	
+		else{
+			oFile.write( aData )
+		}
+			
+
+		oFile.close();
+	};
+
+	/*********************************************************************/
+	// void : ...
+	DzBridgeWriter.prototype.writeMemo = function( sFilename, sMemo )
+	{
+		this.writeDataFile( [ sMemo ], sFilename );
+	};
