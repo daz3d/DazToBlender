@@ -1,7 +1,7 @@
 # Blender Plugin UI Breakdown
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUI.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUI.png"></div>
 Here we will do a quick overview of everything you'll see in the UI in Blender.
 
 <p>&nbsp;</p>
@@ -13,7 +13,7 @@ Here we will do a quick overview of everything you'll see in the UI in Blender.
 ## Daz To Blender
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIDazToBlender.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIDazToBlender.png"></div>
  This section is what you'll be using the most. This is where you will go to bring your exports into Blender.
 
 <p>&nbsp;</p>
@@ -32,7 +32,7 @@ Here we will do a quick overview of everything you'll see in the UI in Blender.
 ## Rigging Tools
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIRiggingTools.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIRiggingTools.png"></div>
 Here you will find tools to display hidden IK controls and adapt the Daz skeleton to work with Rigify
 
 *(These dropdown options will only appear if you've imported a rigged model into blender.)*
@@ -71,7 +71,7 @@ Here you will find tools to display hidden IK controls and adapt the Daz skeleto
 ## Pose Tools
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIPoseTools.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIPoseTools.png"></div>
 Here you can import pose presets saved in your Daz library.
 
 <p>&nbsp;</p>
@@ -95,7 +95,7 @@ Here you can import pose presets saved in your Daz library.
 ## Morphs List
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIMorphsList.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIMorphsList.png"></div>
 This where any imported morphs will be stored for each character.
 
 <p>&nbsp;</p>
@@ -112,7 +112,7 @@ This where any imported morphs will be stored for each character.
 ## Import Settings
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIImportSettings.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIImportSettings.png"></div>
 define indivual options when importing from Daz Studio and define where your imports or being stored.
 
 <p>&nbsp;</p>
@@ -146,7 +146,7 @@ define indivual options when importing from Daz Studio and define where your imp
 ## Commands List
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUICommandsList.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUICommandsList.png"></div>
 
 *(The Commands List is a deprecated feature and will be removed or restructured.)*
 
@@ -162,7 +162,7 @@ define indivual options when importing from Daz Studio and define where your imp
 ## Utilities
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIUtilities.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIUtilities.png"></div>
 Extra workflow tools. 
 
 <p>&nbsp;</p>
@@ -184,7 +184,7 @@ Extra workflow tools.
 ## More Info
 ---
 
-<div style="float: right;"><img src="./../img/BlenderSideBarUIMoreInfo.PNG"></div>
+<div style="float: right;"><img src="./../img/BlenderSideBarUIMoreInfo.png"></div>
 This section contains useful links to additional tools and docuements.
 
 <p>&nbsp;</p>
