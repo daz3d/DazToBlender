@@ -4,13 +4,13 @@
     1. Go to https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-2
     2. Download any option for your operating system just make sure to remember which **VS20XX** you chose.
 
-    ![](./../img/fbxSdkOptions.png ':size=400')
+    ![](img/fbxSdkOptions.png ':size=400')
 
-    3. Go to your install path, *\Autodesk\FBX\FBX SDK\2020.2\lib\vs20XX\x64\release*
-    4. Grab the libfbxsdk.dll and copy it to *\DAZ 3D\DAZStudio4\scripts\support\DAZ\dzBridgeUtils*
+    1. Go to your install path, *\Autodesk\FBX\FBX SDK\2020.2\lib\vs20XX\x64\release*
+    2. Grab the libfbxsdk.dll and copy it to *\DAZ 3D\DAZStudio4\scripts\support\DAZ\dzBridgeUtils*
 2. Now go to export out of Daz and follow these steps:  
       
-    ![](./../img/dazUISubdivExplain.png ':size=200')
+    ![](img/dazUISubdivExplain.png ':size=200')
 
    1. Choose Level of Detail you wish to export.    
    2. Select the checkbox for Advanced Settings.
