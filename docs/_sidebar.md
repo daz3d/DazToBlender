@@ -4,6 +4,7 @@
     - [Getting Started](./)
     - [Exporting Morphs out of Daz](./beginner/morphExport.md)
     - [Manual Install](./beginner/manualInstall.md)
+    - [Exploring The UI](./beginner/exploringTheUi.md)
 - [Advanced](./advanced/advanced.md)
     - [Higher Subdivisions](./advanced/subdivsions.md)
     - [Dealing with Buttons](./advanced/autoWeights.md)
