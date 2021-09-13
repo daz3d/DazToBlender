@@ -1,10 +1,10 @@
 <!-- docs/_sidebar.md -->
 
-- [Beginners]()
+- [Beginners](/beginner/beginner.md)
     - [Getting Started](/)
     - [Exporting Morphs out of Daz](/beginner/morphExport.md)
-    - [Manual Install](/beginner/manualInstall.md)
     - [Exploring The UI](/beginner/exploringTheUi.md)
+    - [Manual Install](/beginner/manualInstall.md)
 - [Advanced](/advanced/advanced.md)
     - [Higher Subdivisions](/advanced/subdivisions.md)
     - [Dealing with Buttons](/advanced/autoWeights.md)
