@@ -1,3 +1,3 @@
-[Higher Subdivisions](./advanced/subdivsions.md)
+[Higher Subdivisions](/advanced/subdivisions.md)
 
-[Dealing with Buttons](./advanced/autoWeights.md)
+[Dealing with Buttons](/advanced/autoWeights.md)
