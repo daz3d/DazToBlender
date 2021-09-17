@@ -7,21 +7,18 @@
  2. Under Assets you will find the newest build. It will be named DazToBlender_VersionNumber
  3. Download the zip and Inside you will find the Contents needed to use the bridge. Follow the steps below on how to install the bridge.  
 
- ## How to Install to Blender
+ ## How To Manually Install This Bridge Version For Blender
  ---
-  Within the "\Blender" folder, there will be a folder and a zip folder.
-  1. To install the Bridge as a zip.
-     1. Launch Blender.
-     2. Go Edit -> Preferences -> Add-ons.
-     3. Press Install at the Top-Right of the Preferences Window. 
-     4. Locate your Zip File labeled "DTB.zip" and press Install Add-on
-  2. To install the Bridge as a folder.
-     1. Go to your AppData Folder. Easiest Method is to press start and type %appdata%
-     2. Go to Appdata --> Roaming --> Blender Foundation --> Blender 
-     3. Choose the version you wish to Install to For example 2.92
-     4. Go to ...\Blender\2.92\scripts\addons\ and Copy the DTB folder to this location.
+  1. Navigate within the unzipped DazToBlender-#.#.# folder to: 
+   1. DazToBlender-#.#.#\Blender\appdata_common\Blender Foundation\Blender\BLENDER_VERSION\scripts\addons --> and copy the DTB folder located here
+     
+  2. . Navigate to where the Blender application folder is installed within your system files
+    1. (by default, this should be similar to: "C:\Program Files\Blender Foundation\#.##") and navigate to --> scripts --> addons
+     1. Choose the version you wish to Install to For example, 2.92
+     2. Go to ...\Blender\#.##\scripts\addons\ and Copy the DTB folder to this location.
+1. Drag & drop, or paste the DTB folder (copied earlier, from step 1) in the addons folder here
 
-  ### How to Install to Daz Studio
+  ### How To Manually Install This Bridge Version For Daz Studio
   ---
    There are three different methods to install the Daz Side of the Bridge and we will go through all three of them.
    1. Installing the Bridge with the RunOnce Script.
