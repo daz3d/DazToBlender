@@ -331,10 +331,24 @@ def bone_disp2(idx,pose_bone,amt_bone,flg_hide):
     if amt_bone is None or pose_bone is None:
         return
     isAnim = Global.isExistsAnimation()
+    
+    # blender 3.0 break change:
+    # Replaced PoseBone.custom_shape_scale scalar with a PoseBone.custom_shape_scale_xyz vector
     if flg_hide and isAnim:
-        pose_bone.custom_shape_scale = scales[idx] * 0.4
+        if bpy.app.version >= (3, 0, 0):
+            pose_bone.custom_shape_scale_xyz.x = scales[idx] * 0.4
+            pose_bone.custom_shape_scale_xyz.y = scales[idx] * 0.4
+            pose_bone.custom_shape_scale_xyz.z = scales[idx] * 0.4
+        else:
+            pose_bone.custom_shape_scale = scales[idx] * 0.4
     else:
-        pose_bone.custom_shape_scale = scales[idx]
+        if bpy.app.version >= (3, 0, 0):
+            pose_bone.custom_shape_scale_xyz.x = scales[idx]
+            pose_bone.custom_shape_scale_xyz.y = scales[idx]
+            pose_bone.custom_shape_scale_xyz.z = scales[idx]
+        else:
+            pose_bone.custom_shape_scale = scales[idx]
+        
     if isAnim:
         amt_bone.hide = False
     else:
