@@ -354,6 +354,9 @@ class Posing:
                 self.pose_data_dict[bone]["Position"] = [0, 0, 0]
             if "Rotation" not in self.pose_data_dict[bone].keys():
                 self.pose_data_dict[bone]["Rotation"] = [0, 0, 0]
+            # handle scale
+            # if "Scale" not in self.pose_data_dict[bone].keys():
+            #     self.pose_data_dict[bone]["Scale"] = [1, 1, 1, 1]
             if axis == "x":
                 index = 0
             if axis == "y":
@@ -364,7 +367,23 @@ class Posing:
                 trans_key = "Position"
             if transform == "rotation":
                 trans_key = "Rotation"
-            self.pose_data_dict[bone][trans_key][index] = value
+            # there are scale data in .duf pose file, so we should record them.
+            # scale data has 4 index: general, x, y, z
+            # if transform == "scale":
+            #     trans_key = "Scale"
+            #     if axis == "general":
+            #         index = 0
+            #     if axis == "x":
+            #         index = 1
+            #     if axis == "y":
+            #         index = 2
+            #     if axis == "z":
+            #         index = 3
+
+            # we need to ignore scale data here
+            # otherwise all rotation data will be covered by scale data into [1,1,1]
+            if transform != "scale":
+                self.pose_data_dict[bone][trans_key][index] = value
 
         self.make_pose()
 
