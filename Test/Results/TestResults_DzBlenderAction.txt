@@ -1,0 +1,16 @@
+======= UnitTest Details =======
+
+
+======= UnitTest Summary =======
+
+Class Name: DzBlenderAction
+Number of UnitTests: 6
+
+[ 0] _DzBridgeBlenderAction:.[ PASSED ]
+[ 1] executeAction:..........[ PASSED ]
+[ 2] createUI:...............[ PASSED ]
+[ 3] writeConfiguration:.....[ PASSED ]
+[ 4] setExportOptions:.......[ PASSED ]
+[ 5] readGuiRootFolder:......[ PASSED ]
+
+End of Report.
