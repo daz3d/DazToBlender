@@ -18,18 +18,24 @@ class CBones:
         if len(self.shapes) > 12:
             self.shapes = self.shapes[0:12]
         Global.setOpsMode("EDIT")
+        print("makeRootBone")
         self.makeRootBone()
         Global.deselect()
+        print("makeMesh")
         self.makeMesh()
         Global.setOpsMode('OBJECT')
         Global.deselect()
+        print("makeCustomBone")
         self.makeCustomBone()
         Global.setOpsMode('OBJECT')
         Global.deselect()
+        print("makeIkBone")
         self.makeIkBone()
         Global.setOpsMode('OBJECT')
         Global.deselect()
+        print("makeEyes")
         self.makeEyes()
+        print("to_other_collection_byname")
         Util.to_other_collection_byname(self.shapes,'DAZ_HIDE',Util.cur_col_name())
 
     def makeMesh(self):
@@ -194,7 +200,8 @@ class CBones:
                 bai = 3
             self.limit_location(pbone)
             pbone.custom_shape = ob
-            pbone.custom_shape_scale = bai
+            #blender 3.0 break change
+            Versions.handle_custom_shape_scale(pbone, bai)
             pbone.lock_location=[False]*3
             pbone.lock_rotation = [False]*3
         for lb in self.limb_bones:
@@ -217,7 +224,8 @@ class CBones:
             elif lb.lower().endswith("toe") and len(lb)==4:
                 ob = Util.allobjs()['octagon2']
             pbone.custom_shape = ob
-            pbone.custom_shape_scale = bai
+            #blender 3.0 break change
+            Versions.handle_custom_shape_scale(pbone, bai)
         for lb in limb4:
             if ( lb in bpy.context.object.pose.bones) == False:
                 continue
@@ -226,55 +234,69 @@ class CBones:
             pbone = bpy.context.object.pose.bones[lb]
             pbone.custom_shape = ob
             bai = 0.5
-            pbone.custom_shape_scale = bai
+            #blender 3.0 break change
+            Versions.handle_custom_shape_scale(pbone, bai)
         for pb in Global.getAmtr().pose.bones:
             plower = pb.name.lower()
             if plower == 'lowerfacerig' or plower=='upperfacerig':
                 Global.getAmtr().data.bones.get(pb.name).hide = True
             if 'twist' in plower:
                 pb.custom_shape = Util.allobjs()['pentagon']
-                pb.custom_shape_scale = 0.3
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 0.3)
             elif 'collar' in plower:
                 pb.custom_shape = Util.allobjs().get('rect1')
-                pb.custom_shape_scale = 0.15
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 0.15)
             elif plower == 'hip':
                 pb.custom_shape = Util.allobjs().get('square1')
-                pb.custom_shape_scale = 1.1
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 1.1)
             elif 'breast' in plower:
                 pb.custom_shape = Util.allobjs()['octagon1']
-                pb.custom_shape_scale = 0.2
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 0.2)
             elif 'areola' in plower:
                 pb.custom_shape = Util.allobjs()['octagon1']
                 pb.use_custom_shape_bone_size = False
-                pb.custom_shape_scale = 2
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 2)
             elif 'nipple' in plower:
                 pb.custom_shape = Util.allobjs()['pentagon']
                 pb.use_custom_shape_bone_size = False
-                pb.custom_shape_scale = 1.1
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 1.1)
             elif pb.custom_shape is None:
                 if ('shin' in plower) or ('bend' in plower):
                     pb.custom_shape = Util.allobjs().get('octagon1')
                     if 'shin' in plower:
-                        pb.custom_shape_scale = 0.15
+                        #blender 3.0 break change
+                        Versions.handle_custom_shape_scale(pb, 0.15)
                     else:
-                        pb.custom_shape_scale = 0.3
+                        #blender 3.0 break change
+                        Versions.handle_custom_shape_scale(pb, 0.3)
                 else:
                     pb.custom_shape = Util.allobjs().get('maru2')
                     if 'pectoral' in plower:
                         pb.custom_shape = Util.allobjs().get('maru1')
-                        pb.custom_shape_scale = 0.2
+                        #blender 3.0 break change
+                        Versions.handle_custom_shape_scale(pb, 0.2)
                     elif 'neck' in plower:
                         pb.custom_shape = Util.allobjs().get('maru3')
-                        pb.custom_shape_scale = 0.5
+                        #blender 3.0 break change
+                        Versions.handle_custom_shape_scale(pb, 0.5)
                     else:
                         if 'abdomen' in plower:
-                            pb.custom_shape_scale = 0.5
+                            #blender 3.0 break change
+                            Versions.handle_custom_shape_scale(pb, 0.5)
                         else:
-                            pb.custom_shape_scale = 0.3
+                            #blender 3.0 break change
+                            Versions.handle_custom_shape_scale(pb, 0.3)
             if pb.custom_shape is not None:
                 pb.use_custom_shape_bone_size = True
-                if pb.custom_shape_scale == 1.0:
-                    pb.custom_shape_scale = 0.3
+                if Versions.check_custom_shape_scale_equal(pb, 1.0):
+                    #blender 3.0 break change
+                    Versions.handle_custom_shape_scale(pb, 0.3)
             pb.custom_shape_transform = pb
     def find_bone_roop(self,bone_group,rootbone):
         for b in bone_group:
@@ -323,7 +345,8 @@ class CBones:
             if (shape in Util.allobjs()):
                 ob = Util.allobjs()[shape]
                 bpy.context.object.pose.bones[ctl_bones[i]].custom_shape = ob
-                bpy.context.object.pose.bones[ctl_bones[i]].custom_shape_scale = bai
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(bpy.context.object.pose.bones[ctl_bones[i]], bai)
             bpy.context.object.data.bones[ctl_bones[i]].show_wire = True
         ik_bones = ['rHand', 'lHand', 'rShin', 'lShin']
         ikshapes = ['hako', 'hako', 'rfoot_cube', 'lfoot_cube']
@@ -334,7 +357,8 @@ class CBones:
             if i > 1:
                 bai = hikfikpole[0]
             bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape = Util.allobjs().get(ikshapes[i])
-            bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape_scale = bai
+            #blender 3.0 break change
+            Versions.handle_custom_shape_scale(bpy.context.object.pose.bones[ik_bones[i] + "_IK"], bai)
             bpy.context.object.pose.bones[ik_bones[i] + "_IK"].rotation_mode = 'XYZ'
             bpy.context.object.data.bones[ik_bones[i] + "_IK"].show_wire = True
             if i<2:
@@ -396,13 +420,15 @@ class CBones:
             pb.rotation_mode = 'XYZ'
             if nidx==0:
                 pb.custom_shape = Util.allobjs().get('rhombus1')
-                pb.custom_shape_scale = 0.6
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 0.6)
             else:
                 if Global.getIsMan():
                     pb.custom_shape = Util.allobjs().get('maru3')
                 else:
                     pb.custom_shape = Util.allobjs().get('maru3')
-                pb.custom_shape_scale = 3
+                #blender 3.0 break change
+                Versions.handle_custom_shape_scale(pb, 3)
             for i in range(3):
                 if i==1:
                     pb.lock_location[i] = True

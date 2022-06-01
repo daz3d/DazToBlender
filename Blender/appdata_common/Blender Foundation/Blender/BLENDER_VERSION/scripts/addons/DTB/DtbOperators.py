@@ -149,36 +149,34 @@ class RENAME_MORPHS(bpy.types.Operator):
                 key.name = key.name.replace(string_to_replace, "")
         self.report({"INFO"}, "Morphs renamed!")
 
-        return {"FINISHED"} 
+        return {"FINISHED"}
 
 
 # End of Utlity Classes
 # Start of Import Classes
-class IMP_OT_FBX(bpy.types.Operator):
-    """Supports Genesis 3, 8, and 8.1"""
+class ImportFigureHelper:
+    sFbxPath = ""
+    dtu = None
 
-    bl_idname = "import.fbx"
-    bl_label = "Import New Genesis Figure"
-    bl_options = {"REGISTER", "UNDO"}
-    root = Global.getRootPath()
-
-    def invoke(self, context, event):
-        if bpy.data.is_dirty:
-            return context.window_manager.invoke_confirm(self, event)
-        return self.execute(context)
+    def __init__(self):
+        return
 
     def finish_obj(self):
         Versions.reverse_language()
         Versions.pivot_active_element_and_center_and_trnormal()
-        Global.setRenderSetting(True)
+        # do not change render setting, user has their own way
+        # Global.setRenderSetting(True)
+
 
     def layGround(self):
+        if Global.bNonInteractiveMode != 0:
+            return
         Util.deleteEmptyDazCollection()
         if bpy.context.window_manager.update_scn_settings:
             bpy.context.preferences.inputs.use_mouse_depth_navigate = True
-            bpy.context.scene.render.engine = "CYCLES"
+            # bpy.context.scene.render.engine = "CYCLES"
             bpy.context.space_data.shading.type = "SOLID"
-            bpy.context.space_data.shading.color_type = "OBJECT"
+            bpy.context.space_data.shading.color_type = "MATERIAL"
             bpy.context.space_data.shading.show_shadows = False
         Versions.set_english()
         bco = bpy.context.object
@@ -186,10 +184,25 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.setOpsMode("OBJECT")
         bpy.ops.view3d.snap_cursor_to_center()
 
+
     def pbar(self, v, wm):
+        if Global.bNonInteractiveMode != 0:
+            return
         wm.progress_update(v)
 
-    def import_one(self, fbx_adr):
+
+    def import_one(self, fbx_adr, arg_oDtu=None):
+        print("DEBUG: DtbOperators.py, import_one(): fbx_adr=" + str(fbx_adr) + ", arg_oDtu=" + str(arg_oDtu))
+
+        bReturnValue = False
+
+        if arg_oDtu is not None:
+            print("DEBUG: import_one(): arg_oDtu is not None")
+            self.dtu = arg_oDtu
+        else:
+            print("DEBUG: import_one(): arg_oDtu is None")
+            self.dtu = DataBase.DtuLoader()
+
         Versions.active_object_none()
         Util.decideCurrentCollection("FIG")
         wm = bpy.context.window_manager
@@ -198,141 +211,299 @@ class IMP_OT_FBX(bpy.types.Operator):
         DtbIKBones.ik_access_ban = True
 
         # Instant of classes
-        dtu = DataBase.DtuLoader()
-        drb = DazRigBlend.DazRigBlend(dtu)
-        dtb_shaders = DtbMaterial.DtbShaders(dtu)
-        anim = Animations.Animations(dtu)
-        pose = Poses.Posing(dtu)
-        dsk = DtbShapeKeys.DtbShapeKeys(False, dtu)
+        print("DEBUG: line 214, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
+        drb = DazRigBlend.DazRigBlend(self.dtu)
+        print("DEBUG: line 216, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
+        dtb_shaders = DtbMaterial.DtbShaders(self.dtu)
+        print("DEBUG: line 218, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
+        anim = Animations.Animations(self.dtu)
+        print("DEBUG: line 220, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
+        pose = Poses.Posing(self.dtu)
+        print("DEBUG: line 222, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
+        dsk = DtbShapeKeys.DtbShapeKeys(False, self.dtu)
+        print("DEBUG: line 224, self.dtu.skeleton_data_dict=" + str(self.dtu.skeleton_data_dict))
         db = DataBase.DB()
         self.pbar(5, wm)
 
         anim.reset_total_key_count()
         drb.convert_file(filepath=fbx_adr)
         self.pbar(10, wm)
-        Global.load_dtu(dtu)
+        Global.load_dtu(self.dtu)
         Global.store_variables()
+        print("=================================================================")
+        print("_BODY=" + str(Global._BODY))
+        print("_AMTR=" + str(Global._AMTR))
+        print("=================================================================")
         self.pbar(15, wm)
 
+        if Global.getAmtr() is None:
+            print("DEBUG: DtbOperators.py: line 240")
+            print("_BODY=" + str(Global._BODY))
+            print("_AMTR=" + str(Global._AMTR))
+
+        if Global.getBody() is None:
+            print("DEBUG: DtbOperators.py: line 245")
+            print("_BODY=" + str(Global._BODY))
+            print("_AMTR=" + str(Global._AMTR))
+
         if Global.getAmtr() is not None and Global.getBody() is not None:
+            if 1:
+                print("DEBUG: DtbOperators.py: line 242")
+                # Set Custom Properties
+                Global.getAmtr()["Asset Name"] = self.dtu.get_asset_name()
+                Global.getAmtr()["Collection"] = Util.cur_col_name()
+                reload_dropdowns("choose_daz_figure")
+                pose.add_skeleton_data()
 
-            # Set Custom Properties
-            Global.getAmtr()["Asset Name"] = dtu.get_asset_name()
-            Global.getAmtr()["Collection"] = Util.cur_col_name()
-            reload_dropdowns("choose_daz_figure")
-            pose.add_skeleton_data()
+                Global.deselect()  # deselect all the objects
+                print("clear pose")
+                pose.clear_pose()  # Select Armature and clear transform
 
-            Global.deselect()  # deselect all the objects
-            pose.clear_pose()  # Select Armature and clear transform
-            drb.mub_ary_A()  # Find and read FIG.dat file
-            drb.orthopedy_empty()  # On "EMPTY" type objects
-            self.pbar(18, wm)
-            drb.orthopedy_everything()  # clear transform, clear and reapply parent, CMs -> METERS
-            Global.deselect()
-            self.pbar(20, wm)
-            drb.set_bone_head_tail()  # Sets head and tail positions for all the bones
-            Global.deselect()
-            self.pbar(25, wm)
-            drb.bone_limit_modify()
-            if anim.has_keyframe(Global.getAmtr()):
-                anim.clean_animations()
-            Global.deselect()
-            self.pbar(30, wm)
-            drb.unwrapuv()
-            Global.deselect()
+                drb.mub_ary_A()  # Find and read FIG.dat file
+                drb.orthopedy_empty()  # On "EMPTY" type objects
 
-            # materials
-            dtb_shaders.make_dct()
-            dtb_shaders.load_shader_nodes()
-            body = Global.getBody()
-            dtb_shaders.setup_materials(body)
-            self.pbar(35, wm)
+                self.pbar(18, wm)
+                drb.orthopedy_everything()  # clear transform, clear and reapply parent, CMs -> METERS
+                Global.deselect()
+                self.pbar(20, wm)
+                drb.set_bone_head_tail()  # Sets head and tail positions for all the bones
+                Global.deselect()
+                self.pbar(25, wm)
+#                drb.bone_limit_modify()
+                if anim.has_keyframe(Global.getAmtr()):
+                    anim.clean_animations()
+                Global.deselect()
+                self.pbar(30, wm)
+                drb.unwrapuv()
+                Global.deselect()
 
-            fig_objs_names = [Global.get_Body_name()]
-            for obj in Util.myacobjs():
-                # Skip for any of the following cases
-                case1 = not Global.isRiggedObject(obj)
-                case2 = obj.name in fig_objs_names
-                if case1 or case2:
-                    continue
-                dtb_shaders.setup_materials(obj)
+                # now, we have every material, and a Principled BSDF node in every material
+                # Also, basic color map is linked to Principled BSDF node, a Normal/Map node is created
+                # notice, blender use "Normal Map" node, so this "Normal/Map" node, is actually wrong.
 
-            self.pbar(40, wm)
+                # materials
+                dtb_shaders.make_dct()
 
-            if Global.getIsGen():
-                drb.fixGeniWeight(db)
-            Global.deselect()
-            self.pbar(45, wm)
-            Global.setOpsMode("OBJECT")
-            Global.deselect()
+                if Global.bUsePrincipledMat:
+                    body = Global.getBody()
+                    dtb_shaders.setup_principled_materials(body)
+                    self.pbar(35, wm)
 
-            # Shape keys
-            dsk.make_drivers()
-            Global.deselect()
-            self.pbar(60, wm)
+                    fig_objs_names = [Global.get_Body_name()]
+                    for obj in Util.myacobjs():
+                        # Skip for any of the following cases
+                        case1 = not Global.isRiggedObject(obj)
+                        case2 = obj.name in fig_objs_names
+                        if case1 or case2:
+                            continue
+                        dtb_shaders.setup_principled_materials(obj)
+                else:
+                    # try not touch the old code
+                    dtb_shaders.load_shader_nodes()
 
-            drb.makeRoot()
-            drb.makePole()
-            drb.makeIK()
-            drb.pbone_limit()
-            drb.mub_ary_Z()
-            self.pbar(70, wm)
-            Global.setOpsMode("OBJECT")
-            try:
-                CustomBones.CBones()
-            except:
-                print("Custom bones currently not supported for this character")
-            self.pbar(80, wm)
-            Global.setOpsMode("OBJECT")
-            Global.deselect()
-            self.pbar(90, wm)
-            amt = Global.getAmtr()
-            for bname in DtbIKBones.bone_name:
-                if bname in amt.pose.bones.keys():
-                    bone = amt.pose.bones[bname]
-                    for bc in bone.constraints:
-                        if bc.name == bname + "_IK":
-                            pbik = amt.pose.bones.get(bname + "_IK")
-                            amt.pose.bones[bname].constraints[
-                                bname + "_IK"
-                            ].influence = 0
-            drb.makeBRotationCut(
-                db
-            )  # lock movements around axes with zeroed limits for each bone
-            Global.deselect()
+                    body = Global.getBody()
+                    dtb_shaders.setup_materials(body)
+                    self.pbar(35, wm)
 
-            # materials
-            DtbMaterial.forbitMinus()
-            self.pbar(95, wm)
-            Global.deselect()
+                    fig_objs_names = [Global.get_Body_name()]
+                    for obj in Util.myacobjs():
+                        # Skip for any of the following cases
+                        case1 = not Global.isRiggedObject(obj)
+                        case2 = obj.name in fig_objs_names
+                        if case1 or case2:
+                            continue
+                        dtb_shaders.setup_materials(obj)
 
-            Versions.active_object(Global.getAmtr())
-            Global.setOpsMode("POSE")
-            drb.mub_ary_Z()
-            Global.setOpsMode("OBJECT")
-            drb.finishjob()
-            Global.setOpsMode("OBJECT")
-            if not anim.has_keyframe(Global.getAmtr()):
-                pose.update_scale()
-                pose.restore_pose()  # Run when no animation exists.
-            DtbIKBones.bone_disp(-1, True)
-            DtbIKBones.set_scene_settings(anim.total_key_count)
-            self.pbar(100, wm)
-            DtbIKBones.ik_access_ban = False
-            if bpy.context.window_manager.morph_prefix:
-                bpy.ops.rename.morphs('EXEC_DEFAULT')
-            self.report({"INFO"}, "Success")
+                self.pbar(40, wm)
+
+                if Global.getIsGen():
+                    drb.fixGeniWeight(db)
+                Global.deselect()
+                self.pbar(45, wm)
+                Global.setOpsMode("OBJECT")
+                Global.deselect()
+
+                # Shape keys
+                # Only if user want drivers
+                if 0:
+#                if Global.bUseDrivers:
+                    print("Use Drivers")
+                    dsk.make_drivers()
+                    Global.deselect()
+                    self.pbar(60, wm)
+
+                # only use custom bone when user checked
+#                if 0:
+                if Global.bUseCustomBone:
+                    drb.makeRoot()
+                    drb.makePole()
+                    drb.makeIK()
+                    drb.pbone_limit()
+                    drb.mub_ary_Z()
+                    self.pbar(70, wm)
+                    Global.setOpsMode("OBJECT")
+                    try:
+                        CustomBones.CBones()
+                    except Exception as e:
+                        print(str(e))
+                        print("Custom bones currently not supported for this character")
+                    self.pbar(80, wm)
+                    Global.setOpsMode("OBJECT")
+                    Global.deselect()
+                    self.pbar(90, wm)
+                    amt = Global.getAmtr()
+                    for bname in DtbIKBones.bone_name:
+                        if bname in amt.pose.bones.keys():
+                            bone = amt.pose.bones[bname]
+                            for bc in bone.constraints:
+                                if bc.name == bname + "_IK":
+                                    pbik = amt.pose.bones.get(bname + "_IK")
+                                    amt.pose.bones[bname].constraints[
+                                        bname + "_IK"
+                                    ].influence = 0
+                    # drb.makeBRotationCut(
+                    #     db
+                    # )  # lock movements around axes with zeroed limits for each bone
+                    Global.deselect()
+
+            if 1:
+
+                # materials
+                # handle Principled BSDF mat
+                # This offical bridge do not use Principled BSDF node, so forbitMinus() actually does nothing
+                # DtbMaterial.forbitMinus()
+                self.pbar(95, wm)
+                Global.deselect()
+
+                Versions.active_object(Global.getAmtr())
+                Global.setOpsMode("POSE")
+                drb.mub_ary_Z()
+                Global.setOpsMode("OBJECT")
+                drb.finishjob()
+                Global.setOpsMode("OBJECT")
+                if not anim.has_keyframe(Global.getAmtr()):
+                    print("restore pose")
+#                    pose.update_scale()
+#                    pose.restore_pose()  # Run when no animation exists.
+#                DtbIKBones.bone_disp(-1, True)
+                DtbIKBones.set_scene_settings(anim.total_key_count)
+                self.pbar(100, wm)
+                DtbIKBones.ik_access_ban = False
+                if bpy.context.window_manager.morph_prefix:
+                    bpy.ops.rename.morphs('EXEC_DEFAULT')
+
+            if 1:
+
+                # Join Eyelashes into body
+#                if 0:
+                if Global.bJoinEyelashToBody:
+                    Global.deselect()
+                    # get mesh name
+                    findEyelash = False
+                    for ob in bpy.context.scene.objects:
+                        if ob.type == 'MESH':
+                            findEyelash = Global.find_EYLS(ob)
+
+                    print("findEyelash: " + str(findEyelash))
+                    eyelashName = Global.get_Eyls_name()
+                    bodyName = Global.get_Body_name()
+                    print("eyelashName: " + eyelashName)
+                    print("bodyName: " + bodyName)
+
+                    if eyelashName != "" and bodyName != "":
+                        # select meshes
+                        bpy.data.objects[bodyName].select_set(True)
+                        bpy.data.objects[eyelashName].select_set(True)
+                        # set eyelash mesh as active
+                        # 2.8 new api
+                        bpy.context.view_layer.objects.active = bpy.data.objects[bodyName]
+                        # join into one
+                        bpy.ops.object.join()
+                        # Clear eyelash's name
+                        Global.setEylsIsJoined()
+                    Global.deselect()
+
+                # Remove shapekeys from cloth and hair
+#                if 0:
+                if Global.bRemoveShapeKeyFromWearable:
+                    bodyName = Global.get_Body_name()
+                    if bodyName != "":
+                        # remove shape keys from other mesh
+                        # but ignore eyelashes
+                        for obj in Util.myacobjs():
+                            if obj.type == "MESH" and obj.name != bodyName and (not "Eyelashes" in obj.name):
+                                obj.shape_key_clear()
+
+                #turn off limits
+#                if 0:
+                if not Global.bRotationLimit:
+                    print("turn off limits")
+                    amt = Global.getAmtr()
+                    for bone in amt.pose.bones:
+                        if Global.bLimitOnTwist:
+                            # pass Twist bone
+                            if "Twist" in bone.name:
+                                continue
+                        for con in bone.constraints:
+                            con.mute = True
+
+#                self.report({"INFO"}, "Success")
+                bReturnValue = True
+
         else:
+            print("DEBUG: DtbOperators.py: line 435")
             self.show_error()
+            bReturnValue = False
+
+        # Remove shapekey drivers
+#        if 0:
+        if Global.bRemoveShapeKeyDrivers:
+            bodyName = Global.get_Body_name()
+            if bodyName != "":
+                body = bpy.data.objects[bodyName]
+                #get shape key
+                for sk in body.data.shape_keys.key_blocks.values():
+                    sk.driver_remove("value")
 
         wm.progress_end()
         DtbIKBones.ik_access_ban = False
+        return bReturnValue
+
+
+    def show_error(self):
+        Global.setOpsMode("OBJECT")
+#        for b in Util.myacobjs():
+#            bpy.data.objects.remove(b)
+        filepath = os.path.join(os.path.dirname(__file__), "img", "Error.fbx")
+        if os.path.exists(filepath):
+            bpy.ops.import_scene.fbx(filepath=filepath)
+            if Global.bNonInteractiveMode == 0:
+                bpy.context.space_data.shading.type = "SOLID"
+                bpy.context.space_data.shading.color_type = "TEXTURE"
+#        for b in Util.myacobjs():
+#            for i in range(3):
+#                b.scale[i] = 0.01
+
+
+class IMP_OT_FBX(bpy.types.Operator):
+    """Supports Genesis 3, 8, and 8.1"""
+
+    bl_idname = "import_dtu.fbx"
+    bl_label = "Import New Genesis Figure"
+    bl_options = {"REGISTER", "UNDO"}
+    root = Global.getRootPath()
+    helper = ImportFigureHelper()
+
+    def invoke(self, context, event):
+        if bpy.data.is_dirty:
+            return context.window_manager.invoke_confirm(self, event)
+        return self.execute(context)
 
     def execute(self, context):
         if self.root == "":
             self.report({"ERROR"}, "Appropriate FBX does not exist!")
             return {"FINISHED"}
-        self.layGround()
+        self.helper.layGround()
         current_dir = os.getcwd()
         if bpy.context.window_manager.use_custom_path:
             self.root = Global.get_custom_path()
@@ -346,27 +517,15 @@ class IMP_OT_FBX(bpy.types.Operator):
                 break
             Global.setHomeTown(os.path.join(self.root, "FIG/FIG" + str(i)))
             Global.load_asset_name()
-            self.import_one(fbx_adr)
-        self.finish_obj()
+            if self.helper.import_one(fbx_adr) == True:
+                self.report({"INFO"}, "Success")
+        self.helper.finish_obj()
         os.chdir(current_dir)
         return {"FINISHED"}
 
-    def show_error(self):
-        Global.setOpsMode("OBJECT")
-        for b in Util.myacobjs():
-            bpy.data.objects.remove(b)
-        filepath = os.path.join(os.path.dirname(__file__), "img", "Error.fbx")
-        if os.path.exists(filepath):
-            bpy.ops.import_scene.fbx(filepath=filepath)
-            bpy.context.space_data.shading.type = "SOLID"
-            bpy.context.space_data.shading.color_type = "TEXTURE"
-        for b in Util.myacobjs():
-            for i in range(3):
-                b.scale[i] = 0.01
-
 
 class IMP_OT_ENV(bpy.types.Operator):
-    bl_idname = "import.env"
+    bl_idname = "import_dtu.env"
     bl_label = "Import New Env/Prop"
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
@@ -387,26 +546,111 @@ class IMP_OT_ENV(bpy.types.Operator):
 class IMP_OT_POSE(bpy.types.Operator, ImportHelper):
     """Imports Daz Poses (.DUF)"""
 
-    bl_idname = "import.pose"
+    bl_idname = "import_dtu.pose"
     bl_label = "Import Pose"
     bl_options = {"REGISTER", "UNDO"}
     filename_ext: StringProperty(
         default=".duf",
         options={"HIDDEN"},
     )
-    filter_glob: StringProperty(
-        default="*.duf",
-        options={"HIDDEN"},
-    )
+    # filter_glob: StringProperty(
+    #     default="*.duf",
+    #     options={"HIDDEN"},
+    # )
     files: bpy.props.CollectionProperty(type=DtbProperties.ImportFilesCollection)
 
     def execute(self, context):
+        # check file ext
+        duf_ext = ".duf"
+        tip_ext = ".tip"
+        root, ext = os.path.splitext(self.filepath)
+        if ext != duf_ext:
+            if root.endswith(duf_ext):
+                self.filepath = root
+            else:
+                # remove tip
+                if root.endswith(tip_ext):
+                    root = root[:-4]
+
+                self.filepath = root + ".duf"
+
         # Instance Classes
         pose = Poses.Posing("POSE")
         dirname = os.path.dirname(self.filepath)
+        print("dirname: " + dirname)
         for i, f in enumerate(self.files, 1):
+            # check file name
+            root, ext = os.path.splitext(f.name)
+            if ext != duf_ext:
+                if root.endswith(duf_ext):
+                    f.name = root
+                else:
+                    # remove tip
+                    if root.endswith(tip_ext):
+                        root = root[:-4]
+
+                    f.name = root + ".duf"
+
             durPath = os.path.join(dirname, f.name)
+
+            #check file exist
+            if not os.path.isfile(durPath):
+                print("path is not a file: " + durPath)
+                return {"FINISHED"}
+
             pose.pose_copy(durPath)
+        return {"FINISHED"}
+
+
+
+# Start of Animation Classes
+class IMP_OT_ANIM(bpy.types.Operator, ImportHelper):
+    """Imports Daz Poses as animation (.DUF)"""
+
+    bl_idname = "import_dtu.animation"
+    bl_label = "Import Animation"
+    bl_options = {"REGISTER", "UNDO"}
+    filename_ext: StringProperty(
+        default=".duf",
+        options={"HIDDEN"},
+    )
+    # filter_glob: StringProperty(
+    #     default="*.duf",
+    #     options={"HIDDEN"},
+    # )
+    files: bpy.props.CollectionProperty(type=DtbProperties.ImportFilesCollection)
+
+    def execute(self, context):
+        # check file ext
+        duf_ext = ".duf"
+        root, ext = os.path.splitext(self.filepath)
+        if ext != duf_ext:
+            if root.endswith(duf_ext):
+                self.filepath = root
+            else:
+                self.filepath = root + ".duf"
+
+        # Instance Classes
+        pose = Poses.Posing("POSE")
+        dirname = os.path.dirname(self.filepath)
+        print("dirname: " + dirname)
+        for i, f in enumerate(self.files, 1):
+            # check file name
+            root, ext = os.path.splitext(f.name)
+            if ext != duf_ext:
+                if root.endswith(duf_ext):
+                    f.name = root
+                else:
+                    f.name = root + ".duf"
+
+            durPath = os.path.join(dirname, f.name)
+
+            #check file exist
+            if not os.path.isfile(durPath):
+                print("path is not a file: " + durPath)
+                return {"FINISHED"}
+
+            pose.animation_copy(durPath)
         return {"FINISHED"}
 
 
@@ -416,6 +660,8 @@ class CLEAR_OT_Pose(bpy.types.Operator):
     bl_label = "Clear All Pose"
 
     def clear_pose(self):
+        Global.setOpsMode("POSE")
+
         if bpy.context.object is None:
             return
         if (
@@ -430,8 +676,11 @@ class CLEAR_OT_Pose(bpy.types.Operator):
         ):
             for pb in Global.getRgfy().pose.bones:
                 pb.bone.select = True
+
         bpy.ops.pose.transforms_clear()
         bpy.ops.pose.select_all(action="DESELECT")
+
+        Global.setOpsMode("OBJECT")
 
     def execute(self, context):
         self.clear_pose()

@@ -1,8 +1,8 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2, 4, 0),
-    "blender": (2, 80, 0),
+    "version": (2, 23, 7),
+    "blender": (2, 90, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
     "warning": "",
@@ -267,8 +267,10 @@ classes = (
     DtbPanels.DTB_PT_COMMANDS,
     DtbPanels.DTB_PT_UTILITIES,
     DtbPanels.DTB_PT_MORE_INFO,
+    DtbPanels.ImportOptionGroup,
     DtbOperators.OP_SAVE_CONFIG,
     DtbOperators.IMP_OT_POSE,
+    DtbOperators.IMP_OT_ANIM,
     DtbOperators.IMP_OT_FBX,
     DtbOperators.IMP_OT_ENV,
     DtbOperators.CLEAR_OT_Pose,
@@ -326,12 +328,16 @@ def register():
     load_handler(None)
     bpy.app.handlers.load_post.append(load_handler)
 
+    # Import Option Group
+    bpy.types.Scene.dtbImportOptGroup = bpy.props.PointerProperty(type=DtbPanels.ImportOptionGroup)
+
 
 def unregister():
     bpy.app.handlers.load_post.remove(load_handler)
     for cls in classes:
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.dtb_custom_path
+    del bpy.types.Scene.dtbImportOptGroup
 
 
 if __name__ == "__main__":

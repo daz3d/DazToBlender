@@ -492,10 +492,11 @@ class DtbShapeKeys:
                     var_count += 1
 
                 exp = self.get_target_expression(var.name, morph_link, driver)
-                if len(expression + exp + "+") > 255:
+                if len(expression + exp + "+") >= 255:
                     # Driver script expression max lenght is 255
                     # break when the limit is reached to avoid errors
                     break
+
                 expression += self.combine_target_expression(
                     exp, updated_morph_links, link_index
                 )
@@ -533,6 +534,7 @@ class DtbShapeKeys:
             # Set the Limits for Shapekey
             key_block.slider_min = shape_key_min
             key_block.slider_max = shape_key_max
+
 
     def make_other_mesh_drivers(self, other_mesh_obj, body_mesh_obj):
         other_mesh_name_shape = other_mesh_obj.name

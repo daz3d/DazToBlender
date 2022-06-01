@@ -7,7 +7,7 @@ VRAY = not CYCLES
 class values():
     average_y = 0
     x_last = 0
-    margin_x = 200
+    margin_x = 400
     mat_name = ""
     margin_y = 40
 

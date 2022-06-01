@@ -140,6 +140,10 @@ def config_props():
         name="add_pose_lib",
         default=True,
     )
+    w_mgr.put_anim_nla = BoolProperty(
+        name="put_anim_nla",
+        default=True,
+    )
     w_mgr.scene_scale = EnumProperty(
         name="Scene Scale",
         description="Used to change scale of imported object and scale settings",
@@ -181,6 +185,7 @@ def update_config():
         use_custom = key_exists("Use Custom Path", config)
         scene_scale = key_exists("Scene Scale", config)
         add_pose_lib = key_exists("Add to Pose Library", config)
+        put_anim_nla = key_exists("Put Anim as NLA Clip", config)
         combine_materials = key_exists("Combine Dupe Materials", config)
         morph_prefix = key_exists("Remove Morph Prefix", config)
         morph_optimize = key_exists("Optimize Morphs", config)

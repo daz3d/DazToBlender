@@ -640,7 +640,7 @@ class DtbShaders:
                 continue
 
             # change subsurface_method to fixed. The new automatically one is not good and has bugs
-            shader_node.subsurface_method = 'RANDOM_WALK'
+            shader_node.subsurface_method = 'RANDOM_WALK_FIXED_RADIUS'
 
             # show info for debug
             # pprint.pprint(self.mat_property_dict)
