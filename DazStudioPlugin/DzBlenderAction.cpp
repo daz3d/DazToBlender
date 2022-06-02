@@ -192,7 +192,7 @@ void DzBlenderAction::executeAction()
 		// Read Custom GUI values
 //		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
-#if __OLDBLENDER__
+#if __LEGACY_PATHS__
 		m_sExportFbx = "B_FIG";
 		m_sAssetName = "FIG";
 		m_sDestinationPath = m_sRootFolder + "/";
@@ -299,7 +299,7 @@ void DzBlenderAction::setExportOptions(DzFileIOSettings& ExportOptions)
 QString DzBlenderAction::readGuiRootFolder()
 {
 	QString rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
-#if __OLDBLENDER__
+#if __LEGACY_PATHS__
 		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG/FIG0";
 		rootFolder = rootFolder.replace("\\","/");
 #else
