@@ -255,10 +255,12 @@ void DzBlenderAction::writeConfiguration()
 		writeAllMaterials(m_pSelectedNode, writer, pCVSStream);
 		writeAllMorphs(writer);
 
-		writer.startMemberObject("MorphLinks");
-		writer.finishObject();
-		writer.startMemberArray("MorphNames");
-		writer.finishArray();
+		writeMorphLinks(writer);
+		//writer.startMemberObject("MorphLinks");
+		//writer.finishObject();
+		writeMorphNames(writer);
+		//writer.startMemberArray("MorphNames");
+		//writer.finishArray();
 
 		DzBoneList aBoneList = getAllBones(m_pSelectedNode);
 

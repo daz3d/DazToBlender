@@ -15,7 +15,7 @@ DZ_PLUGIN_VERSION(PLUGIN_MAJOR, PLUGIN_MINOR, PLUGIN_REV, PLUGIN_BUILD);
 
 #ifdef _DEBUG
 DZ_PLUGIN_DESCRIPTION(QString(
-	"<b>Pre-Release DazToBlender Bridge v%1.%2.%3.%4 </b><br>\
+	"<b>Pre-Release DazToBlender Bridge %1.%2.%3.%4 </b><br>\
 <a href = \"https://github.com/daz3d/DazToBlender\">Github</a><br><br>"
 ).arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(PLUGIN_REV).arg(PLUGIN_BUILD));
 #else
