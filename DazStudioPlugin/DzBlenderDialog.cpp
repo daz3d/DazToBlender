@@ -54,10 +54,23 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Set the dialog title
 	 int revision = PLUGIN_REV % 1000;
 #ifdef _DEBUG
-	 setWindowTitle(tr("Daz To Blender Bridge v%1.%2 Build %3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD));
+	 setWindowTitle(tr("Daz To Blender Bridge %1.%2 Build %3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD));
 #else
-	 setWindowTitle(tr("Daz To Blender Bridge v%1.%2").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR));
+	 setWindowTitle(tr("Daz To Blender Bridge %1.%2").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR));
 #endif
+
+	 // Disable Subdivision UI
+	 subdivisionEnabledCheckBox->setChecked(false);
+	 subdivisionEnabledCheckBox->setDisabled(true);
+	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
+Bridge Export process."));
+	 subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
+Bridge Export process."));
+	 //	 subdivisionButton->setDisabled(true);
+	 disconnect(subdivisionButton, 0, this, 0);
+	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
 
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
@@ -79,7 +92,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 connect(intermediateFolderButton, SIGNAL(released()), this, SLOT(HandleSelectIntermediateFolderButton()));
 
 	 // Advanced Options
-#if __OLDBLENDER__
+#if __LEGACY_PATHS__
 	 intermediateFolderEdit->setVisible(false);
 	 intermediateFolderButton->setVisible(false);
 #else
@@ -347,5 +360,21 @@ Plugin to: ") + sPluginsPath);
 
 	return;
 }
+
+void DzBlenderDialog::HandleDisabledChooseSubdivisionsButton()
+{
+	QMessageBox msgBox;
+	msgBox.setTextFormat(Qt::RichText);
+	msgBox.setWindowTitle("Daz To Blender: Subdivision Baking Disabled");
+	msgBox.setText(tr("Since version 2.8+, Blender has supported built-in Catmull-Clark Subdivision Surfaces \
+like Daz Studio. This is much faster and should be used instead of baking out subdivision \
+levels during the Bridge Export process.<br><br>You can find out more about Blender's built-in \
+Subdivision Support here:<br><br>\
+<a href=\"https://docs.blender.org/manual/en/3.1/modeling/modifiers/generate/subdivision_surface.html\">Subdivision Surface, Blender 3.1 Manual</a><br><br>"));
+	msgBox.setStandardButtons(QMessageBox::Ok);
+	msgBox.exec();
+	return;
+}
+
 
 #include "moc_DzBlenderDialog.cpp"

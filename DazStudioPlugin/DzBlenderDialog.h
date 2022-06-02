@@ -37,6 +37,7 @@ protected slots:
 	void HandleSelectIntermediateFolderButton();
 	void HandleAssetTypeComboChange(int state);
 	void HandleTargetPluginInstallerButton();
+	virtual void HandleDisabledChooseSubdivisionsButton();
 
 protected:
 	QLineEdit* intermediateFolderEdit;
