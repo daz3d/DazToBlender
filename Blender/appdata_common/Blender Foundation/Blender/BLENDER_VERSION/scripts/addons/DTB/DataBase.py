@@ -14,14 +14,6 @@ class DtuLoader:
     import_name = ""
     materials_list = []
 
-    def __init__(self):
-        self.dtu_dict = dict()
-        self.bone_limits_dict = dict()
-        self.skeleton_data_dict = dict()
-        self.pose_data_dict = dict()
-        self.bone_head_tail_dict = dict()
-        self.morph_links_dict = dict()
-
     def load_dtu(self):
         for file in os.listdir(Global.getHomeTown()):
             if file.endswith(".dtu"):
@@ -74,23 +66,10 @@ class DtuLoader:
     def load_skeleton_data_dict(self):
         dtu_dict = self.get_dtu_dict()
         self.skeleton_data_dict = dtu_dict["SkeletonData"]
-        if len(self.skeleton_data_dict.keys()) == 0:
-            skeletonDict = dict()
-            skeletonDict = {
-                "skeletonScale" : ["skeletonScale",	1],
-                "offset" : ["offset",	0]
-            }
-            dtu_dict["skeletonScale"] = skeletonDict
-            self.skeleton_data_dict = skeletonDict
 
     def get_skeleton_data_dict(self):
-        print("DEBUG: DataBase.py: get_skeleton_data_dict(): ENTERED")
-        print("self.skeleton_data_dict=" + str(self.skeleton_data_dict))
-        print("self.skeleton_data_dict.keys()=" + str(self.skeleton_data_dict.keys()))
-        print("len(self.sekeleton_data_dict.keys())=" + str(len(self.skeleton_data_dict.keys())))
         if len(self.skeleton_data_dict.keys()) == 0:
             self.load_skeleton_data_dict()
-        print("DEBUG: DataBase.py: get_skeleton_data_dict(): EXIT")
         return self.skeleton_data_dict
 
     def load_pose_data_dict(self):

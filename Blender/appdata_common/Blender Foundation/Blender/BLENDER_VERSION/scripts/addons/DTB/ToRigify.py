@@ -333,8 +333,7 @@ class ToRigify:
             pbs = Global.getRgfy().pose.bones
             if bs[2] in pbs:
                 pbs[bs[2]].custom_shape = Util.allobjs().get(bs[3])
-                #blender 3.0 break change
-                Versions.handle_custom_shape_scale(pbs[bs[2]], 6.0)
+                pbs[bs[2]].custom_shape_scale = 6.0
             Global.getRgfyBones()[bs[2]].layers[3] = True
             Global.getRgfyBones()[bs[2]].layers[4] = False
             for i in range(3):
@@ -360,8 +359,7 @@ class ToRigify:
                 wtg = Util.allobjs().get("Circle")
                 if wtg is not None:
                     pb.custom_shape = wtg
-                    #blender 3.0 break change
-                    Versions.handle_custom_shape_scale(pb, 0.2)
+                    pb.custom_shape_scale = 0.2
 
     def delete001_sk(self):
         Global.setOpsMode("OBJECT")

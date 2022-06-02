@@ -85,8 +85,6 @@ class DazRigBlend:
     def orthopedy_everything(self):
         amtr_objs = []
         self.del_empty = []
-        mainbone = Global.getAmtr()
-        print("DEBUG: mainbone=" + str(mainbone))
         Global.deselect()
         # Cycles through the objects and unparents the meshes from the figure.
         for dobj in Util.myacobjs():
@@ -102,42 +100,39 @@ class DazRigBlend:
                     Versions.select(dobj, False)
         Global.deselect()
 
-        if 1:
-            # Zero out the transforms on the Armature
-            Versions.select(Global.getAmtr(), True)
-            Versions.active_object(Global.getAmtr())
-            Versions.show_x_ray(Global.getAmtr())
-            Global.setOpsMode("POSE")
-            bpy.ops.pose.transforms_clear()
-            Global.setOpsMode("OBJECT")
-            bpy.ops.object.scale_clear()
+        # Zero out the transforms on the Armature
+        Versions.select(Global.getAmtr(), True)
+        Versions.active_object(Global.getAmtr())
+        Versions.show_x_ray(Global.getAmtr())
+        Global.setOpsMode("POSE")
+        bpy.ops.pose.transforms_clear()
+        Global.setOpsMode("OBJECT")
+        bpy.ops.object.scale_clear()
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        Global.deselect()
+
+        # Reposition Objects
+        for dobj in amtr_objs:
+            Versions.select(dobj, True)
+            Versions.active_object(dobj)
+            dobj.rotation_euler.x += math.radians(90)
+            # for i in range(3):
+            #     dobj.scale[i] *= self.skeleton_data_dict["skeletonScale"][1]
             bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            for i in range(3):
+                dobj.lock_location[i] = True
+                dobj.lock_rotation[i] = True
+
+                dobj.lock_scale[i] = True
             Global.deselect()
 
-            # Reposition Objects
-            for dobj in amtr_objs:
-                Versions.select(dobj, True)
-                Versions.active_object(dobj)
-                dobj.rotation_euler.x += math.radians(90)
-                print("DEBUG: DazRigBlend.py: line 128 SCALING@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-                nBoneScale = self.skeleton_data_dict["skeletonScale"][1]
-                print("DEBUG: scale=" + str(nBoneScale))
-                for i in range(3):
-                    dobj.scale[i] *= self.skeleton_data_dict["skeletonScale"][1]
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-                for i in range(3):
-                    dobj.lock_location[i] = True
-                    dobj.lock_rotation[i] = True
-                    dobj.lock_scale[i] = True
-                Global.deselect()
-
-            mainbone = Global.getAmtr()
-            Versions.select(mainbone, True)
-            Versions.active_object(mainbone)
-            for i in range(3):
-                mainbone.lock_location[i] = True
-                mainbone.lock_rotation[i] = True
-                mainbone.lock_scale[i] = True
+        mainbone = Global.getAmtr()
+        Versions.select(mainbone, True)
+        Versions.active_object(mainbone)
+        for i in range(3):
+            mainbone.lock_location[i] = True
+            mainbone.lock_rotation[i] = True
+            mainbone.lock_scale[i] = True
 
         # Reparent to Armature
         Global.setOpsMode("OBJECT")

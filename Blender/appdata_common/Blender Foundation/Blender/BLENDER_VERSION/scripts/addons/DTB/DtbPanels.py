@@ -27,92 +27,6 @@ region = "UI"
 BV = Versions.getBV()
 
 
-# add some options for importing
-class ImportOptionGroup(bpy.types.PropertyGroup):
-
-    bUsePrincipledMat : bpy.props.BoolProperty(
-        name="Use Principled Shader",
-        description="Check to use Principled Shader for material",
-        default = Global.bUsePrincipledMat
-    )
-
-
-    isHighHeel : bpy.props.BoolProperty(
-        name="High Heel",
-        description="Check to ignore feet rotation",
-        default = Global.isHighHeel
-    )
-
-
-    bJoinEyelashToBody : bpy.props.BoolProperty(
-        name="Join Eyelash To Body",
-        description="Join Eyelash To Body",
-        default = Global.bJoinEyelashToBody
-    )
-
-    bRotationLimit : bpy.props.BoolProperty(
-        name="Rotation Limit",
-        description="Uncheck to turn off Rotation Limit",
-        default = Global.bRotationLimit
-    )
-
-    bLimitOnTwist : bpy.props.BoolProperty(
-        name="Keep Limit on Twist Bone",
-        description="Check to keep Limit on Twist Bone, but turn off other bone's limit",
-        default = Global.bLimitOnTwist
-    )
-
-
-
-    bUseCustomBone : bpy.props.BoolProperty(
-        name="Custom Shape",
-        description="Check to use custom shape for bones",
-        default = Global.bUseCustomBone
-    )
-
-    bConvertBumpToNormal: bpy.props.BoolProperty(
-        name="Convert Bump To Normal",
-        description="It is very slow and converted normal file size is very big, only use it if you have to",
-        default = Global.bConvertBumpToNormal
-    )
-
-
-    bReuseNormal: bpy.props.BoolProperty(
-        name="Reuse Normal",
-        description="Reuse existed Normal Map file",
-        default = Global.bReuseNormal
-    )
-
-
-    bUseDrivers : bpy.props.BoolProperty(
-        name="Use Drivers",
-        description="Check to use drivers for shape key",
-        default = Global.bUseDrivers
-    )
-
-    bRemoveShapeKeyFromWearable : bpy.props.BoolProperty(
-        name="Clear Cloth Morph",
-        description="Remove morphs from all wearables",
-        default = Global.bRemoveShapeKeyFromWearable
-    )
-
-    bRemoveShapeKeyDrivers : bpy.props.BoolProperty(
-        name="Remove Shape Key Drivers",
-        description="Check to Remove Shape Key Drivers when importing",
-        default = Global.bRemoveShapeKeyDrivers
-    )
-
-    sss_rate : bpy.props.FloatProperty(
-        name="SSS Rate",
-        description="Rate between Principled Subsurface and Daz's Translucency Weight",
-        default = Global.sss_rate,
-        min = 0,
-        max = 1
-    )
-
-
-
-
 class View3DPanel:
     bl_space_type = "VIEW_3D"
     bl_region_type = region
@@ -130,28 +44,8 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
         l = self.layout
         box = l.box()
         w_mgr = context.window_manager
-        box.operator("import_dtu.fbx", icon="POSE_HLT")
-        box.operator("import_dtu.env", icon="WORLD")
-
-        # checkbox for some options
-        dtbImportOptGroup = context.scene.dtbImportOptGroup
-        l.prop(dtbImportOptGroup, "bUsePrincipledMat")
-        l.prop(dtbImportOptGroup, "isHighHeel")
-        l.prop(dtbImportOptGroup, "bJoinEyelashToBody")
-        l.prop(dtbImportOptGroup, "bRotationLimit")
-
-        if not dtbImportOptGroup.bRotationLimit:
-            l.prop(dtbImportOptGroup, "bLimitOnTwist")
-
-        l.prop(dtbImportOptGroup, "bUseCustomBone")
-        l.prop(dtbImportOptGroup, "bUseDrivers")
-        l.prop(dtbImportOptGroup, "bRemoveShapeKeyFromWearable")
-        l.prop(dtbImportOptGroup, "bConvertBumpToNormal")
-        if dtbImportOptGroup.bConvertBumpToNormal:
-            l.prop(dtbImportOptGroup, "bReuseNormal")
-
-        l.prop(dtbImportOptGroup, "sss_rate")
-
+        box.operator("import.fbx", icon="POSE_HLT")
+        box.operator("import.env", icon="WORLD")
         if context.object and context.active_object:
             cobj = context.active_object
             if (
@@ -222,21 +116,6 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                         l.label(text=DtbIKBones.obj_exsported)
 
                 l.separator()
-
-            # set import option
-            Global.bUsePrincipledMat = dtbImportOptGroup.bUsePrincipledMat
-            Global.isHighHeel = dtbImportOptGroup.isHighHeel
-            Global.bJoinEyelashToBody = dtbImportOptGroup.bJoinEyelashToBody
-            Global.bRotationLimit = dtbImportOptGroup.bRotationLimit
-            Global.bLimitOnTwist = dtbImportOptGroup.bLimitOnTwist
-            Global.bConvertBumpToNormal = dtbImportOptGroup.bConvertBumpToNormal
-            Global.bReuseNormal = dtbImportOptGroup.bReuseNormal
-
-            Global.bUseCustomBone = dtbImportOptGroup.bUseCustomBone
-            Global.bUseDrivers = dtbImportOptGroup.bUseDrivers
-            Global.bRemoveShapeKeyFromWearable = dtbImportOptGroup.bRemoveShapeKeyFromWearable
-            Global.bRemoveShapeKeyDrivers = dtbImportOptGroup.bRemoveShapeKeyDrivers
-            Global.sss_rate = dtbImportOptGroup.sss_rate
 
 
 class DTB_PT_RIGGING(View3DPanel, bpy.types.Panel):
@@ -311,12 +190,9 @@ class DTB_PT_POSE(View3DPanel, bpy.types.Panel):
         row = box.row(align=True)
         row.prop(w_mgr, "choose_daz_figure", text="")
         row.operator("refresh.alldaz", text="", icon="FILE_REFRESH")
-        box.operator("import_dtu.pose", icon="POSE_HLT")
-        box.operator("import_dtu.animation", icon="POSE_HLT")
+        box.operator("import.pose", icon="POSE_HLT")
         row = box.row(align=True)
         row.prop(w_mgr, "add_pose_lib", text="Add to Pose Library", toggle=False)
-        row = box.row(align=True)
-        row.prop(w_mgr, "put_anim_nla", text="Put Anim as NLA Clip", toggle=False)
 
 
 class DTB_PT_MATERIAL(View3DPanel, bpy.types.Panel):
@@ -371,7 +247,7 @@ class DTB_PT_GENERAL(View3DPanel, bpy.types.Panel):
 
         l.operator("save.daz_settings", icon="DISK_DRIVE")
 
-#TODO: [BRIDGEBUGS-1] Commands Currently do not work as intended need to be refactored and reactivated.
+#TODO: [BRIDGEBUGS-1] Commands Currently do not work as intended need to be refactored and reactivated. 
 class DTB_PT_COMMANDS(View3DPanel, bpy.types.Panel):
     bl_idname = "VIEW3D_PT_commands_daz"
     bl_label = "Commands List"

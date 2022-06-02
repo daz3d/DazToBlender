@@ -7,26 +7,6 @@ from . import DataBase
 from . import Versions
 from . import Util
 
-bNonInteractiveMode = 0
-nSceneScaleOverride = 1
-
-bUsePrincipledMat = True
-isHighHeel = False
-bRotationLimit = False
-bLimitOnTwist = True
-bUseCustomBone = False
-bUseDrivers = False
-#remove shape key from all wearable things, not just cloth
-bRemoveShapeKeyFromWearable = True
-
-# not used
-bRemoveShapeKeyDrivers = False
-
-bJoinEyelashToBody = True
-bConvertBumpToNormal = False
-bReuseNormal = True
-# rate between Blender's Subsurface and iray's Translucency Weight
-sss_rate = 0.1
 isMan = False
 root = ""
 isGen = False
@@ -363,45 +343,26 @@ def find_BODY(dobj):
     if dobj.type == "MESH":
         if Versions.isHide(dobj):
             return False
-        if len(dobj.modifiers) > 0:
-            for modifier in dobj.modifiers:
-                if modifier.type == "ARMATURE" and modifier.object is not None:
-                    if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-                        figure_name = dobj.name.replace(".Shape", "")
-                        figure_name = figure_name.split(".")[0]
-                        if figure_name in [
-                            "Genesis8Female",
-                            "Genesis8Male",
-                            "Genesis8_1Male",
-                            "Genesis8_1Female",
-                            "Genesis3Male",
-                            "Genesis3Female",
-                            "Genesis2Female",
-                            "Genesis2Male",
-                            "Genesis",
-                        ]:
-                            _BODY = dobj.name
-                            return True
-                        elif modifier.object.name in [
-                            "Genesis8Female",
-                            "Genesis8Male",
-                            "Genesis8_1Male",
-                            "Genesis8_1Female",
-                            "Genesis3Male",
-                            "Genesis3Female",
-                            "Genesis2Female",
-                            "Genesis2Male",
-                            "Genesis",
-                        ]:
-                            print("ALTERNATE PATHWAY: BODY SET!!!! line 403")
-                            _BODY = dobj.name
-                            return True
-                        else:
-                            print("FAILED: NAME NOT FOUND!!!! name=" + figure_name)
-                    else:
-                        print("FAILED: line 409")
-                else:
-                    print("FAILED: line 411")
+        for modifier in dobj.modifiers:
+            if modifier.type == "ARMATURE" and modifier.object is not None:
+
+                if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
+                    figure_name = dobj.name.replace(".Shape", "")
+                    figure_name = figure_name.split(".")[0]
+                    if figure_name in [
+                        "Genesis8Female",
+                        "Genesis8Male",
+                        "Genesis8_1Male",
+                        "Genesis8_1Female",
+                        "Genesis3Male",
+                        "Genesis3Female",
+                        "Genesis2Female",
+                        "Genesis2Male",
+                        "Genesis",
+                    ]:
+                        _BODY = dobj.name
+                        return True
+
     return False
 
 
@@ -418,31 +379,15 @@ def find_body(dobj):
     if dobj.type == "MESH":
         if Versions.isHide(dobj):
             return False
-        if len(dobj.modifiers) > 0:
-            print("DEBUG: Global.py, find_body(): dobj=" + str(dobj))
-            for modifier in dobj.modifiers:
-                print("modifier=" + str(modifier))
-                if modifier.type == "ARMATURE" and modifier.object is not None:
-                    print(" modifier.type=" + str(modifier.type) + "\n modifier.object=" + str(modifier.object))
-                    if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
-                        figure_name = dobj.name.replace(".Shape", "")
-                        figure_name = figure_name.split(".")[0]
-                        print("  modifier.object.name=" + modifier.object.name + "\n  _AMTR=" + _AMTR + "\n  _RGFY=" + _RGFY)
-                        print("  figure_name=" + figure_name)
-                        if figure_name == import_name:
-                            _BODY = dobj.name
-                            return True
-                        else:
-                            print("FAILED: NAME NOTE EQUAL!!! figure_name=" + figure_name + ", import_name=" + import_name)
-                            if (bNonInteractiveMode != 0):
-                                print("YOU! Return True anyway")
-                                return True
-                    else:
-                        print("FAILED: line 442")
-                else:
-                    print("FAILED: line 444")
+        for modifier in dobj.modifiers:
+            if modifier.type == "ARMATURE" and modifier.object is not None:
+                if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
+                    figure_name = dobj.name.replace(".Shape", "")
+                    figure_name = figure_name.split(".")[0]
+                    if figure_name == import_name:
+                        _BODY = dobj.name
+                        return True
 
-            print("DEBUG: Global.py, find_body(): EXIT")
     return False
 
 
@@ -885,11 +830,6 @@ def getHair():
 
 
 def getBody():
-    if (_BODY == ""):
-        print("DEBUG: BODY IS MISSING")
-        for dobj in Util.allobjs():
-            find_BODY(dobj)
-        print("DEBUG: Fallback find_BODY(): _BODY=" + str(_BODY))
     for dobj in Util.allobjs():
         if dobj.type == "MESH" and dobj.name == _BODY:
             return dobj
@@ -1249,12 +1189,7 @@ def ifNeedToSnapKnee(r_l):
 
 
 def get_size():
-    global bNonInteractiveMode
-    global nSceneScaleOverride
-    scene_scale = float(bpy.context.window_manager.scene_scale)
-    if bNonInteractiveMode != 0:
-        scene_scale = nSceneScaleOverride
-    return scene_scale
+    return float(bpy.context.window_manager.scene_scale)
 
 
 def change_size(root):
@@ -1303,8 +1238,6 @@ def float_by_size(float):
 
 
 def scale_settings():
-    if (bNonInteractiveMode != 0):
-        return
     scene = bpy.context.scene
     scene.tool_settings.use_keyframe_insert_auto = False
     scene.unit_settings.system = "METRIC"

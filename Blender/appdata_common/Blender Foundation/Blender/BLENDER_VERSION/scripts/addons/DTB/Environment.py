@@ -22,7 +22,7 @@ def set_transform(obj,data,type):
     if type == "translate":
         transform = obj.location
     for i in range(3):
-        transform[i] = float(data[i])
+        transform[i] = float(data[i])    
 def progress_bar(percent):
     bpy.context.window_manager.progress_update(percent)
 
@@ -37,7 +37,6 @@ class EnvProp:
         self.execute()
 
     def execute(self):
-        print("execute env")
         wm = bpy.context.window_manager
         wm.progress_begin(0, 100)
         Versions.active_object_none() # deselect all
@@ -68,9 +67,9 @@ class EnvProp:
         return {"FINISHED"}
 
     def set_default_settings(self):
-        # bpy.context.scene.render.engine = 'CYCLES'
+        bpy.context.scene.render.engine = 'CYCLES'
         bpy.context.space_data.shading.type = 'SOLID'
-        bpy.context.space_data.shading.color_type = 'MATERIAL'
+        bpy.context.space_data.shading.color_type = 'OBJECT'
         bpy.context.space_data.shading.show_shadows = False
         bco = bpy.context.object
         if bco != None and bco.mode != 'OBJECT':
@@ -81,37 +80,26 @@ class ReadFbx:
     adr = ""
     index = 0
     my_meshs = []
-    dtu = None
 
-    def __init__(self, dir, i, int_progress, arg_oDtu=None):
-        sFbxFilename="B_ENV.fbx";
-        if arg_oDtu is None:
-            self.dtu = DataBase.DtuLoader()
-        else:
-            self.dtu = arg_oDtu
-            sFbxFilename = self.dtu.dtu_dict["FBX File"]
+    def __init__(self,dir,i,int_progress):
+        self.dtu = DataBase.DtuLoader()
         self.pose = Poses.Posing(self.dtu)
         self.dtb_shaders = DtbMaterial.DtbShaders(self.dtu)
         self.adr = dir
         self.my_meshs = []
         self.index = i
-        if self.read_fbx(sFbxFilename):
+        if self.read_fbx():
             progress_bar(int(i * int_progress)+int(int_progress / 2))
             self.setMaterial()
         Global.scale_settings()
 
-    def read_fbx(self, sFbxFilename):
-        if (sFbxFilename is None or sFbxFilename == ""):
-            print("DEBUG: Environment.py, ReadFbx.read_fbx() sFbxFilename is not set.")
-            return False
+    def read_fbx(self):
         self.my_meshs = []
-        adr = os.path.join(self.adr, sFbxFilename)
+        adr = os.path.join(self.adr, "B_ENV.fbx")
         if os.path.exists(adr) == False:
             return
-        # objs is a part of bpy.data.objects
         objs = self.convert_file(adr)
         for obj in objs:
-            # print("obj.name: " + obj.name)
             if obj.type == 'MESH':
                 self.my_meshs.append(obj)
         if objs is None or len(objs) == 0:
@@ -131,10 +119,9 @@ class ReadFbx:
             obj.animation_data_clear()
         Versions.active_object(root)
         Global.deselect()
-        # print("root.type: " + root.type)
         if root.type == 'ARMATURE':
             self.import_as_armature(objs, root)
-        #TODO: Remove Groups with no MESH
+        #TODO: Remove Groups with no MESH   
         elif root.type == 'EMPTY':
             no_empty = False
             for o in objs:
@@ -147,36 +134,11 @@ class ReadFbx:
                 return False
             else:
                 self.import_empty(objs, Global.getEnvRoot())
-        else:
-            # set object's transform
-            for obj in objs:
-                # get transform data from dtu
-                data = self.pose.pose_data_dict
-                for key in data:
-                    if data[key]["Name"] == obj.name:
-                        #set transform
-                        # Position
-                        obj.location[0] = float(data[key]["Position"][0]*0.01)
-                        obj.location[1] = -float(data[key]["Position"][2]*0.01)
-                        obj.location[2] = float(data[key]["Position"][1]*0.01)
-
-                        # Rotation
-                        obj.rotation_euler.x = math.radians(float(data[key]["Rotation"][0])+90)
-                        obj.rotation_euler.y = -math.radians(float(data[key]["Rotation"][2]))
-                        obj.rotation_euler.z = math.radians(float(data[key]["Rotation"][1]))
-
-                        #apply transform
-                        Global.setOpsMode("OBJECT")
-                        Versions.active_object(obj)
-                        Versions.select(obj, True)
-                        bpy.ops.object.transform_apply(location=True, rotation=True)
-                        Global.deselect()
-
         Global.change_size(Global.getEnvRoot())
-
+        
         return True
-
-
+        
+    
     def convert_file(self, filepath):
         Global.store_ary(False) #Gets all objects before.
         basename = os.path.basename(filepath)
@@ -207,19 +169,19 @@ class ReadFbx:
             return ""
         rtn = [bpy.data.objects[n] for n in Global.now_ary if not n in Global.pst_ary]
         return rtn
-
+    
     #TODO: combine shared code with figure import
     def import_as_armature(self, objs, amtr):
-
+        
         Global.deselect()
         self.create_controller()
         vertex_group_names = []
         empty_objs = []
         amtr_objs = []
-
+        
         for i in range(3):
             amtr.scale[i] = 1
-
+            
         #Apply Armature Modifer if it does not exist
         for obj in objs:
             if obj.type == 'MESH':
@@ -235,10 +197,10 @@ class ReadFbx:
                 if obj.parent == amtr:
                     empty_objs.append(obj)
         Global.deselect()
+        
+        
 
-
-
-        #Apply rest pose
+        #Apply rest pose        
         Versions.select(amtr, True)
         Versions.active_object(amtr)
         Global.setOpsMode("POSE")
@@ -246,10 +208,10 @@ class ReadFbx:
         bpy.ops.pose.armature_apply(selected=False)
         bpy.ops.pose.select_all(action='DESELECT')
         Global.setOpsMode("EDIT")
-
+        
         hides = []
         bones = amtr.data.edit_bones
-
+        
         #Fix and Check Bones to Hide
         for bone in bones:
             to_hide = self.pose.set_bone_head_tail(bone)
@@ -260,7 +222,7 @@ class ReadFbx:
                 if self.is_child_bone(amtr, bone, vertex_group_names) == False:
                     hides.append(bone.name)
                     continue
-
+        
         Global.setOpsMode("OBJECT")
         for obj in objs:
             Versions.select(obj, True)
@@ -275,7 +237,7 @@ class ReadFbx:
 
         #Apply Custom Shape
         for pb in amtr.pose.bones:
-
+            
             binfo = self.pose.get_bone_limits_dict(pb.name)
             if binfo is None:
                 continue
@@ -283,8 +245,7 @@ class ReadFbx:
                 ob = Util.allobjs().get('daz_prop')
                 if ob is not None:
                     pb.custom_shape = ob
-                    #blender 3.0 break change
-                    Versions.handle_custom_shape_scale(pb, 0.04)
+                    pb.custom_shape_scale = 0.04
                     amtr.data.bones.get(pb.name).show_wire = True
             #Apply Limits and Change Rotation Order
             self.pose.bone_limit_modify(pb)
@@ -295,7 +256,7 @@ class ReadFbx:
 
         #Restore Pose.
         self.pose.restore_env_pose(amtr)
-
+    
     def create_controller(self):
         if 'daz_prop' in Util.colobjs('DAZ_HIDE'):
             return
@@ -311,7 +272,7 @@ class ReadFbx:
         bpy.context.object.name = 'daz_prop'
         Util.to_other_collection([bpy.context.object],'DAZ_HIDE',Util.cur_col_name())
 
-
+    
     def is_armature_modified(self,dobj):
         if dobj.type == 'MESH':
             for modifier in dobj.modifiers:
@@ -335,7 +296,7 @@ class ReadFbx:
             if bone.parent == vertex_groups:
                 rtn.append(bone.name)
         return rtn
-
+    
 
     def import_empty(self, objs, root):
         # Load an instance of the pose info
@@ -348,18 +309,15 @@ class ReadFbx:
             root.lock_location[i] = True
             root.lock_rotation[i] = True
             root.lock_scale[i] = True
-        Global.setOpsMode('OBJECT')
+        Global.setOpsMode('OBJECT')    
 
-
+    
     def setMaterial(self):
         self.dtb_shaders.make_dct()
+        self.dtb_shaders.load_shader_nodes()
+        for mesh in self.my_meshs:
+            self.dtb_shaders.setup_materials(mesh)
+            
 
-        #use principled materials when import env
-        if Global.bUsePrincipledMat:
-            for mesh in self.my_meshs:
-                self.dtb_shaders.setup_principled_materials(mesh)
-        else:
-            # try not touch the old code
-            self.dtb_shaders.load_shader_nodes()
-            for mesh in self.my_meshs:
-                self.dtb_shaders.setup_materials(mesh)
+
+    

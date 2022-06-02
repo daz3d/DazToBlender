@@ -10,7 +10,7 @@ class Animations:
     def __init__(self, dtu):
         self.skeleton_data = dtu.get_skeleton_data_dict()
 
-
+        
     def update_total_key_count(self,key_count):
         if key_count > self.total_key_count:
             self.total_key_count = key_count
@@ -19,7 +19,7 @@ class Animations:
     def reset_total_key_count(self):
         self.total_key_count = 0
 
-
+    
     def has_keyframe(self, ob):
         anim = ob.animation_data
         if anim is not None and anim.action is not None:
@@ -83,7 +83,7 @@ class Animations:
             data_path = bone_prefix + "rotation_quaternion"
             frames = self.frames_matching(action, data_path)
             group = self.fcurves_group(action, data_path)
-
+            
             for fr in frames:
                 # Get quaternion keyframe value
                 quat = bone.rotation_quaternion.copy()
@@ -98,14 +98,14 @@ class Animations:
                 # Add euler keyframe and set correct rotation order
                 self.add_keyframe_euler(action, euler, fr, bone_prefix, group)
                 bone.rotation_mode = order
-
+        
         # delete all the curves with quaternion data
         quat_fcurves = []
         for fcurve in action.fcurves:
             if fcurve.data_path[-20:] == ".rotation_quaternion":
                 quat_fcurves.append(fcurve)
         for fcurve in quat_fcurves:
-            action.fcurves.remove(fcurve)
+            action.fcurves.remove(fcurve)    
 
 
     def get_rotation_order(self, node_name):
@@ -140,7 +140,7 @@ class Animations:
         #Choose Action
         armature = Global.getAmtr()
         action = armature.animation_data.action
-
+            
         # Convert rotation animation data from quaternion to euler angles
         self.convert_quaternion_to_euler(action, Global.getAmtr())
 
@@ -174,7 +174,7 @@ class Animations:
 
                             # Z invert (-Z)
                             fcurve_z.keyframe_points[i].co[1] = -fcurve_z.keyframe_points[i].co[1]
-
+                        
                         index += 2
             else:
                 node_name = fcurve.data_path[start_index + 2 : end_index - 1]
@@ -199,7 +199,7 @@ class Animations:
                     # Get skeleton scale and set to location animation data
                     root_scale *= scene_size # To match armature scale
                     for i in range(point_count):
-                        fcurve_x.keyframe_points[i].co[1] *= root_scale
+                        fcurve_x.keyframe_points[i].co[1] *= root_scale 
                         fcurve_y.keyframe_points[i].co[1] *= root_scale
                         fcurve_z.keyframe_points[i].co[1] *= root_scale
 
@@ -281,7 +281,7 @@ class Animations:
 
                             # X invert (-X)
                             fcurve_x.keyframe_points[i].co[1] = -fcurve_x.keyframe_points[i].co[1]
-
+                    
                     index += 2
 
             index += 1
