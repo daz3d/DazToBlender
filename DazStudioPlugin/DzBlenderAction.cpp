@@ -123,12 +123,20 @@ void DzBlenderAction::executeAction()
 	// input from the user.
 	if (dzScene->getNumSelectedNodes() != 1)
 	{
-		if (m_nNonInteractiveMode == 0)
+		DzNodeList rootNodes = buildRootNodeList();
+		if (rootNodes.length() == 1)
 		{
-			QMessageBox::warning(0, tr("Error"),
-				tr("Please select one Character or Prop to send."), QMessageBox::Ok);
+			dzScene->setPrimarySelection(rootNodes[0]);
 		}
-		return;
+		else
+		{
+			if (m_nNonInteractiveMode == 0)
+			{
+				QMessageBox::warning(0, tr("Error"),
+					tr("Please select one Character or Prop to send."), QMessageBox::Ok);
+			}
+			return;
+		}
 	}
 
 	// Create the dialog
@@ -193,9 +201,31 @@ void DzBlenderAction::executeAction()
 //		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 #if __LEGACY_PATHS__
-		m_sExportFbx = "B_FIG";
-		m_sAssetName = "FIG";
-		m_sDestinationPath = m_sRootFolder + "/";
+		if (m_sAssetType == "SkeletalMesh")
+		{
+			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG";
+			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+			m_sExportSubfolder = "FIG0";
+		}
+		else
+		{
+			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV";
+			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+			m_sExportSubfolder = "ENV0";
+		}
+
+		if (m_sAssetType == "SkeletalMesh")
+		{
+			m_sExportFbx = "B_FIG";
+			m_sAssetName = "FIG";
+		}
+		else
+		{
+			m_sExportFbx = "B_ENV";
+			m_sAssetName = "ENV";
+		}
+//		m_sDestinationPath = m_sRootFolder + "/" ;
+		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
 		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
 #endif
 
@@ -302,8 +332,16 @@ QString DzBlenderAction::readGuiRootFolder()
 {
 	QString rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 #if __LEGACY_PATHS__
+	if (m_sAssetType == "SkeletalMesh")
+	{
 		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG/FIG0";
-		rootFolder = rootFolder.replace("\\","/");
+		rootFolder = rootFolder.replace("\\", "/");
+	}
+	else
+	{
+		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV/ENV0";
+		rootFolder = rootFolder.replace("\\", "/");
+	}
 #else
 	if (m_bridgeDialog)
 	{
