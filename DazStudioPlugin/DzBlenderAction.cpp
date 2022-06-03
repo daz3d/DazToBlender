@@ -153,6 +153,9 @@ void DzBlenderAction::executeAction()
 		}
 	}
 
+	// TODO: BLENDER SUBDIVISION DISABLED
+	m_bridgeDialog->getSubdivisionEnabledCheckBox()->setChecked(false);
+
 	// Prepare member variables when not using GUI
 	if (m_nNonInteractiveMode == 1)
 	{
@@ -206,25 +209,17 @@ void DzBlenderAction::executeAction()
 			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG";
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "FIG0";
+			m_sExportFbx = "B_FIG";
+			m_sAssetName = "FIG";
 		}
 		else
 		{
 			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV";
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "ENV0";
-		}
-
-		if (m_sAssetType == "SkeletalMesh")
-		{
-			m_sExportFbx = "B_FIG";
-			m_sAssetName = "FIG";
-		}
-		else
-		{
 			m_sExportFbx = "B_ENV";
 			m_sAssetName = "ENV";
 		}
-//		m_sDestinationPath = m_sRootFolder + "/" ;
 		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
 		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
 #endif

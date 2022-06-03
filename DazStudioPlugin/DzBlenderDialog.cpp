@@ -62,15 +62,18 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Disable Subdivision UI
 	 subdivisionEnabledCheckBox->setChecked(false);
 	 subdivisionEnabledCheckBox->setDisabled(true);
+	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
 	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
-	 subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
+	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
 	 //	 subdivisionButton->setDisabled(true);
 	 disconnect(subdivisionButton, 0, this, 0);
 	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
+
 
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
@@ -365,8 +368,10 @@ void DzBlenderDialog::HandleDisabledChooseSubdivisionsButton()
 {
 	QMessageBox msgBox;
 	msgBox.setTextFormat(Qt::RichText);
-	msgBox.setWindowTitle("Daz To Blender: Subdivision Baking Disabled");
-	msgBox.setText(tr("Since version 2.8+, Blender has supported built-in Catmull-Clark Subdivision Surfaces \
+	msgBox.setWindowTitle("Daz To Blender: Subdivision Baking is currently disabled");
+	msgBox.setText(tr("Sorry, DazToBlender's Subdivision Baking functionallity is currently disabled \
+while it is being redesigned.<br><br> \
+Since version 2.8+, Blender has supported built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision \
 levels during the Bridge Export process.<br><br>You can find out more about Blender's built-in \
 Subdivision Support here:<br><br>\
