@@ -18,6 +18,7 @@
 cmake_minimum_required(VERSION 3.4.0)
 
 if(APPLE)
+	set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "" FORCE)
 	if(NOT CMAKE_OSX_ARCHITECTURES)
   		message( FATAL_ERROR "Mac needs CMAKE_OSX_ARCHITECTURES, set to i386 or x86_64" )
 		return()

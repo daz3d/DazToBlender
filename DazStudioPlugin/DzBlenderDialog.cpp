@@ -110,6 +110,7 @@ Bridge Export process."));
 	 renameTargetPluginInstaller("Blender Plugin Installer");
 	 m_TargetSoftwareVersionCombo->clear();
 	 m_TargetSoftwareVersionCombo->addItem("Select Blender Version");
+     m_TargetSoftwareVersionCombo->addItem("Blender 2.83");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
@@ -269,10 +270,19 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	DzBridgeDialog::m_sEmbeddedFilesPath = ":/DazBridgeBlender";
 	QString sBinariesFile = "/blenderplugin.zip";
 	QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
-	QString sAppData = env.value("USERPROFILE") + "/Appdata/Roaming";
-	QString sDestinationPath = sAppData + "/Blender Foundation/Blender";
+#ifdef __APPLE__
+    QString sAppData = QDir::homePath() + "/Library/Application Support";
+    QString sDestinationPath = sAppData + "/Blender";
+#else
+    QString sAppData = env.value("USERPROFILE") + "/Appdata/Roaming";
+    QString sDestinationPath = sAppData + "/Blender Foundation/Blender";
+#endif
 	QString softwareVersion = m_TargetSoftwareVersionCombo->currentText();
-	if (softwareVersion.contains("2.93"))
+    if (softwareVersion.contains("2.83"))
+    {
+        sDestinationPath += "/2.83/scripts";
+    }
+    else if (softwareVersion.contains("2.93"))
 	{
 		sDestinationPath += "/2.93/scripts";
 	}
@@ -312,7 +322,11 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 
 	// verify plugin path
 	bool bIsPluginPath = false;
-	QString sPluginsPath = sDestinationPath + "/addons";
+	QString sPluginsPath = sDestinationPath;
+    if (sPluginsPath.endsWith("/addons", Qt::CaseInsensitive)==false)
+    {
+        sPluginsPath += "/addons";
+    }
 	// Check for "/scripts/addon" at end of path
 	if (sPluginsPath.endsWith("/scripts/addons", Qt::CaseInsensitive))
 	{
