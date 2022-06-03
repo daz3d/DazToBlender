@@ -553,3 +553,28 @@ def import_obj(path):
         return Util.myccobjs()[wnew]
     else:
         return None
+
+# blender 3.0 break change:
+# Replaced PoseBone.custom_shape_scale scalar with a PoseBone.custom_shape_scale_xyz vector
+def handle_custom_shape_scale(obj, value):
+    if BV < 3.00:
+        obj.custom_shape_scale = value
+    else:
+        obj.custom_shape_scale_xyz.x = value
+        obj.custom_shape_scale_xyz.y = value
+        obj.custom_shape_scale_xyz.z = value
+
+# blender 3.0 break change:
+# Replaced PoseBone.custom_shape_scale scalar with a PoseBone.custom_shape_scale_xyz vector
+def check_custom_shape_scale_equal(obj, value):
+    if BV < 3.00:
+        if obj.custom_shape_scale == value:
+            return True
+        else:
+            return False
+    else:
+        if obj.custom_shape_scale_xyz.x == value and obj.custom_shape_scale_xyz.y == value and obj.custom_shape_scale_xyz.z == value:
+            return True
+        else:
+            return False
+

@@ -1,0 +1,43 @@
+{
+	"UnitTest Results Version" : 1,
+	"Class Name" : "DzBlenderAction",
+	"Number of UnitTests" : 6,
+	"Detailed Test Results" : [
+		{
+			"UnitTest ID" : 0,
+			"Method Name" : "_DzBridgeBlenderAction",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 1,
+			"Method Name" : "executeAction",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 2,
+			"Method Name" : "createUI",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 3,
+			"Method Name" : "writeConfiguration",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 4,
+			"Method Name" : "setExportOptions",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 5,
+			"Method Name" : "readGuiRootFolder",
+			"Test Result" : true,
+			"Test Log" : ""
+		}
+	]
+}

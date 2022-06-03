@@ -1,0 +1,43 @@
+{
+	"UnitTest Results Version" : 1,
+	"Class Name" : "DzBlenderDialog",
+	"Number of UnitTests" : 6,
+	"Detailed Test Results" : [
+		{
+			"UnitTest ID" : 0,
+			"Method Name" : "_DzBridgeBlenderDialog",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 1,
+			"Method Name" : "getIntermediateFolderEdit",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 2,
+			"Method Name" : "resetToDefaults",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 3,
+			"Method Name" : "loadSavedSettings",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 4,
+			"Method Name" : "HandleSelectIntermediateFolderButton",
+			"Test Result" : true,
+			"Test Log" : ""
+		},
+		{
+			"UnitTest ID" : 5,
+			"Method Name" : "HandleAssetTypeComboChange",
+			"Test Result" : true,
+			"Test Log" : ""
+		}
+	]
+}

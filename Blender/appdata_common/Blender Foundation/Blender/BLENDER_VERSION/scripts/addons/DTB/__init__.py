@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2, 4, 0),
+    "version": (2022, 1, 1),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -9,7 +9,7 @@ bl_info = {
     "support": "COMMUNITY",
     "wiki_url": "",
     "tracker_url": "https://github.com/daz3d/DazToBlender/issues",
-    "category": "Armature",
+    "category": "Import-Export",
 }
 
 import sys

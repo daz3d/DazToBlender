@@ -245,7 +245,8 @@ class ReadFbx:
                 ob = Util.allobjs().get('daz_prop')
                 if ob is not None:
                     pb.custom_shape = ob
-                    pb.custom_shape_scale = 0.04
+                    #blender 3.0 break change
+                    Versions.handle_custom_shape_scale(pb, 0.04)
                     amtr.data.bones.get(pb.name).show_wire = True
             #Apply Limits and Change Rotation Order
             self.pose.bone_limit_modify(pb)

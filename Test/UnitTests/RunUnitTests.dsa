@@ -1,0 +1,43 @@
+// DAZ Studio version 4.16.0.3 filetype DAZ Script
+var includeDir_oFILE = new DzFile( getScriptFileName() );
+//var sIncludePath = includeDir_oFILE.path();
+var sIncludePath = "C:/GitHub/DazToBlender-daz3d/Test/UnitTests/"
+var sOutputPath = "C:/GitHub/DazToBlender-daz3d/Test/Results/";
+
+/*
+obj = new UnitTest_DzBridgeScriptableAction();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBridgeAction): " + result);
+obj.writeAllTestResults(sOutputPath);
+
+obj = new UnitTest_DzBridgeDialog();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBridgeDialog): " + result);
+obj.writeAllTestResults(sOutputPath);
+
+obj = new UnitTest_DzBridgeMorphSelectionDialog();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBridgeMorphSelectionDialog): " + result);
+obj.writeAllTestResults(sOutputPath);
+
+obj = new UnitTest_DzBridgeSubdivisionDialog();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBridgeSubdivisionDialog): " + result);
+obj.writeAllTestResults(sOutputPath);
+*/
+
+obj = new UnitTest_DzBlenderAction();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBlenderAction): " + result);
+obj.writeAllTestResults(sOutputPath);
+
+obj = new UnitTest_DzBlenderDialog();
+result = false;
+result = obj.runUnitTests();
+print("Unit Test Results (DzBlenderDialog): " + result);
+obj.writeAllTestResults(sOutputPath);
