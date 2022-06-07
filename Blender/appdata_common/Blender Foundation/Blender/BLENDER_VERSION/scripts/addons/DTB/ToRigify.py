@@ -235,10 +235,16 @@ class ToRigify:
                     find = False
                     if "Toe" in eb.name:
                         if eb.name.startswith("r"):
-                            eb.parent = robj.data.edit_bones["toe.R"]
+                            if bpy.app.version[0] < 3:
+                                eb.parent = robj.data.edit_bones["toe.R"]
+                            else:
+                                eb.parent = robj.data.edit_bones["toe_fk.R"]
                             self.to_layer(eb, 18)
                         else:
-                            eb.parent = robj.data.edit_bones["toe.L"]
+                            if bpy.app.version[0] < 3:
+                                eb.parent = robj.data.edit_bones["toe.L"]
+                            else:
+                                eb.parent = robj.data.edit_bones["toe_fk.L"]
                             self.to_layer(eb, 15)
                         find = True
                     else:
