@@ -204,7 +204,7 @@ void DzBlenderAction::executeAction()
 //		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 #if __LEGACY_PATHS__
-		if (m_sAssetType == "SkeletalMesh")
+		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
 		{
 			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG";
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
@@ -266,7 +266,7 @@ void DzBlenderAction::writeConfiguration()
 
 	writeDTUHeader(writer);
 
-	if (m_sAssetType.toLower().contains("mesh"))
+	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	{
 		QTextStream *pCVSStream = nullptr;
 		if (m_bExportMaterialPropertiesCSV)
@@ -317,10 +317,15 @@ void DzBlenderAction::writeConfiguration()
 // Setup custom FBX export options
 void DzBlenderAction::setExportOptions(DzFileIOSettings& ExportOptions)
 {
-	ExportOptions.setBoolValue("doEmbed", false);
-	ExportOptions.setBoolValue("doDiffuseOpacity", false);
-	ExportOptions.setBoolValue("doCopyTextures", false);
-
+	//ExportOptions.setBoolValue("doEmbed", false);
+	//ExportOptions.setBoolValue("doDiffuseOpacity", false);
+	//ExportOptions.setBoolValue("doCopyTextures", false);
+	ExportOptions.setBoolValue("doFps", true);
+	ExportOptions.setBoolValue("doLocks", false);
+	ExportOptions.setBoolValue("doLimits", false);
+	ExportOptions.setBoolValue("doBaseFigurePoseOnly", false);
+	ExportOptions.setBoolValue("doHelperScriptScripts", false);
+	ExportOptions.setBoolValue("doMentalRayMaterials", false);
 }
 
 QString DzBlenderAction::readGuiRootFolder()
