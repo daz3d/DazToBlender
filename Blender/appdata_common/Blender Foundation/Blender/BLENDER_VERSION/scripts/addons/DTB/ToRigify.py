@@ -238,13 +238,13 @@ class ToRigify:
                             if bpy.app.version[0] < 3:
                                 eb.parent = robj.data.edit_bones["toe.R"]
                             else:
-                                eb.parent = robj.data.edit_bones["toe_fk.R"]
+                                eb.parent = robj.data.edit_bones["toe_ik.R"]
                             self.to_layer(eb, 18)
                         else:
                             if bpy.app.version[0] < 3:
                                 eb.parent = robj.data.edit_bones["toe.L"]
                             else:
-                                eb.parent = robj.data.edit_bones["toe_fk.L"]
+                                eb.parent = robj.data.edit_bones["toe_ik.L"]
                             self.to_layer(eb, 15)
                         find = True
                     else:

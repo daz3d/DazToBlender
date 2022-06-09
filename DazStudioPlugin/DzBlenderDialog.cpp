@@ -114,6 +114,7 @@ Bridge Export process."));
 	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2");
 	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
 	 showTargetPluginInstaller(true);
 
@@ -294,6 +295,10 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	{
 		sDestinationPath += "/3.1/scripts";
 	}
+	else if (softwareVersion.contains("3.2"))
+	{
+		sDestinationPath += "/3.2/scripts";
+	}
 	else if (softwareVersion.contains("Custom"))
 	{
 		// Get Destination Folder
@@ -330,7 +335,9 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	// Check for "/scripts/addon" at end of path
 	if (sPluginsPath.endsWith("/scripts/addons", Qt::CaseInsensitive))
 	{
-		if (QDir(sPluginsPath).exists())
+		QString sScriptsPath = QString(sPluginsPath).replace("/scripts/addons", "/scripts", Qt::CaseInsensitive);
+		QString sConfigPath = QString(sPluginsPath).replace("/scripts/addons", "/config", Qt::CaseInsensitive);
+		if (QDir(sPluginsPath).exists() || QDir(sScriptsPath).exists() || QDir(sConfigPath).exists())
 		{
 			bIsPluginPath = true;
 		}
