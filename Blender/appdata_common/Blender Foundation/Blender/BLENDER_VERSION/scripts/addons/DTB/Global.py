@@ -688,22 +688,23 @@ def boneRotation_onoff(context, flg_on):
             if c.name == "Limit Rotation":
                 c.mute = flg_on == False
 
-
+import platform
 def getRootPath():
     global root
-    # if bpy.context.window_manager.use_custom_path:
-    #     root = ""
-    # else:
-    if root == "":
-        hdir = os.path.expanduser("~")
-        hdir = os.path.join(
-            hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Exports"
-        )
-        print("Files Should be Exporting to : {0}".format(hdir))
-        if os.path.exists(hdir):
-            root = hdir
-        else:
-            root = ""
+
+    if (platform.system() == "Windows"):
+        import ctypes.wintypes
+        CSIDL_PERSONAL=5
+        SHGFP_TYPE_CURRENT=0
+        buffer = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, buffer)
+        HOME_DIR = buffer.value
+    elif (platform.system() == "Darwin"):
+        HOME_DIR = os.path.expanduser("~") + "/Documents"
+    else:
+        HOME_DIR = os.path.expanduser("~")
+    root = os.path.join(HOME_DIR, "DAZ 3D", "Bridges", "Daz To Blender", "Exports").replace("\\", "/")
+
     return root
 
 

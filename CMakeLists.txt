@@ -25,7 +25,7 @@ if(APPLE)
 	endif()
 endif(APPLE)
 
-project("DzBridge-Blender")
+project("DzBlenderBridge")
 set(FBX_SDK_DIR "" CACHE PATH "Path to FBX SDK" )
 set(OPENSUBDIV_DIR "" CACHE PATH "Path to Opensubdiv folder" )
 set(USE_DZBRIDGE_SUBMODULE "ON")

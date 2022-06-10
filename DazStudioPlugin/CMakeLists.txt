@@ -2,8 +2,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(DZ_PLUGIN_TGT_NAME dzbridge_blender)
-set(DZ_PLUGIN_PROJECT_NAME "DzBridge-Blender")
+set(DZ_PLUGIN_TGT_NAME dzblenderbridge)
+set(DZ_PLUGIN_PROJECT_NAME "DzBlenderBridge")
 
 include_directories(${COMMON_LIB_INCLUDE_DIR})
 
