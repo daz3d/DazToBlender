@@ -59,6 +59,20 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 setWindowTitle(tr("Daz To Blender Bridge %1.%2").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR));
 #endif
 
+	 QString sSetupModeString = tr("<h4>\
+If this is your first time using the Daz To Blender Bridge, please be sure to read or watch \
+the tutorials or videos below to install and enable the Blender Plugin for the bridge:</h4>\
+<ul>\
+<li><a href=\"https://github.com/daz3d/DazToBlender#3-how-to-install\">How To Install and Configure the Bridge (Github)</a></li>\
+<li><a href=\"https://www.daz3d.com/blender-bridge#faq\">Daz To Blender FAQ (Daz 3D)</a></li>\
+<li><a href=\"https://www.youtube.com/watch?v=2os8Ge-HWlQ\">How To Install DazToBlender Bridge (Youtube)</a></li>\
+<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it\">What's New and How To Use It (Daz 3D Forums)</a></li>\
+</ul>\
+Once the blender plugin is enabled, please add a Character or Prop to the Scene to transfer assets using the Daz To Blender Bridge.<br><br>\
+To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-bridges\">https://www.daz3d.com/daz-bridges</a><br>\
+");
+	 m_WelcomeLabel->setText(sSetupModeString);
+
 	 // Disable Subdivision UI
 	 subdivisionEnabledCheckBox->setChecked(false);
 	 subdivisionEnabledCheckBox->setDisabled(true);
@@ -96,6 +110,7 @@ Bridge Export process."));
 
 	 // Advanced Options
 #if __LEGACY_PATHS__
+	 assetNameEdit->setValidator(new QRegExpValidator(QRegExp("*"), this));
 	 intermediateFolderEdit->setVisible(false);
 	 intermediateFolderButton->setVisible(false);
 #else
@@ -105,6 +120,8 @@ Bridge Export process."));
 		 advancedLayout->addRow("Intermediate Folder", intermediateFolderLayout);
 	 }
 #endif
+	 QString sBlenderVersionString = tr("DazToBlender Bridge %1.%2  revision %3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD);
+	 setBridgeVersionStringAndLabel(sBlenderVersionString);
 
 	 // Configure Target Plugin Installer
 	 renameTargetPluginInstaller("Blender Plugin Installer");
@@ -160,13 +177,17 @@ bool DzBlenderDialog::loadSavedSettings()
 
 void DzBlenderDialog::resetToDefaults()
 {
-	m_DontSaveSettings = true;
+	m_bDontSaveSettings = true;
 	DzBridgeDialog::resetToDefaults();
 
 	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 	intermediateFolderEdit->setText(DefaultPath);
 
 	DzNode* Selection = dzScene->getPrimarySelection();
+#ifdef __LEGACY_PATHS__
+	if (Selection != nullptr)
+		assetNameEdit->setText(Selection->getLabel());
+#else
 	if (dzScene->getFilename().length() > 0)
 	{
 		QFileInfo fileInfo = QFileInfo(dzScene->getFilename());
@@ -176,6 +197,7 @@ void DzBlenderDialog::resetToDefaults()
 	{
 		assetNameEdit->setText(Selection->getLabel().remove(QRegExp("[^A-Za-z0-9_]")));
 	}
+#endif
 
 	if (qobject_cast<DzSkeleton*>(Selection))
 	{
@@ -185,7 +207,7 @@ void DzBlenderDialog::resetToDefaults()
 	{
 		assetTypeCombo->setCurrentIndex(1);
 	}
-	m_DontSaveSettings = false;
+	m_bDontSaveSettings = false;
 }
 
 void DzBlenderDialog::HandleSelectIntermediateFolderButton()
@@ -220,45 +242,6 @@ void DzBlenderDialog::HandleAssetTypeComboChange(int state)
 	{
 		morphsEnabledCheckBox->setChecked(false);
 		subdivisionEnabledCheckBox->setChecked(false);
-	}
-
-	// if "Animation", change assetname
-	if (assetTypeCombo->currentText() == "Animation")
-	{
-		// check assetname is in @anim[0000] format
-		if (!assetNameString.contains("@") || assetNameString.contains(QRegExp("@anim[0-9]*")))
-		{
-			// extract true assetName and recompose animString
-			assetNameString = assetNameString.left(assetNameString.indexOf("@"));
-			// get importfolder using corrected assetNameString
-			QString importFolderPath = settings->value("AssetsPath").toString() + QDir::separator() + "Daz3D" + QDir::separator() + assetNameString + QDir::separator();
-
-			// create anim filepath
-			uint animCounter = 0;
-			QString animString = assetNameString + QString("@anim%1").arg(animCounter, 4, 10, QChar('0'));
-			QString filePath = importFolderPath + animString + ".fbx";
-
-			// if anim file exists, then increment anim filename counter
-			while (QFileInfo(filePath).exists())
-			{
-				if (++animCounter > 9999)
-				{
-					break;
-				}
-				animString = assetNameString + QString("@anim%1").arg(animCounter, 4, 10, QChar('0'));
-				filePath = importFolderPath + animString + ".fbx";
-			}
-			assetNameEdit->setText(animString);
-		}
-
-	}
-	else
-	{
-		// remove @anim if present
-		if (assetNameString.contains("@")) {
-			assetNameString = assetNameString.left(assetNameString.indexOf("@"));
-		}
-		assetNameEdit->setText(assetNameString);
 	}
 
 }
@@ -400,6 +383,42 @@ Subdivision Support here:<br><br>\
 	msgBox.setStandardButtons(QMessageBox::Ok);
 	msgBox.exec();
 	return;
+}
+
+void DzBlenderDialog::HandleOpenIntermediateFolderButton(QString sFolderPath)
+{
+	QString sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+#if __LEGACY_PATHS__
+	sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender";
+	if (QFile(sIntermediateFolder).exists() == false)
+	{
+		QDir().mkpath(sIntermediateFolder);
+	}
+	if (QFile(sIntermediateFolder + "/Exports").exists())
+	{
+		sIntermediateFolder += "/Exports";
+	}
+#else
+	if (intermediateFolderEdit != nullptr)
+	{
+		sIntermediateFolder = intermediateFolderEdit->text();
+	}
+#endif
+	DzBridgeDialog::HandleOpenIntermediateFolderButton(sIntermediateFolder);
+}
+
+void DzBlenderDialog::refreshAsset()
+{
+	DzBridgeDialog::refreshAsset();
+
+#if __LEGACY_PATHS__
+	DzNode* Selection = dzScene->getPrimarySelection();
+	if (Selection != nullptr)
+	{
+		assetNameEdit->setText(Selection->getLabel());
+	}
+#endif
+
 }
 
 

@@ -689,9 +689,7 @@ def boneRotation_onoff(context, flg_on):
                 c.mute = flg_on == False
 
 import platform
-def getRootPath():
-    global root
-
+def getHomeDir():
     if (platform.system() == "Windows"):
         import ctypes.wintypes
         CSIDL_PERSONAL=5
@@ -703,6 +701,12 @@ def getRootPath():
         HOME_DIR = os.path.expanduser("~") + "/Documents"
     else:
         HOME_DIR = os.path.expanduser("~")
+    return HOME_DIR
+
+def getRootPath():
+    global root
+
+    HOME_DIR = getHomeDir()
     root = os.path.join(HOME_DIR, "DAZ 3D", "Bridges", "Daz To Blender", "Exports").replace("\\", "/")
 
     return root
@@ -715,9 +719,9 @@ def get_custom_path():
 def get_config_path():
     global config
     if config == "":
-        hdir = os.path.expanduser("~")
+        hdir = getHomeDir()
         hdir = os.path.join(
-            hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Config"
+            hdir, "DAZ 3D", "Bridges", "Daz To Blender", "Config"
         )
         if os.path.exists(hdir):
             config = hdir
