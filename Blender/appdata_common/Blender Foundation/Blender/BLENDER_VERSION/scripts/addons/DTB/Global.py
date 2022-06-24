@@ -691,12 +691,23 @@ def boneRotation_onoff(context, flg_on):
 import platform
 def getHomeDir():
     if (platform.system() == "Windows"):
-        import ctypes.wintypes
-        CSIDL_PERSONAL=5
-        SHGFP_TYPE_CURRENT=0
-        buffer = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-        ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, buffer)
-        HOME_DIR = buffer.value
+        try:
+            import ctypes.wintypes
+            csidl=5 # My Documents Folder (CSIDL_PERSONAL)
+            access_token=None # Current User
+            flags=0 # Current Value (SHGFP_TYPE_CURRENT)
+            buffer = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+            result = ctypes.windll.shell32.SHGetFolderPathW(0, csidl, access_token, flags, buffer)
+            if result != 0:
+                if result < 0:
+                    result += 2**32
+                print("ERROR: SHGetFolderPathW() returned error code=[" + str(hex(result)) + "]")
+                del buffer
+                raise Exception()
+            HOME_DIR = buffer.value
+        except:
+            HOME_DIR = os.path.expanduser("~").replace("\\","/") + "/Documents"
+            print("Unable to query the correct Documents path for Windows, failing back to user folder=\"" + str(HOME_DIR) + "\".")
     elif (platform.system() == "Darwin"):
         HOME_DIR = os.path.expanduser("~") + "/Documents"
     else:
