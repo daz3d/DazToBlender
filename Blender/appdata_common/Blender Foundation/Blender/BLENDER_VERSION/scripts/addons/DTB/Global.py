@@ -726,7 +726,13 @@ def get_config_path():
         if os.path.exists(hdir):
             config = hdir
         else:
-            config = ""
+            try:
+                if os.path.isabs(hdir):
+                    os.makedirs(hdir)
+                    config = hdir
+            except:
+                print("ERROR: Unable to create config path:\"" + str(hdir) + "\".")
+                config = ""
     return config
 
 

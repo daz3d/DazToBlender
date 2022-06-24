@@ -158,11 +158,16 @@ def config_props():
 
 
 def load_config():
+    data = {}
     config = Global.get_config_path()
-    if os.path.exists(os.path.join(config, "daz_paths.json")):
-        with open(os.path.join(config, "daz_paths.json"), "r") as f:
-            data = json.load(f)
-        return data
+    config_file_path = os.path.join(config, "daz_paths.json")
+    if os.path.exists(config_file_path):
+        try:
+            with open(config_file_path, "r") as f:
+                data = json.load(f)
+        except:
+            print("ERROR: Unable to read DazToBlender config file: \"" + config_file_path + "\".")
+    return data
 
 
 def key_exists(key, data):

@@ -56,9 +56,12 @@ class OP_SAVE_CONFIG(bpy.types.Operator):
     def execute(self, context):
         scn = context.scene
         w_mgr = context.window_manager
+        data = {}
         config = Global.get_config_path()
-        with open(os.path.join(config, "daz_paths.json"), "r") as f:
-            data = json.load(f)
+        config_file_path = os.path.join(config, "daz_paths.json")
+        if os.path.exists(config_file_path):
+            with open(config_file_path, "r") as f:
+                data = json.load(f)
         data["Custom Path"] = scn.dtb_custom_path.path.replace("\\", "/")
         data["Use Custom Path"] = w_mgr.use_custom_path
         with open(os.path.join(config, "daz_paths.json"), "w") as f:
@@ -149,7 +152,7 @@ class RENAME_MORPHS(bpy.types.Operator):
                 key.name = key.name.replace(string_to_replace, "")
         self.report({"INFO"}, "Morphs renamed!")
 
-        return {"FINISHED"} 
+        return {"FINISHED"}
 
 
 # End of Utlity Classes
@@ -329,14 +332,17 @@ class IMP_OT_FBX(bpy.types.Operator):
         DtbIKBones.ik_access_ban = False
 
     def execute(self, context):
-        if self.root == "":
-            self.report({"ERROR"}, "Appropriate FBX does not exist!")
-            return {"FINISHED"}
-        self.layGround()
-        current_dir = os.getcwd()
         if bpy.context.window_manager.use_custom_path:
             self.root = Global.get_custom_path()
             print(self.root)
+        if self.root == "":
+            self.report({"ERROR"}, "Configuration Error: unable to determine intermediate folder path!")
+            return {"FINISHED"}
+        if os.path.exists(self.root) == False:
+            self.report({"ERROR"}, "No exports found in intermediate folder: \"" + self.root + "\".")
+            return {"FINISHED"}
+        self.layGround()
+        current_dir = os.getcwd()
 
         os.chdir(self.root)
 
