@@ -689,20 +689,35 @@ def boneRotation_onoff(context, flg_on):
                 c.mute = flg_on == False
 
 import platform
-def getRootPath():
-    global root
-
+def getHomeDir():
     if (platform.system() == "Windows"):
-        import ctypes.wintypes
-        CSIDL_PERSONAL=5
-        SHGFP_TYPE_CURRENT=0
-        buffer = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-        ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, buffer)
-        HOME_DIR = buffer.value
+        try:
+            import ctypes.wintypes
+            csidl=5 # My Documents Folder (CSIDL_PERSONAL)
+            access_token=None # Current User
+            flags=0 # Current Value (SHGFP_TYPE_CURRENT)
+            buffer = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+            result = ctypes.windll.shell32.SHGetFolderPathW(0, csidl, access_token, flags, buffer)
+            if result != 0:
+                if result < 0:
+                    result += 2**32
+                print("ERROR: SHGetFolderPathW() returned error code=[" + str(hex(result)) + "]")
+                del buffer
+                raise Exception()
+            HOME_DIR = buffer.value
+        except:
+            HOME_DIR = os.path.expanduser("~").replace("\\","/") + "/Documents"
+            print("Unable to query the correct Documents path for Windows, failing back to user folder=\"" + str(HOME_DIR) + "\".")
     elif (platform.system() == "Darwin"):
         HOME_DIR = os.path.expanduser("~") + "/Documents"
     else:
         HOME_DIR = os.path.expanduser("~")
+    return HOME_DIR
+
+def getRootPath():
+    global root
+
+    HOME_DIR = getHomeDir()
     root = os.path.join(HOME_DIR, "DAZ 3D", "Bridges", "Daz To Blender", "Exports").replace("\\", "/")
 
     return root
@@ -715,14 +730,20 @@ def get_custom_path():
 def get_config_path():
     global config
     if config == "":
-        hdir = os.path.expanduser("~")
+        hdir = getHomeDir()
         hdir = os.path.join(
-            hdir, "Documents", "DAZ 3D", "Bridges", "Daz To Blender", "Config"
+            hdir, "DAZ 3D", "Bridges", "Daz To Blender", "Config"
         )
         if os.path.exists(hdir):
             config = hdir
         else:
-            config = ""
+            try:
+                if os.path.isabs(hdir):
+                    os.makedirs(hdir)
+                    config = hdir
+            except:
+                print("ERROR: Unable to create config path:\"" + str(hdir) + "\".")
+                config = ""
     return config
 
 

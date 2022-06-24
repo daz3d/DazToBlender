@@ -1,13 +1,13 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2022, 1, 10),
+    "version": (2022, 1, 13, 36),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
     "warning": "",
     "support": "COMMUNITY",
-    "wiki_url": "",
+    "doc_url": "https://github.com/daz3d/DazToBlender/#readme",
     "tracker_url": "https://github.com/daz3d/DazToBlender/issues",
     "category": "Import-Export",
 }
@@ -325,6 +325,9 @@ def register():
     DtbProperties.update_config()
     load_handler(None)
     bpy.app.handlers.load_post.append(load_handler)
+    print("DazToBlender: loaded, version %i.%i.%i.%i" % bl_info["version"] )
+    intermediateFolder = Global.getHomeDir()
+    print("DazToBlender: Default Intermediate Folder path: \"%s\"." % intermediateFolder )
 
 
 def unregister():

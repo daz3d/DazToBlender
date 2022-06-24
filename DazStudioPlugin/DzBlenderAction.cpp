@@ -128,7 +128,7 @@ void DzBlenderAction::executeAction()
 		{
 			dzScene->setPrimarySelection(rootNodes[0]);
 		}
-		else
+		else if (rootNodes.length() > 1)
 		{
 			if (m_nNonInteractiveMode == 0)
 			{
@@ -210,7 +210,7 @@ void DzBlenderAction::executeAction()
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "FIG0";
 			m_sExportFbx = "B_FIG";
-			m_sAssetName = "FIG";
+			m_sExportFilename = "FIG";
 		}
 		else
 		{
@@ -218,7 +218,7 @@ void DzBlenderAction::executeAction()
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "ENV0";
 			m_sExportFbx = "B_ENV";
-			m_sAssetName = "ENV";
+			m_sExportFilename = "ENV";
 		}
 		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
 		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
@@ -258,7 +258,7 @@ QString DzBlenderAction::createBlenderFiles(bool replace)
 
 void DzBlenderAction::writeConfiguration()
 {
-	QString DTUfilename = m_sDestinationPath + m_sAssetName + ".dtu";
+	QString DTUfilename = m_sDestinationPath + m_sExportFilename + ".dtu";
 	QFile DTUfile(DTUfilename);
 	DTUfile.open(QIODevice::WriteOnly);
 	DzJsonWriter writer(&DTUfile);
@@ -271,7 +271,7 @@ void DzBlenderAction::writeConfiguration()
 		QTextStream *pCVSStream = nullptr;
 		if (m_bExportMaterialPropertiesCSV)
 		{
-			QString filename = m_sDestinationPath + m_sAssetName + "_Maps.csv";
+			QString filename = m_sDestinationPath + m_sExportFilename + "_Maps.csv";
 			QFile file(filename);
 			file.open(QIODevice::WriteOnly);
 			pCVSStream = new QTextStream(&file);

@@ -4,7 +4,7 @@
 // Version number for dzBridge-Blender
 #define PLUGIN_MAJOR	2022
 #define PLUGIN_MINOR	1
-#define PLUGIN_REV		10
-#define PLUGIN_BUILD	31
+#define PLUGIN_REV		13
+#define PLUGIN_BUILD	36
 
 #define PLUGIN_VERSION	DZ_MAKE_VERSION( PLUGIN_MAJOR, PLUGIN_MINOR, PLUGIN_REV, PLUGIN_BUILD )

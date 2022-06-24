@@ -38,10 +38,13 @@ protected slots:
 	void HandleAssetTypeComboChange(int state);
 	void HandleTargetPluginInstallerButton();
 	virtual void HandleDisabledChooseSubdivisionsButton();
+	virtual void HandleOpenIntermediateFolderButton(QString sFolderPath="");
 
 protected:
 	QLineEdit* intermediateFolderEdit;
 	QPushButton* intermediateFolderButton;
+
+	virtual void refreshAsset();
 
 #ifdef UNITTEST_DZBRIDGE
 	friend class UnitTest_DzBlenderDialog;
