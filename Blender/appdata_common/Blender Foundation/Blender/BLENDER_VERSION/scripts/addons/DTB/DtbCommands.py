@@ -36,7 +36,7 @@ def search_morph(context):
     if len(key) < 2:
         return
     if key.startswith("#"):
-        WCmd.Command(key[1:], context)
+        Command(key[1:], context)
         return
     cobj = bpy.context.object
     mesh = cobj.data
@@ -366,5 +366,3 @@ class Get_Genital:
         max = len(mesh.shape_keys.key_blocks)
         kb = mesh.shape_keys.key_blocks[max-1]
         kb.slider_min = -1
-
-
