@@ -269,6 +269,10 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.setOpsMode("OBJECT")
             Global.deselect()
 
+            # DB: 2022-Sept-7, Get_Genital()
+            DtbCommands.Get_Genital(dtu)
+            dsk.make_body_mesh_drivers(Global.getBody())
+
             # Shape keys
             dsk.make_drivers()
             Global.deselect()
