@@ -153,9 +153,6 @@ void DzBlenderAction::executeAction()
 		}
 	}
 
-	// TODO: BLENDER SUBDIVISION DISABLED
-	m_bridgeDialog->getSubdivisionEnabledCheckBox()->setChecked(false);
-
 	// Prepare member variables when not using GUI
 	if (m_nNonInteractiveMode == 1)
 	{
@@ -194,11 +191,14 @@ void DzBlenderAction::executeAction()
 	}
 	if (m_nNonInteractiveMode == 1 || dlgResult == QDialog::Accepted)
 	{
+		// Read Common GUI values
+		if (readGui(m_bridgeDialog) == false)
+		{
+			return;
+		}
+
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
-
-		// Read Common GUI values
-		readGui(m_bridgeDialog);
 
 		// Read Custom GUI values
 //		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);

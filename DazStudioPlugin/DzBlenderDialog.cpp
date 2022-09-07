@@ -74,19 +74,19 @@ To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-br
 	 m_WelcomeLabel->setText(sSetupModeString);
 
 	 // Disable Subdivision UI
-	 subdivisionEnabledCheckBox->setChecked(false);
-	 subdivisionEnabledCheckBox->setDisabled(true);
-	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
-	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+//	 subdivisionEnabledCheckBox->setChecked(false);
+//	 subdivisionEnabledCheckBox->setDisabled(true);
+//	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
+//	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
-	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
-	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+//	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
+//	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
 	 //	 subdivisionButton->setDisabled(true);
-	 disconnect(subdivisionButton, 0, this, 0);
-	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
+//	 disconnect(subdivisionButton, 0, this, 0);
+//	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
 
 
 	 // Disable Unsupported AssetType ComboBox Options
@@ -132,6 +132,7 @@ Bridge Export process."));
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3");
 	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
 	 showTargetPluginInstaller(true);
 
@@ -281,6 +282,10 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	else if (softwareVersion.contains("3.2"))
 	{
 		sDestinationPath += "/3.2/scripts";
+	}
+	else if (softwareVersion.contains("3.3"))
+	{
+		sDestinationPath += "/3.3/scripts";
 	}
 	else if (softwareVersion.contains("Custom"))
 	{
