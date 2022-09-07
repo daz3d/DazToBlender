@@ -65,8 +65,9 @@ the tutorials or videos below to install and enable the Blender Plugin for the b
 <ul>\
 <li><a href=\"https://github.com/daz3d/DazToBlender#3-how-to-install\">How To Install and Configure the Bridge (Github)</a></li>\
 <li><a href=\"https://www.daz3d.com/blender-bridge#faq\">Daz To Blender FAQ (Daz 3D)</a></li>\
-<li><a href=\"https://www.youtube.com/watch?v=2os8Ge-HWlQ\">How To Install DazToBlender Bridge (Youtube)</a></li>\
-<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it\">What's New and How To Use It (Daz 3D Forums)</a></li>\
+<li><a href=\"https://www.youtube.com/watch?v=eXjfekMV4sE\">How To Install DazToBlender Bridge (Youtube)</a></li>\
+<li><a href=\"https://youtu.be/IRQimAY3RtE\">Setting up a Custom Import Path and OneDrive compatibility (Youtube)</a></li>\
+<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it/p1\">What's New and How To Use It (Daz 3D Forums)</a></li>\
 </ul>\
 Once the blender plugin is enabled, please add a Character or Prop to the Scene to transfer assets using the Daz To Blender Bridge.<br><br>\
 To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-bridges\">https://www.daz3d.com/daz-bridges</a><br>\
