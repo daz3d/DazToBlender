@@ -36,7 +36,7 @@ def search_morph(context):
     if len(key) < 2:
         return
     if key.startswith("#"):
-        WCmd.Command(key[1:], context)
+        Command(key[1:], context)
         return
     cobj = bpy.context.object
     mesh = cobj.data
@@ -293,15 +293,17 @@ def removeEyelash():
 
 class Get_Genital:
     _EYLS = ""
+    dtu = None
     def eyls(self):
         if self._EYLS!="":
             if self._EYLS in Util.myccobjs():
                 return Util.myccobjs().get(self._EYLS)
         return None
 
-    def __init__(self):
+    def __init__(self,dtu):
         if Global.getBody() is None:
             return
+        self.dtu = dtu
         self.exec_()
 
     def check_eyls(self,dir):
@@ -319,13 +321,18 @@ class Get_Genital:
                     self._EYLS = new_obj_name
 
     def exec_(self):
-        dir = Global.getRootPath()+"GEN" +Global.getFileSp()
+        #dir = Global.getRootPath() +"/GEN/" + Global.getFileSp()
+        dir = Global.getRootPath() + "/FIG/FIG0/"
         if os.path.exists(dir)==False:
+            print("GEN path not found: " + str(dir))
             return
         self.check_eyls(dir)
         Global.deselect()
-        list = os.listdir(dir)
+        #list = os.listdir(dir)
+        list = [str(x) + ".obj" for x in self.dtu.get_morph_links_dict().keys()]
         for lidx,l in enumerate(list):
+            if os.path.exists(dir+l) == False:
+                continue
             if l[len(l)-4:].lower() !='.obj':
                 continue
             now_eyls_obj = None
@@ -366,5 +373,3 @@ class Get_Genital:
         max = len(mesh.shape_keys.key_blocks)
         kb = mesh.shape_keys.key_blocks[max-1]
         kb.slider_min = -1
-
-

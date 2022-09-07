@@ -533,6 +533,20 @@ def import_obj(path):
             split_mode="OFF",
             global_clamp_size=0.0,
         )
+    elif BV < 3.00:
+        bpy.ops.import_scene.obj(
+            filepath=path,
+            axis_forward="-Z",
+            axis_up="Y",
+            filter_glob="*.obj;*.mtl",
+            use_smooth_groups=True,
+            use_split_objects=True,
+            use_split_groups=True,
+            use_groups_as_vgroups=False,
+            use_image_search=True,
+            split_mode="OFF",
+            global_clamp_size=0.0,
+        )
     else:
         bpy.ops.import_scene.obj(
             filepath=path,
@@ -545,7 +559,7 @@ def import_obj(path):
             use_groups_as_vgroups=False,
             use_image_search=True,
             split_mode="OFF",
-            global_clight_size=0.0,
+            global_clamp_size=0.0,
         )
     Global.store_ary(True)
     wnew = Global.what_new()
@@ -577,4 +591,3 @@ def check_custom_shape_scale_equal(obj, value):
             return True
         else:
             return False
-

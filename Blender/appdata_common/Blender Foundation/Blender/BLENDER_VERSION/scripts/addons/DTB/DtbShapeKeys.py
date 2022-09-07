@@ -466,7 +466,11 @@ class DtbShapeKeys:
         morph_links_list = self.load_morph_link_list()
         shape_key_blocks = shape_key.key_blocks
         for key_block in shape_key_blocks:
-            key_name = key_block.name[len(mesh_name + "__") :]
+            if "__" not in key_block.name:
+                key_name = key_block.name
+            else:
+                key_name = key_block.name[len(mesh_name + "__") :]
+            #print("DEBUG: key_name=" + key_name)
 
             # Continue for Basis key block or not found in the morph links list
             if not key_name or key_name not in morph_links_list:

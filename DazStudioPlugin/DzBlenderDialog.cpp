@@ -65,8 +65,9 @@ the tutorials or videos below to install and enable the Blender Plugin for the b
 <ul>\
 <li><a href=\"https://github.com/daz3d/DazToBlender#3-how-to-install\">How To Install and Configure the Bridge (Github)</a></li>\
 <li><a href=\"https://www.daz3d.com/blender-bridge#faq\">Daz To Blender FAQ (Daz 3D)</a></li>\
-<li><a href=\"https://www.youtube.com/watch?v=2os8Ge-HWlQ\">How To Install DazToBlender Bridge (Youtube)</a></li>\
-<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it\">What's New and How To Use It (Daz 3D Forums)</a></li>\
+<li><a href=\"https://www.youtube.com/watch?v=eXjfekMV4sE\">How To Install DazToBlender Bridge (Youtube)</a></li>\
+<li><a href=\"https://youtu.be/IRQimAY3RtE\">Setting up a Custom Import Path and OneDrive compatibility (Youtube)</a></li>\
+<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it/p1\">What's New and How To Use It (Daz 3D Forums)</a></li>\
 </ul>\
 Once the blender plugin is enabled, please add a Character or Prop to the Scene to transfer assets using the Daz To Blender Bridge.<br><br>\
 To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-bridges\">https://www.daz3d.com/daz-bridges</a><br>\
@@ -74,19 +75,19 @@ To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-br
 	 m_WelcomeLabel->setText(sSetupModeString);
 
 	 // Disable Subdivision UI
-	 subdivisionEnabledCheckBox->setChecked(false);
-	 subdivisionEnabledCheckBox->setDisabled(true);
-	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
-	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+//	 subdivisionEnabledCheckBox->setChecked(false);
+//	 subdivisionEnabledCheckBox->setDisabled(true);
+//	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
+//	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
-	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
-	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
+//	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
+//	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
 like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
 Bridge Export process."));
 	 //	 subdivisionButton->setDisabled(true);
-	 disconnect(subdivisionButton, 0, this, 0);
-	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
+//	 disconnect(subdivisionButton, 0, this, 0);
+//	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
 
 
 	 // Disable Unsupported AssetType ComboBox Options
@@ -132,6 +133,7 @@ Bridge Export process."));
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3");
 	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
 	 showTargetPluginInstaller(true);
 
@@ -281,6 +283,10 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	else if (softwareVersion.contains("3.2"))
 	{
 		sDestinationPath += "/3.2/scripts";
+	}
+	else if (softwareVersion.contains("3.3"))
+	{
+		sDestinationPath += "/3.3/scripts";
 	}
 	else if (softwareVersion.contains("Custom"))
 	{
