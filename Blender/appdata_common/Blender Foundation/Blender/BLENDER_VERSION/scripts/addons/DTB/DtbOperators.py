@@ -496,9 +496,20 @@ class TRANS_OT_Rigify(bpy.types.Operator):
             return context.window_manager.invoke_confirm(self, event)
         return self.execute(context)
 
+    @classmethod
+    def poll(cls, context):
+        return Global.amIAmtr(context.object)
+
     def execute(self, context):
         clear_pose()
         Util.active_object_to_current_collection()
+        if Global.getHomeTown() == "":
+            collection = context.object.get('Collection', '0')
+            home_town = os.path.join(Global.getRootPath(), "FIG", "FIG" + collection[-1])
+            if not os.path.exists(home_town):
+                self.report({"ERROR"}, "Daz figure is not selected")
+                return {"CANCELLED"}
+            Global.setHomeTown(home_town)
         dtu = DataBase.DtuLoader()
         trf = ToRigify.ToRigify(dtu)
         db = DataBase.DB()
