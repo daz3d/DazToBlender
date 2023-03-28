@@ -32,6 +32,7 @@ from . import Util
 from . import DtbCommands
 from . import DtbIKBones
 from . import DtbProperties
+from . import DataBase
 
 from bpy.props import PointerProperty
 from bpy.app.handlers import persistent
@@ -244,7 +245,7 @@ class LIMB_OT_redraw(bpy.types.Operator):
             elif i == 2:
                 if w_mgr.ifk2 != flg_ik:
                     w_mgr.ifk2 = flg_ik
-                c = Global.getAmtrConstraint("rFoot", "Copy Rotation")
+                c = Global.getAmtrConstraint(DataBase.translate_bonenames("rFoot"), "Copy Rotation")
                 if c is not None and c.influence != ik_value:
                     c.influence = ik_value
             elif i == 3:

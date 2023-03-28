@@ -99,16 +99,8 @@ class DtbShapeKeys:
         if prefix == "r" and post_prefix.isupper():
             is_right = True
         is_down = False
-        if bone_name in [
-            "hip",
-            "pelvis",
-            "lThighBend",
-            "rThighBend",
-            "lThighTwist",
-            "rThighTwist",
-            "lShin",
-            "rShin",
-        ]:
+        lower_extremities_to_flip = DataBase.get_lower_extremities_to_flip()
+        if bone_name in lower_extremities_to_flip:
             is_down = True
 
         if bone_order == "XYZ":

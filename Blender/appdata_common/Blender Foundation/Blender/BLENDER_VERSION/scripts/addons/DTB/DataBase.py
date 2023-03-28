@@ -117,6 +117,11 @@ class DB:
     def __init__(self):
         pass
 
+    def translate_member_bonenames(self):
+        if Global.getIsG9():
+            # tbl_basic_bones
+            for entry in self.tbl_basic_bones:
+                entry[0] = translate_bonenames(entry[0])
     tbl_facems = [
         "EyelidsUpperUp-DownR",
         "MouthCornerUp-DownR",
@@ -1915,3 +1920,55 @@ mbone_g3 = [
     ["-SmallToe4", 27],
     ["-SmallToe4_2", 40],
 ]
+
+g8_lower_extremity_bones_except_feet = ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]
+g9_lower_extremity_bones_except_feet = ["hip", "pelvis", "l_thigh", "r_thigh", "l_thightwist1", "l_thightwist2", "r_thightwist1", "r_thightwist2", "l_shin", "r_shin"]
+
+def get_Lower_extremity_bones_except_feet():
+    if Global.getIsG9():
+        return g9_lower_extremity_bones_except_feet
+    else:
+        return g8_lower_extremity_bones_except_feet
+
+def get_lower_extremities_to_flip():
+    return g8_lower_extremity_bones_except_feet + g9_lower_extremity_bones_except_feet
+
+# DB 2023-Mar-24: Genesis 8 to 9 bone lookup table
+g8_to_g9_bones_dict = {
+    'lCollar': 'l_shoulder',
+    'lHand': 'l_hand',
+    'lFoot': 'l_foot',
+    'lShin': 'l_shin',
+    'lEye': 'l_eye',
+
+    'rCollar': 'r_shoulder',
+    'rHand': 'r_hand',
+    'rFoot': 'r_foot',
+    'rShin': 'r_shin',
+}
+
+def g8_to_9_bone(bonename_or_names):
+    if isinstance(bonename_or_names, list):
+        return [g8_to_9_bone(bonename) for bonename in bonename_or_names]
+    else:
+        search_name = bonename_or_names
+        if search_name.endswith("_IK"):
+            search_name = search_name[:-3]
+        elif search_name.endswith("_P"):
+            search_name = search_name[:-2]
+        if search_name in g8_to_g9_bones_dict:
+            new_bonename = g8_to_g9_bones_dict[search_name]
+            if bonename_or_names.endswith("_IK"):
+                new_bonename += "_IK"
+            elif bonename_or_names.endswith("_P"):
+                new_bonename += "_P"
+            print("DEBUG: renaming " + bonename_or_names + " to " + new_bonename)
+            return new_bonename
+        else:
+            return bonename_or_names
+
+def translate_bonenames(bonename_or_names):
+    if Global.getIsG9():
+        return g8_to_9_bone(bonename_or_names)
+    else:
+        return bonename_or_names

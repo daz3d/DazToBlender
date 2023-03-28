@@ -2,6 +2,7 @@ import bpy
 from . import Global
 from . import Versions
 from . import Util
+from . import DataBase
 hikfikpole=[0.7,1.7,0.3]
 class CBones:
     face_bones = []
@@ -161,6 +162,7 @@ class CBones:
         Versions.bone_display_type(Global.getAmtr())
         self.find_bone('head')
         limb4 = ['rHand','rFoot','lHand','lFoot']
+        limb4 = DataBase.translate_bonenames(limb4)
         for lb in limb4:
             self.find_bone(lb)
         Global.setOpsMode('POSE')
@@ -334,6 +336,7 @@ class CBones:
         Global.setOpsMode('POSE')
         Global.getAmtr().data.show_bone_custom_shapes = True
         ctl_bones = ['rShin_P','lShin_P','root']
+        ctl_bones = DataBase.translate_bonenames(ctl_bones)
         for i in range(len(ctl_bones)):
             if (ctl_bones[i] in bpy.context.object.pose.bones)==False:
                 continue
@@ -349,6 +352,7 @@ class CBones:
                 Versions.handle_custom_shape_scale(bpy.context.object.pose.bones[ctl_bones[i]], bai)
             bpy.context.object.data.bones[ctl_bones[i]].show_wire = True
         ik_bones = ['rHand', 'lHand', 'rShin', 'lShin']
+        ik_bones = DataBase.translate_bonenames(ik_bones)
         ikshapes = ['hako', 'hako', 'rfoot_cube', 'lfoot_cube']
         for i in range(len(ik_bones)):
             if ((ik_bones[i]+"_IK") in bpy.context.object.pose.bones)==False:
@@ -395,6 +399,7 @@ class CBones:
     def makeEyes(self):
         Global.setOpsMode("EDIT")
         mihon3 = ['MidNoseBridge','rEye','lEye']
+        mihon3 = DataBase.translate_bonenames(mihon3)
         newbname3 = ['mainEye_H','rEye_H','lEye_H']
         for bidx,nbname in enumerate(newbname3):
             if not mihon3[bidx] in bpy.context.object.data.edit_bones.keys():

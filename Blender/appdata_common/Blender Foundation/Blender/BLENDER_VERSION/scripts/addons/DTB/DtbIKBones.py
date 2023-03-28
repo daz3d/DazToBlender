@@ -399,6 +399,7 @@ def adjust_shin_y(idx, flg_ik):
         return
     idx = idx - 2
     bns = ['rShin', 'lShin']
+    bns = DataBase.translate_bonenames(bns)
     Global.setOpsMode('EDIT')
     mobj = Global.getBody()
     if mobj is None:

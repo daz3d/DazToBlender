@@ -225,6 +225,11 @@ class IMP_OT_FBX(bpy.types.Operator):
             reload_dropdowns("choose_daz_figure")
             pose.add_skeleton_data()
 
+            # Translate any global Bone Name(s)
+            DtbIKBones.ik_name = DataBase.translate_bonenames(DtbIKBones.ik_name)
+            DtbIKBones.bone_name = DataBase.translate_bonenames(DtbIKBones.bone_name)
+            db.translate_member_bonenames()
+
             Global.deselect()  # deselect all the objects
             pose.clear_pose()  # Select Armature and clear transform
             drb.mub_ary_A()  # Find and read FIG.dat file

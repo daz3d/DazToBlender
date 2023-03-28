@@ -98,6 +98,10 @@ def getIsG3():
     return get_geo_idx() == G3_GEOIDX
 
 
+# DB 2023-Mar-27: G9 suport
+def getIsG9():
+    return getAmtr().data.bones.find('l_forearmtwist2') != -1
+
 def getIsEmergency():
     return IS_EMERGENCY
 
@@ -1022,17 +1026,8 @@ def bone_limit_modify(bone_limits):
 
         elif do_conversion and order == "YZX":
             # Bones that are pointed down with YZX order
-            # TODO: remove hardcoding
-            if name in [
-                "hip",
-                "pelvis",
-                "lThighBend",
-                "rThighBend",
-                "lThighTwist",
-                "rThighTwist",
-                "lShin",
-                "rShin",
-            ]:
+            lower_extremities_to_flip = DataBase.get_lower_extremities_to_flip()
+            if name in lower_extremities_to_flip:
                 # Y invert (-Y)
                 temp = 0 - bone_limit[5]
                 bone_limit[5] = 0 - bone_limit[4]
