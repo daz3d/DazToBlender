@@ -168,15 +168,15 @@ class SCULPT_OT_push(bpy.types.Operator):
 
 
 class EXP_OT_morph(bpy.types.Operator):
-    bl_idname = "exsport.morph"
+    bl_idname = "export.morph"
     bl_label = "To Daz Morph"
 
     def execute(self, context):
         is_body = context.active_object == Global.getBody()
-        global obj_exsported
+        #global obj_exported
         ddm = DtbDazMorph.DtbDazMorph()
         ddm.before_execute(is_body)
-        flg_ok = ddm.top_exsport()
+        flg_ok = ddm.top_export()
         if flg_ok == False:
             self.report({"ERROR"}, "There is no suitable shape key")
         return {"FINISHED"}

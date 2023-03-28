@@ -33,7 +33,7 @@ bone_name = ['rHand', 'lHand', 'rShin', 'lShin']
 bone_name_rigify = ['MCH-upper_arm_ik.R','MCH-upper_arm_ik.L','MCH-thigh_ik.R','MCH-thigh_ik.L']
 mute_bones = []
 ik_access_ban = False
-obj_exsported = ""
+obj_exported = ""
 
 def get_influece_data_path(bname):
     amtr = Global.getAmtr()
