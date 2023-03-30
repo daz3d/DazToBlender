@@ -258,6 +258,7 @@ class DazRigBlend:
                 bone.ik_stiffness_z = 0.99
                 if "ThighTwist" in bone.name:
                     bone.ik_stiffness_x = 0.99
+            # name changes for Genesis 9
             elif bone.name[2:] == "shin" or "thigh" in bone.name:
                 bone.ik_stiffness_y = 0.99
                 bone.ik_stiffness_z = 0.99
@@ -378,6 +379,8 @@ class DazRigBlend:
 
     def makeIK(self):
         chain_count = [6, 6, 3, 3]
+        if Global.getIsG9():
+            chain_count = [4, 4, 2, 2]
         ctl_bones = ["rHand", "lHand", "rShin", "lShin"]
         ctl_bones = DataBase.translate_bonenames(ctl_bones)
 
@@ -580,6 +583,7 @@ class DazRigBlend:
     def eyes_correct(self):
         bpy.ops.pose.select_all(action="DESELECT")
         eyes = ["lEye", "rEye"]
+        eyes = DataBase.translate_bonenames(eyes)
         for eye in eyes:
             e = Global.getAmtr().pose.bones.get(eye)
             if e is not None:

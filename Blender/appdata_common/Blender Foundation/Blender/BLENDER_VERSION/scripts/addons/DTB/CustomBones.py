@@ -360,6 +360,9 @@ class CBones:
             bai = hikfikpole[1]
             if i > 1:
                 bai = hikfikpole[0]
+                # custom G9 override for foot(shin) IK scale
+                if Global.getIsG9():
+                    bai = 0.7
             bpy.context.object.pose.bones[ik_bones[i] + "_IK"].custom_shape = Util.allobjs().get(ikshapes[i])
             #blender 3.0 break change
             Versions.handle_custom_shape_scale(bpy.context.object.pose.bones[ik_bones[i] + "_IK"], bai)
@@ -403,6 +406,15 @@ class CBones:
         newbname3 = ['mainEye_H','rEye_H','lEye_H']
         for bidx,nbname in enumerate(newbname3):
             if not mihon3[bidx] in bpy.context.object.data.edit_bones.keys():
+                if mihon3[bidx] == "MidNoseBridge" and Global.getIsG9():
+                    # make a fake bone for G9
+                    nose_bone = bpy.context.object.data.edit_bones.new("MidNoseBridge")
+                    r_eye_bone = bpy.context.object.data.edit_bones[mihon3[1]]
+                    l_eye_bone = bpy.context.object.data.edit_bones[mihon3[2]]
+                    for i in range(3):
+                        nose_bone.head[i] = (r_eye_bone.head[i] + l_eye_bone.head[i]) / 2
+                        nose_bone.tail[i] = (r_eye_bone.tail[i] + l_eye_bone.tail[i]) / 2
+                    continue
                 return
         for bidx,nbname in enumerate(newbname3):
             nbone = bpy.context.object.data.edit_bones.new(nbname)
@@ -415,7 +427,9 @@ class CBones:
                     nbone.head[i] -= 10
                     nbone.tail[i] -= 10
             if bidx==0:
-                nbone.parent = Global.getAmtr().data.edit_bones.get('upperFaceRig')
+                if Global.getIsG9():
+                    bpy.context.object.data.edit_bones.remove(mihon)
+                nbone.parent = Global.getAmtr().data.edit_bones.get(DataBase.translate_bonenames('upperFaceRig'))
             else:
                 nbone.parent = Global.getAmtr().data.edit_bones.get(newbname3[0])
         Global.setOpsMode('POSE')

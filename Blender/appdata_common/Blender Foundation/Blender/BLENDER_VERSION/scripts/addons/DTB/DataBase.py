@@ -1921,6 +1921,22 @@ mbone_g3 = [
     ["-SmallToe4_2", 40],
 ]
 
+daz_figure_list = [
+    "Genesis9",
+    "Genesis8Female",
+    "Genesis8Male",
+    "Genesis8_1Male",
+    "Genesis8_1Female",
+    "Genesis3Male",
+    "Genesis3Female",
+    "Genesis2Female",
+    "Genesis2Male",
+    "Genesis",
+]
+
+def get_figure_list():
+    return daz_figure_list
+
 g8_lower_extremity_bones_except_feet = ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]
 g9_lower_extremity_bones_except_feet = ["hip", "pelvis", "l_thigh", "r_thigh", "l_thightwist1", "l_thightwist2", "r_thightwist1", "r_thightwist2", "l_shin", "r_shin"]
 
@@ -1935,16 +1951,26 @@ def get_lower_extremities_to_flip():
 
 # DB 2023-Mar-24: Genesis 8 to 9 bone lookup table
 g8_to_g9_bones_dict = {
+    'upperFaceRig': 'upperfacerig',
+    'CenterBrow': 'centerbrow',
+    'chestUpper': 'spine4',
+    'neckLower': 'neck1',
+
     'lCollar': 'l_shoulder',
+    'lThighBend': 'l_thigh',
+    'lThighTwist': 'l_thightwist1',
     'lHand': 'l_hand',
     'lFoot': 'l_foot',
     'lShin': 'l_shin',
     'lEye': 'l_eye',
 
     'rCollar': 'r_shoulder',
+    'rThighBend': 'r_thigh',
+    'rThighTwist': 'r_thightwist1',
     'rHand': 'r_hand',
     'rFoot': 'r_foot',
     'rShin': 'r_shin',
+    'rEye': 'r_eye',
 }
 
 def g8_to_9_bone(bonename_or_names):
@@ -1962,7 +1988,7 @@ def g8_to_9_bone(bonename_or_names):
                 new_bonename += "_IK"
             elif bonename_or_names.endswith("_P"):
                 new_bonename += "_P"
-            print("DEBUG: renaming " + bonename_or_names + " to " + new_bonename)
+            #print("DEBUG: renaming " + bonename_or_names + " to " + new_bonename)
             return new_bonename
         else:
             return bonename_or_names

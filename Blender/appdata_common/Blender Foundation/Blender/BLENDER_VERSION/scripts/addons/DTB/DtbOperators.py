@@ -502,6 +502,10 @@ class TRANS_OT_Rigify(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
+        ## TODO: add G9 support
+        if Global.getIsG9():
+            self.report({"ERROR"}, "Genesis 9 is not supported yet in the auto Rigify tool.")
+            return {"FINISHED"}
         clear_pose()
         Util.active_object_to_current_collection()
         dtu = DataBase.DtuLoader()
