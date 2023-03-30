@@ -428,11 +428,28 @@ class IMP_OT_POSE(bpy.types.Operator, ImportHelper):
 class CLEAR_OT_Pose(bpy.types.Operator):
 
     bl_idname = "my.clear"
-    bl_label = "Clear All Pose"
+    bl_label = "Clear All Poses"
 
     def clear_pose(self):
         if bpy.context.object is None:
             return
+        # if context is not pose mode, switch to pose mode
+        if bpy.context.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        # disable IK handles
+        ik_undo_table = [False, False, False, False]
+        try:
+            for idx in range(4):
+                ik_value = DtbIKBones.get_ik_influence(
+                    DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[idx])
+                )
+                if ik_value >= 0.5:
+                    ik_undo_table[idx] = True
+                DtbIKBones.bone_disp(idx, True)
+                DtbIKBones.iktofk(idx)
+                DtbIKBones.reset_pole(idx)
+        except:
+            pass
         if (
             Global.getAmtr() is not None
             and Versions.get_active_object() == Global.getAmtr()
@@ -446,6 +463,15 @@ class CLEAR_OT_Pose(bpy.types.Operator):
             for pb in Global.getRgfy().pose.bones:
                 pb.bone.select = True
         bpy.ops.pose.transforms_clear()
+        bpy.ops.pose.select_all(action="DESELECT")
+        # restore IK handles
+        try:
+            for idx in range(4):
+                if ik_undo_table[idx]:
+                    DtbIKBones.bone_disp(idx, False)
+                    DtbIKBones.fktoik(idx)
+        except:
+            pass
         bpy.ops.pose.select_all(action="DESELECT")
 
     def execute(self, context):

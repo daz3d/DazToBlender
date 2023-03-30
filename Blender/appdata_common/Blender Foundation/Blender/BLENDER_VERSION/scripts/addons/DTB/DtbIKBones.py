@@ -381,6 +381,16 @@ def bone_disp(idx, flg_hide):
         if pole in abones:
             bone_disp2(idx+2, pbones.get(pole), abones.get(pole),flg_hide)
 
+def reset_pole(idx):
+    if idx < 0 or idx >= len(ik_name):
+        return
+    pole = ik_name[idx][0:len(ik_name[idx])-2]
+    pole = pole + 'P'
+    pole_bone = Global.getAmtr().pose.bones.get(pole)
+    if pole_bone is None:
+        return
+    pole_bone.location = [0, 0, 0]
+    pole_bone.rotation_quaternion = [1, 0, 0, 0]
 
 
 # def bonerange_onoff(self):
