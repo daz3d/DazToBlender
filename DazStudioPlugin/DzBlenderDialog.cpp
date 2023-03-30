@@ -134,6 +134,9 @@ Bridge Export process."));
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6");
 	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
 	 showTargetPluginInstaller(true);
 
@@ -287,6 +290,18 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	else if (softwareVersion.contains("3.3"))
 	{
 		sDestinationPath += "/3.3/scripts";
+	}
+	else if (softwareVersion.contains("3.4"))
+	{
+		sDestinationPath += "/3.4/scripts";
+	}
+	else if (softwareVersion.contains("3.5"))
+	{
+		sDestinationPath += "/3.5/scripts";
+	}
+	else if (softwareVersion.contains("3.6"))
+	{
+		sDestinationPath += "/3.6/scripts";
 	}
 	else if (softwareVersion.contains("Custom"))
 	{
