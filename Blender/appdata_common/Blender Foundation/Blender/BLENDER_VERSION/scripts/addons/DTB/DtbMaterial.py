@@ -244,6 +244,9 @@ class DtbShaders:
             "EyeMoisture.00",
             "EylsMoisture",
             "Tear",
+            # G9 material support
+            "EyeMoisture Left",
+            "EyeMoisture Right",
         ]:
             return "EyeWet"
 
@@ -324,6 +327,11 @@ class DtbShaders:
                 "Tear",
                 "Eyelashes",
                 "Glass",
+                # G9 material support
+                "EyeMoisture Left",
+                "EyeMoisture Right",
+                "Eye Left",
+                "Eye Right",
             ]:
                 Versions.eevee_alpha(mat, "HASHED", 0)
 
