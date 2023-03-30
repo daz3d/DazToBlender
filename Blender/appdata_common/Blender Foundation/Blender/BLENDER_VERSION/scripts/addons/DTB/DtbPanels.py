@@ -110,10 +110,10 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
                     if Versions.get_active_object().mode == "OBJECT":
                         l.prop(w_mgr, "new_morph", text="Make New Morph")
                     row = l.row(align=True)
-                    row.operator("exsport.morph", icon="TRIA_LEFT")
+                    row.operator("export.morph", icon="TRIA_LEFT")
                     row.operator("to.sculpt", icon="MONKEY")
-                    if DtbIKBones.obj_exsported != "":
-                        l.label(text=DtbIKBones.obj_exsported)
+                    if DtbIKBones.obj_exported != "":
+                        l.label(text=DtbIKBones.obj_exported)
 
                 l.separator()
 

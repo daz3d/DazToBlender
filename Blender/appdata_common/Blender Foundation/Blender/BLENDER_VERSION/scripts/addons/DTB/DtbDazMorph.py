@@ -79,7 +79,7 @@ class DtbDazMorph():
             if kblen > 0:
                 bpy.context.active_object.active_shape_key_index = kblen - 1
 ##########export################################################################################
-    def top_exsport(self):
+    def top_export(self):
         dobj = Versions.get_active_object()
         if Global.isRiggedObject(dobj)==False:
             return
@@ -91,7 +91,7 @@ class DtbDazMorph():
         root = Global.getRootPath() + self.KWORD
         if (os.path.exists(path) and os.path.isdir(path))==False:
             os.makedirs(path)
-        flg_ok = self.exsport_1morph(dobj.name,path)
+        flg_ok = self.export_1morph(dobj.name,path)
         if flg_ok:
             import subprocess
             if os.name == 'nt':
@@ -102,7 +102,7 @@ class DtbDazMorph():
         else:
             return False
 
-    def exsport_1morph(self, objname, path):
+    def export_1morph(self, objname, path):
         self.flg_human = objname == Global.get_Body_name()
         dobj = bpy.data.objects.get(objname)
         mesh = dobj.data

@@ -28,12 +28,26 @@ import time
 
 BV = Versions.getBV()
 num_bones = [6, 6, 3, 3]
+# G9 support
+num_bones_G9 = [4, 4, 2, 2]
 ik_name = ['rHand_IK', 'lHand_IK', 'rShin_IK', 'lShin_IK']
 bone_name = ['rHand', 'lHand', 'rShin', 'lShin']
 bone_name_rigify = ['MCH-upper_arm_ik.R','MCH-upper_arm_ik.L','MCH-thigh_ik.R','MCH-thigh_ik.L']
 mute_bones = []
 ik_access_ban = False
-obj_exsported = ""
+obj_exported = ""
+
+def get_num_bones(index):
+    if index is None:
+        return get_num_bones_array()
+    if Global.getIsG9():
+        return num_bones_G9[index]
+    return num_bones[index]
+
+def get_num_bones_array():
+    if Global.getIsG9():
+        return num_bones_G9
+    return num_bones
 
 def get_influece_data_path(bname):
     amtr = Global.getAmtr()
@@ -104,14 +118,16 @@ def manageKeyFrame(index, flg_to_ik, switch):
     if switch<0:
         mute_bones = []
         my_bone = amt.pose.bones[bone_name[index]]
-        num = num_bones[index]
+        num = get_num_bones(index)
         for i in range(num):
             mute_bones.append(my_bone.name)
             my_bone = my_bone.parent
         mute_bones.append(ik_name[index])
         if index>1:
             poles = ['', '', 'rShin_P', 'lShin_P']
+            poles = DataBase.translate_bonenames(poles)
             foots = ['', '', 'rFoot', 'lFoot']
+            foots = DataBase.translate_bonenames(foots)
             mute_bones.append(poles[index])
             mute_bones.append(foots[index])
         if flg_to_ik:
@@ -125,6 +141,7 @@ def manageKeyFrame(index, flg_to_ik, switch):
         first_ik = fkp_ik.skip_first(first_ik)
         if index > 1:
             foots = ['', '', 'rFoot', 'lFoot']
+            foots = DataBase.translate_bonenames(foots)
             fkp_cr = Find_KeyFrame_Point(act.fcurves, mute_bones, ['influence', 'Copy Rotation',foots[index]], ckey)
             prev_cr = fkp_cr.previous
             first_cr= fkp_cr.skip_first(first_cr)
@@ -134,7 +151,9 @@ def manageKeyFrame(index, flg_to_ik, switch):
             first_ik = -999
         for b in mute_bones:
             for c in amt.pose.bones.get(b).constraints:
-                if (index > 1 and c.name == 'Copy Rotation' and b[1:]=='Foot'):
+                # G9 support
+                if (index > 1 and c.name == 'Copy Rotation'
+                    and (b[1:]=='Foot' or b[1:]=='_foot') ):
                     if first_cr > -1:
                         c.keyframe_insert(data_path='influence', frame=first_cr)
                     if prev_cr > -1:
@@ -230,9 +249,8 @@ def fktoik(index):
     ik_bone.matrix = set_translation(ik_bone.matrix, my_bone.tail)
     set_ik(get_influece_data_path(bone_name[index]))
     if index>1:
-        rot3 = Global.getFootAngle(index-2)
-        for ridx,rot in enumerate(rot3):
-            ik_bone.rotation_euler[ridx] = math.radians(rot)
+        rot_matrix = Global.getFootAngle_matrix(index-2)
+        ik_bone.matrix = rot_matrix
         toFootCopyRotate(index,True)
     manageKeyFrame(index, True, 0)
     if index == 0:
@@ -250,6 +268,7 @@ def fktoik(index):
 
 def toFootCopyRotate(index,flg_ik):
     copy_r = ['','','rFoot', 'lFoot']
+    copy_r = DataBase.translate_bonenames(copy_r)
     pbone = Global.getAmtr().pose.bones
     if pbone is None:
         return
@@ -291,12 +310,12 @@ def iktofk(index):
     Global.setOpsMode('OBJECT')
     Global.setOpsMode('POSE')
     ik_bone_matrixes = []
-    if my_bone.name=='lShin':
-        my_bone = amt.pose.bones.get('lFoot')
-    elif my_bone.name == 'rShin':
-        my_bone = amt.pose.bones.get('rFoot')
+    if my_bone.name == DataBase.translate_bonenames('lShin'):
+        my_bone = amt.pose.bones.get(DataBase.translate_bonenames('lFoot'))
+    elif my_bone.name == DataBase.translate_bonenames('rShin'):
+        my_bone = amt.pose.bones.get(DataBase.translate_bonenames('rFoot'))
     it = my_bone
-    for i in range(num_bones[index]+1):
+    for i in range(get_num_bones(index)+1):
         if it == None:
             continue
         mx = deepcopy(it.matrix)
@@ -306,10 +325,11 @@ def iktofk(index):
     if index >1:
         toFootCopyRotate(index,False)
     it = my_bone
-    for i in range(num_bones[index] + 1):
+    for i in range(get_num_bones(index) + 1):
         if it == None:
             continue
         it.matrix = deepcopy(ik_bone_matrixes[i])
+        # print("\nDEBUG: DEEP_COPY VERIFICATION: iktofk(): it.name = " + it.name  + "\nit.matrix =\n" + str(it.matrix) + "\nmx =\n" + str(ik_bone_matrixes[i]) )
         it = it.parent
     manageKeyFrame(index, False, 0)
     if index == 0:
@@ -327,6 +347,9 @@ def iktofk(index):
 
 def bone_disp2(idx,pose_bone,amt_bone,flg_hide):
     hfp = CustomBones.hikfikpole
+    # custom G9 override for foot(shin) IK scale
+    if Global.getIsG9():
+        hfp[1] = 0.7
     scales = [hfp[0],hfp[0],hfp[1],hfp[1],hfp[2],hfp[2]]
     if amt_bone is None or pose_bone is None:
         return
@@ -358,6 +381,16 @@ def bone_disp(idx, flg_hide):
         if pole in abones:
             bone_disp2(idx+2, pbones.get(pole), abones.get(pole),flg_hide)
 
+def reset_pole(idx):
+    if idx < 0 or idx >= len(ik_name):
+        return
+    pole = ik_name[idx][0:len(ik_name[idx])-2]
+    pole = pole + 'P'
+    pole_bone = Global.getAmtr().pose.bones.get(pole)
+    if pole_bone is None:
+        return
+    pole_bone.location = [0, 0, 0]
+    pole_bone.rotation_quaternion = [1, 0, 0, 0]
 
 
 # def bonerange_onoff(self):
@@ -399,6 +432,7 @@ def adjust_shin_y(idx, flg_ik):
         return
     idx = idx - 2
     bns = ['rShin', 'lShin']
+    bns = DataBase.translate_bonenames(bns)
     Global.setOpsMode('EDIT')
     mobj = Global.getBody()
     if mobj is None:
@@ -419,6 +453,8 @@ def adjust_shin_y(idx, flg_ik):
             vidx = fm_ikfk[0][1]
     if Global.getIsGen():
         vidx = Global.toGeniVIndex(vidx)
+    if Global.getIsG9():
+        return
     Global.getAmtr().data.edit_bones[bns[idx]].head[1] = vgs[vidx].co[1]
     Global.setOpsMode('POSE')
     if flg_ik:

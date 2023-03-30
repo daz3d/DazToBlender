@@ -258,6 +258,12 @@ class DazRigBlend:
                 bone.ik_stiffness_z = 0.99
                 if "ThighTwist" in bone.name:
                     bone.ik_stiffness_x = 0.99
+            # name changes for Genesis 9
+            elif bone.name[2:] == "shin" or "thigh" in bone.name:
+                bone.ik_stiffness_y = 0.99
+                bone.ik_stiffness_z = 0.99
+                if "twist" in bone.name:
+                    bone.ik_stiffness_x = 0.99
 
     def ifitsman(self, bname, roll):
         if Global.getIsMan():
@@ -339,16 +345,17 @@ class DazRigBlend:
     def makePole(self):
         dobj = Global.getAmtr()
         pole_bones = ["lShin", "pelvis", "root"]
+        pole_bones = DataBase.translate_bonenames(pole_bones)
         make_pole = 0
         for bone in dobj.data.edit_bones.keys():
             if bone in pole_bones:
                 make_pole += 1
         if make_pole == 3:
             poles = [
-                dobj.data.edit_bones.new("rShin_P"),
-                dobj.data.edit_bones.new("lShin_P"),
+                dobj.data.edit_bones.new(DataBase.translate_bonenames("rShin_P")),
+                dobj.data.edit_bones.new(DataBase.translate_bonenames("lShin_P")),
             ]
-            lshin = dobj.data.edit_bones["lShin"]
+            lshin = dobj.data.edit_bones[DataBase.translate_bonenames("lShin")]
             adl = dobj.data.edit_bones["pelvis"]
             yjiku = [adl.tail[2], adl.head[2]]
             yjiku[0] = yjiku[0] + (yjiku[1] - yjiku[0]) / 2
@@ -372,7 +379,10 @@ class DazRigBlend:
 
     def makeIK(self):
         chain_count = [6, 6, 3, 3]
+        if Global.getIsG9():
+            chain_count = [4, 4, 2, 2]
         ctl_bones = ["rHand", "lHand", "rShin", "lShin"]
+        ctl_bones = DataBase.translate_bonenames(ctl_bones)
 
         make_ik = 0
         Global.setOpsMode("EDIT")
@@ -399,6 +409,7 @@ class DazRigBlend:
                                 # ikbone.roll = bn.roll
                         else:
                             fts = ["rFoot", "lFoot"]
+                            fts = DataBase.translate_bonenames(fts)
                             ft = amt.data.edit_bones.get(fts[i - 2])
                             if ft is not None:
                                 for j in range(3):
@@ -428,6 +439,7 @@ class DazRigBlend:
 
     def copy_rotation(self):
         crbones = ["rFoot", "lFoot", "rShin_IK", "lShin_IK"]
+        crbones = DataBase.translate_bonenames(crbones)
         amt = Global.getAmtr()
         for i in range(2):
             c = amt.pose.bones[crbones[i]].constraints.new("COPY_ROTATION")
@@ -440,6 +452,7 @@ class DazRigBlend:
             c.use_z = True
             c.influence = 0.0
         h_iks = ["rHand_IK", "lHand_IK"]
+        h_iks = DataBase.translate_bonenames(h_iks)
         for hik in h_iks:
             phik = amt.pose.bones.get(hik)
             if phik is not None:
@@ -512,6 +525,7 @@ class DazRigBlend:
                         m.use_deform_preserve_volume = True
                 ob.use_shape_key_edit_mode = True
         b3 = ["root", "rShin_P", "lShin_P"]
+        b3 = DataBase.translate_bonenames(b3)
         for b in b3:
             pb = Global.getAmtr().pose.bones.get(b)
             if pb is not None:
@@ -569,6 +583,7 @@ class DazRigBlend:
     def eyes_correct(self):
         bpy.ops.pose.select_all(action="DESELECT")
         eyes = ["lEye", "rEye"]
+        eyes = DataBase.translate_bonenames(eyes)
         for eye in eyes:
             e = Global.getAmtr().pose.bones.get(eye)
             if e is not None:

@@ -252,7 +252,8 @@ class Animations:
                     elif rotation_order == "YZX":
                         # Bones that are pointed down with YZX order
                         # TODO: remove hardcoding
-                        if node_name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
+                        lower_extremities_to_flip = DataBase.get_lower_extremities_to_flip()
+                        if node_name in lower_extremities_to_flip:
                             for i in range(point_count):
                                 # Y invert (-Y)
                                 fcurve_y.keyframe_points[i].co[1] = -fcurve_y.keyframe_points[i].co[1]

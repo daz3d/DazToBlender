@@ -225,6 +225,11 @@ class IMP_OT_FBX(bpy.types.Operator):
             reload_dropdowns("choose_daz_figure")
             pose.add_skeleton_data()
 
+            # Translate any global Bone Name(s)
+            DtbIKBones.ik_name = DataBase.translate_bonenames(DtbIKBones.ik_name)
+            DtbIKBones.bone_name = DataBase.translate_bonenames(DtbIKBones.bone_name)
+            db.translate_member_bonenames()
+
             Global.deselect()  # deselect all the objects
             pose.clear_pose()  # Select Armature and clear transform
             drb.mub_ary_A()  # Find and read FIG.dat file
@@ -423,11 +428,28 @@ class IMP_OT_POSE(bpy.types.Operator, ImportHelper):
 class CLEAR_OT_Pose(bpy.types.Operator):
 
     bl_idname = "my.clear"
-    bl_label = "Clear All Pose"
+    bl_label = "Clear All Poses"
 
     def clear_pose(self):
         if bpy.context.object is None:
             return
+        # if context is not pose mode, switch to pose mode
+        if bpy.context.mode != "POSE":
+            bpy.ops.object.mode_set(mode="POSE")
+        # disable IK handles
+        ik_undo_table = [False, False, False, False]
+        try:
+            for idx in range(4):
+                ik_value = DtbIKBones.get_ik_influence(
+                    DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[idx])
+                )
+                if ik_value >= 0.5:
+                    ik_undo_table[idx] = True
+                DtbIKBones.bone_disp(idx, True)
+                DtbIKBones.iktofk(idx)
+                DtbIKBones.reset_pole(idx)
+        except:
+            pass
         if (
             Global.getAmtr() is not None
             and Versions.get_active_object() == Global.getAmtr()
@@ -441,6 +463,15 @@ class CLEAR_OT_Pose(bpy.types.Operator):
             for pb in Global.getRgfy().pose.bones:
                 pb.bone.select = True
         bpy.ops.pose.transforms_clear()
+        bpy.ops.pose.select_all(action="DESELECT")
+        # restore IK handles
+        try:
+            for idx in range(4):
+                if ik_undo_table[idx]:
+                    DtbIKBones.bone_disp(idx, False)
+                    DtbIKBones.fktoik(idx)
+        except:
+            pass
         bpy.ops.pose.select_all(action="DESELECT")
 
     def execute(self, context):
@@ -497,6 +528,10 @@ class TRANS_OT_Rigify(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
+        ## TODO: add G9 support
+        if Global.getIsG9():
+            self.report({"ERROR"}, "Genesis 9 is not supported yet in the auto Rigify tool.")
+            return {"FINISHED"}
         clear_pose()
         Util.active_object_to_current_collection()
         dtu = DataBase.DtuLoader()

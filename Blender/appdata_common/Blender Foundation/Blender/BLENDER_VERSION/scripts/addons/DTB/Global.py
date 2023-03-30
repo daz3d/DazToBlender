@@ -98,6 +98,10 @@ def getIsG3():
     return get_geo_idx() == G3_GEOIDX
 
 
+# DB 2023-Mar-27: G9 suport
+def getIsG9():
+    return getAmtr().data.bones.find('l_forearmtwist2') != -1
+
 def getIsEmergency():
     return IS_EMERGENCY
 
@@ -349,17 +353,7 @@ def find_BODY(dobj):
                 if modifier.object.name == _AMTR or modifier.object.name == _RGFY:
                     figure_name = dobj.name.replace(".Shape", "")
                     figure_name = figure_name.split(".")[0]
-                    if figure_name in [
-                        "Genesis8Female",
-                        "Genesis8Male",
-                        "Genesis8_1Male",
-                        "Genesis8_1Female",
-                        "Genesis3Male",
-                        "Genesis3Female",
-                        "Genesis2Female",
-                        "Genesis2Male",
-                        "Genesis",
-                    ]:
+                    if figure_name in DataBase.get_figure_list():
                         _BODY = dobj.name
                         return True
 
@@ -1022,17 +1016,8 @@ def bone_limit_modify(bone_limits):
 
         elif do_conversion and order == "YZX":
             # Bones that are pointed down with YZX order
-            # TODO: remove hardcoding
-            if name in [
-                "hip",
-                "pelvis",
-                "lThighBend",
-                "rThighBend",
-                "lThighTwist",
-                "rThighTwist",
-                "lShin",
-                "rShin",
-            ]:
+            lower_extremities_to_flip = DataBase.get_lower_extremities_to_flip()
+            if name in lower_extremities_to_flip:
                 # Y invert (-Y)
                 temp = 0 - bone_limit[5]
                 bone_limit[5] = 0 - bone_limit[4]
@@ -1150,6 +1135,19 @@ def toMergeWeight_str(dobj, ruler_name, slave_names, flg_head, flg_half):
             toMergeWeight2(dobj, ruler, slave, flg_half)
         else:
             toMergeWeight(dobj, ruler, slave)
+
+def getFootAngle_matrix(r_l):
+    bones = ["hip", "pelvis", "ThighBend", "ThighTwist", "Shin", "Foot"]
+    if getIsG9():
+        bones = ["hip", "pelvis", "_thigh", "", "_shin", "_foot"]
+    bone_name = "l" + bones[-1]
+    if r_l == 0:
+        bone_name = "r" + bones[-1]
+    pose_bone = getAmtr().pose.bones.get(bone_name)
+    if pose_bone is None:
+        return [0, 0, 0]
+    return_matrix = pose_bone.matrix
+    return return_matrix
 
 
 def getFootAngle(r_l):

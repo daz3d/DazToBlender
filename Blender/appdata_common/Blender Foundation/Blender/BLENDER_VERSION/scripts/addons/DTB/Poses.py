@@ -403,8 +403,8 @@ class Posing:
 
         elif rotation_order == "YZX":
         # Bones that are pointed down with YZX order
-        # TODO: remove hardcoding
-            if name in ["hip", "pelvis", "lThighBend", "rThighBend", "lThighTwist", "rThighTwist", "lShin", "rShin"]:
+            lower_extremities_to_flip = DataBase.get_lower_extremities_to_flip()
+            if name in lower_extremities_to_flip:
                 # Y invert (-Y)
                 rotations[1] = -rotations[1]
 

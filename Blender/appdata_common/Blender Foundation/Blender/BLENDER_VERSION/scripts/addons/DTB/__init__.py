@@ -1,7 +1,7 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2022, 2, 17, 40),
+    "version": (2022, 2, 19, 43),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
     "description": "Daz 3D Genesis 3/8 transfer to Blender",
@@ -32,6 +32,7 @@ from . import Util
 from . import DtbCommands
 from . import DtbIKBones
 from . import DtbProperties
+from . import DataBase
 
 from bpy.props import PointerProperty
 from bpy.app.handlers import persistent
@@ -167,15 +168,15 @@ class SCULPT_OT_push(bpy.types.Operator):
 
 
 class EXP_OT_morph(bpy.types.Operator):
-    bl_idname = "exsport.morph"
+    bl_idname = "export.morph"
     bl_label = "To Daz Morph"
 
     def execute(self, context):
         is_body = context.active_object == Global.getBody()
-        global obj_exsported
+        #global obj_exported
         ddm = DtbDazMorph.DtbDazMorph()
         ddm.before_execute(is_body)
-        flg_ok = ddm.top_exsport()
+        flg_ok = ddm.top_export()
         if flg_ok == False:
             self.report({"ERROR"}, "There is no suitable shape key")
         return {"FINISHED"}
@@ -244,7 +245,7 @@ class LIMB_OT_redraw(bpy.types.Operator):
             elif i == 2:
                 if w_mgr.ifk2 != flg_ik:
                     w_mgr.ifk2 = flg_ik
-                c = Global.getAmtrConstraint("rFoot", "Copy Rotation")
+                c = Global.getAmtrConstraint(DataBase.translate_bonenames("rFoot"), "Copy Rotation")
                 if c is not None and c.influence != ik_value:
                     c.influence = ik_value
             elif i == 3:
