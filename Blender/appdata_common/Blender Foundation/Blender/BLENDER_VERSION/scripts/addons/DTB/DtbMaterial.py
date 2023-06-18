@@ -301,7 +301,7 @@ class DtbShaders:
 
     # TODO: Check for all Color Maps
     def check_map_type(self, property_key):
-        if "Diffuse" in property_key:
+        if "Diffuse" in property_key or "Base Color" in property_key:
             self.is_Diffuse = True
         else:
             self.is_Diffuse = False
