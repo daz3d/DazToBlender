@@ -158,7 +158,7 @@ class RENAME_MORPHS(bpy.types.Operator):
 # End of Utlity Classes
 # Start of Import Classes
 class IMP_OT_FBX(bpy.types.Operator):
-    """Supports Genesis 3, 8, and 8.1"""
+    """Supports Genesis 3, 8, 8.1 and 9"""
 
     bl_idname = "import.fbx"
     bl_label = "Import New Genesis Figure"
@@ -179,7 +179,7 @@ class IMP_OT_FBX(bpy.types.Operator):
         Util.deleteEmptyDazCollection()
         if bpy.context.window_manager.update_scn_settings:
             bpy.context.preferences.inputs.use_mouse_depth_navigate = True
-            bpy.context.scene.render.engine = "CYCLES"
+            # bpy.context.scene.render.engine = "CYCLES"
             bpy.context.space_data.shading.type = "SOLID"
             bpy.context.space_data.shading.color_type = "OBJECT"
             bpy.context.space_data.shading.show_shadows = False

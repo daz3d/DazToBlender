@@ -54,23 +54,29 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Set the dialog title
 	 int revision = PLUGIN_REV % 1000;
 #ifdef _DEBUG
-	 setWindowTitle(tr("Daz To Blender Bridge %1.%2 Build %3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD));
+	 setWindowTitle(tr("Daz To Blender Bridge %1 v%2.%3.%4 PreRelease Build").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD));
 #else
-	 setWindowTitle(tr("Daz To Blender Bridge %1.%2").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR));
+	 setWindowTitle(tr("Daz To Blender Bridge %1 v%2.%3").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision));
 #endif
 
-	 QString sSetupModeString = tr("<h4>\
-If this is your first time using the Daz To Blender Bridge, please be sure to read or watch \
-the tutorials or videos below to install and enable the Blender Plugin for the bridge:</h4>\
-<ul>\
-<li><a href=\"https://github.com/daz3d/DazToBlender#3-how-to-install\">How To Install and Configure the Bridge (Github)</a></li>\
-<li><a href=\"https://www.daz3d.com/blender-bridge#faq\">Daz To Blender FAQ (Daz 3D)</a></li>\
-<li><a href=\"https://www.youtube.com/watch?v=eXjfekMV4sE\">How To Install DazToBlender Bridge (Youtube)</a></li>\
-<li><a href=\"https://youtu.be/IRQimAY3RtE\">Setting up a Custom Import Path and OneDrive compatibility (Youtube)</a></li>\
-<li><a href=\"https://www.daz3d.com/forums/discussion/572806/official-daztoblender-bridge-2022-what-s-new-and-how-to-use-it/p1\">What's New and How To Use It (Daz 3D Forums)</a></li>\
-</ul>\
-Once the blender plugin is enabled, please add a Character or Prop to the Scene to transfer assets using the Daz To Blender Bridge.<br><br>\
-To find out more about Daz Bridges, go to <a href=\"https://www.daz3d.com/daz-bridges\">https://www.daz3d.com/daz-bridges</a><br>\
+	 QString sDazAppDir = dzApp->getHomePath().replace("\\","/");
+	 QString sPdfPath = sDazAppDir + "/docs/Plugins" + "/Daz to Blender/Daz to Blender.pdf";
+	 QString sSetupModeString = tr("\
+<div style=\"background-color:#282f41;\" align=center>\
+<img src=\":/DazBridgeBlender/banner.jpg\" width=\"370\" height=\"95\" align=\"center\" hspace=\"0\" vspace=\"0\">\
+<table width=100% cellpadding=8 cellspacing=2 style=\"vertical-align:middle; font-size:x-large; font-weight:bold; background-color:#FFAA00;foreground-color:#FFFFFF\" align=center>\
+  <tr>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://www.daz3d.com/blender-bridge#faq\">FAQ</a></div></td>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://youtu.be/uyZb545tDks\">Installation Video</a></td>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://youtu.be/iYUjVWGiSyM\">Tutorial Video</a></td>\
+  </tr>\
+  <tr>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"") + sPdfPath + tr("\">PDF</a></td>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://www.daz3d.com/forums/categories/blender-discussion\">Forums</a></td>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://github.com/daz3d/DazToBlender/issues\">Report Bug</a></td>\
+  </tr>\
+</table>\
+</div>\
 ");
 	 m_WelcomeLabel->setText(sSetupModeString);
 
@@ -88,7 +94,6 @@ Bridge Export process."));
 	 //	 subdivisionButton->setDisabled(true);
 //	 disconnect(subdivisionButton, 0, this, 0);
 //	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
-
 
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
@@ -121,7 +126,7 @@ Bridge Export process."));
 		 advancedLayout->addRow("Intermediate Folder", intermediateFolderLayout);
 	 }
 #endif
-	 QString sBlenderVersionString = tr("DazToBlender Bridge %1.%2  revision %3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD);
+	 QString sBlenderVersionString = tr("DazToBlender Bridge %1 v%2.%3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD);
 	 setBridgeVersionStringAndLabel(sBlenderVersionString);
 
 	 // Configure Target Plugin Installer

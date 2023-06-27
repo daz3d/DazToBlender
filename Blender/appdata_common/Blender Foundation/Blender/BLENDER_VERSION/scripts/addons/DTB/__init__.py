@@ -1,10 +1,10 @@
 bl_info = {
     "name": "DazToBlender",
     "author": "Daz 3D | https://www.daz3d.com",
-    "version": (2023, 1, 0, 4),
+    "version": (2023, 1, 0, 5),
     "blender": (2, 80, 0),
     "location": "3DView > ToolShelf",
-    "description": "Daz 3D Genesis 3/8 transfer to Blender",
+    "description": "Daz 3D transfer to Blender",
     "warning": "",
     "support": "COMMUNITY",
     "doc_url": "https://github.com/daz3d/DazToBlender/#readme",
