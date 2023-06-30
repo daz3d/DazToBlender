@@ -2,8 +2,7 @@
 <RCC version="1.0">
     <qresource prefix="/DazBridgeBlender">
         <file alias="blenderplugin.zip">blenderplugin.zip</file>
-    </qresource>
-    <qresource prefix="/DazBridgeBlender/Images">
         <file alias="icon">Images/Daz to Blender.png</file>
+        <file alias="banner.jpg">Images/banner.jpg</file>
     </qresource>
 </RCC>

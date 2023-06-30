@@ -177,6 +177,12 @@ class DtbShaders:
         self.is_Refract = False
         self.is_Alpha = False
 
+    # DB 2023-June-27: work-around for new materials (since obj is re-used)
+    def reset_material_settings(self):
+        self.is_Diffuse = False
+        self.is_Refract = False
+        self.is_Alpha = False
+
     # TODO: Find a better way to create the dict
     def make_dct(self):
         mat_info_list = self.material_list
@@ -301,14 +307,16 @@ class DtbShaders:
 
     # TODO: Check for all Color Maps
     def check_map_type(self, property_key):
-        if "Diffuse" in property_key:
+        if "Diffuse" in property_key or "Base Color" in property_key:
             self.is_Diffuse = True
         else:
             self.is_Diffuse = False
-        if "Opacity" in property_key:
+
+        # DB 2023-June-27: Alpha-Fix: Turn on alpha, and leave on for this material
+        if "Opacity" in property_key and self.is_Alpha == False:
             self.is_Alpha = True
-        else:
-            self.is_Alpha = False
+        # else:
+        #     self.is_Alpha = False
 
     def check_refract(self):
         if "Refraction Weight" in self.mat_property_dict.keys():
@@ -361,6 +369,7 @@ class DtbShaders:
     def setup_materials(self, obj):
         for mat_slot in obj.material_slots:
 
+            self.reset_material_settings()
             mat = mat_slot.material
             mat_name = mat.name
 
