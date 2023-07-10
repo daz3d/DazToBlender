@@ -345,7 +345,8 @@ def iktofk(index):
         t = threading.Thread(target=my_srv3_0)
         t.start()
 
-def bone_disp2(idx,pose_bone,amt_bone,flg_hide):
+## DB 2023-July-02: internal utility function that should only be called by hide_ik()
+def hide_ik_2(idx,pose_bone,amt_bone,flg_hide):
     hfp = CustomBones.hikfikpole
     # custom G9 override for foot(shin) IK scale
     if Global.getIsG9():
@@ -361,25 +362,29 @@ def bone_disp2(idx,pose_bone,amt_bone,flg_hide):
     else:
         Versions.handle_custom_shape_scale(pose_bone, scales[idx])
 
-    if isAnim:
-        amt_bone.hide = False
-    else:
-        amt_bone.hide = flg_hide
+    # if isAnim:
+    #     amt_bone.hide = True
+    # else:
+    #     amt_bone.hide = flg_hide
+    amt_bone.hide = flg_hide
 
-def bone_disp(idx, flg_hide):
+
+## hide ik handle by index
+def hide_ik(idx, flg_hide):
+    # print(f"2023-July-02, DEBUG: hide_ik() called, idx={idx}, flg_hide={flg_hide}")
     if idx < 0 or idx > 3:
         for i in range(4):
-            bone_disp(i, flg_hide)
+            hide_ik(i, flg_hide)
         return
     abones = Global.getAmtrBones()
     pbones = Global.getAmtr().pose.bones
     if ik_name[idx] in abones:
-        bone_disp2(idx, pbones.get(ik_name[idx]),abones.get(ik_name[idx]), flg_hide)
+        hide_ik_2(idx, pbones.get(ik_name[idx]),abones.get(ik_name[idx]), flg_hide)
     if idx>1:
         pole = ik_name[idx][0:len(ik_name[idx])-2]
         pole = pole + 'P'
         if pole in abones:
-            bone_disp2(idx+2, pbones.get(pole), abones.get(pole),flg_hide)
+            hide_ik_2(idx+2, pbones.get(pole), abones.get(pole),flg_hide)
 
 def reset_pole(idx):
     if idx < 0 or idx >= len(ik_name):
@@ -420,10 +425,10 @@ def ifk_update(context, idx):
         gui_force = eval('context.window_manager.ifk' + str(idx))
         if ik_force != gui_force:
             if ik_force == False:
-                bone_disp(idx, False)
+                hide_ik(idx, False)
                 fktoik(idx)
             else:
-                bone_disp(idx, True)
+                hide_ik(idx, True)
                 iktofk(idx)
     return {'FINISHED'}
 

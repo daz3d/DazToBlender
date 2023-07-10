@@ -193,7 +193,7 @@ class FK2IK_OT_button(bpy.types.Operator):
             rgfy = ToRigify.ToRigify()
             rgfy.ik2fk(-1)
         else:
-            DtbIKBones.bone_disp(-1, False)
+            DtbIKBones.hide_ik(-1, False)
             DtbIKBones.mute_bones.append("NG")
             for i in range(len(DtbIKBones.bone_name)):
                 DtbIKBones.fktoik(i)
@@ -213,7 +213,7 @@ class IK2FK_OT_button(bpy.types.Operator):
             rgfy = ToRigify.ToRigify()
             rgfy.fk2ik(-1)
         else:
-            DtbIKBones.bone_disp(-1, True)
+            DtbIKBones.hide_ik(-1, True)
             DtbIKBones.mute_bones.append("NG")
             for i in range(len(DtbIKBones.bone_name)):
                 DtbIKBones.iktofk(i)
@@ -235,7 +235,7 @@ class LIMB_OT_redraw(bpy.types.Operator):
                 DtbIKBones.get_influece_data_path(DtbIKBones.bone_name[i])
             )
             flg_ik = ik_value >= 0.5
-            DtbIKBones.bone_disp(i, flg_ik == False)
+            DtbIKBones.hide_ik(i, flg_ik == False)
             if i == 0:
                 if w_mgr.ifk0 != flg_ik:
                     w_mgr.ifk0 = flg_ik

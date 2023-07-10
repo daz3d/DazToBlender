@@ -39,6 +39,7 @@ def allobjs():
 def myccobjs():
     return colobjs(cur_col_name())
 
+### Returns an array of objects in the active object's collection
 def myacobjs():
     aobj = Versions.get_active_object()
     col = ""

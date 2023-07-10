@@ -233,12 +233,13 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.deselect()  # deselect all the objects
             pose.clear_pose()  # Select Armature and clear transform
             drb.mub_ary_A()  # Find and read FIG.dat file
-            drb.orthopedy_empty()  # On "EMPTY" type objects
+            drb.preprocess_empty_objects()  # On "EMPTY" type objects
             self.pbar(18, wm)
-            drb.orthopedy_everything()  # clear transform, clear and reapply parent, CMs -> METERS
+            drb.preprocess_bones()  # clear transform, clear and reapply parent, CMs -> METERS
             Global.deselect()
             self.pbar(20, wm)
             drb.set_bone_head_tail()  # Sets head and tail positions for all the bones
+
             Global.deselect()
             self.pbar(25, wm)
             drb.bone_limit_modify()
@@ -327,7 +328,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             if not anim.has_keyframe(Global.getAmtr()):
                 pose.update_scale()
                 pose.restore_pose()  # Run when no animation exists.
-            DtbIKBones.bone_disp(-1, True)
+            DtbIKBones.hide_ik(-1, True)
             DtbIKBones.set_scene_settings(anim.total_key_count)
             self.pbar(100, wm)
             DtbIKBones.ik_access_ban = False
@@ -339,6 +340,7 @@ class IMP_OT_FBX(bpy.types.Operator):
 
         wm.progress_end()
         DtbIKBones.ik_access_ban = False
+
 
     def execute(self, context):
         if bpy.context.window_manager.use_custom_path:
@@ -430,7 +432,7 @@ class CLEAR_OT_Pose(bpy.types.Operator):
     bl_idname = "my.clear"
     bl_label = "Clear All Poses"
 
-    def clear_pose(self):
+    def clear_all_poses(self):
         if bpy.context.object is None:
             return
         # if context is not pose mode, switch to pose mode
@@ -445,7 +447,7 @@ class CLEAR_OT_Pose(bpy.types.Operator):
                 )
                 if ik_value >= 0.5:
                     ik_undo_table[idx] = True
-                DtbIKBones.bone_disp(idx, True)
+                DtbIKBones.hide_ik(idx, True)
                 DtbIKBones.iktofk(idx)
                 DtbIKBones.reset_pole(idx)
         except:
@@ -468,14 +470,16 @@ class CLEAR_OT_Pose(bpy.types.Operator):
         try:
             for idx in range(4):
                 if ik_undo_table[idx]:
-                    DtbIKBones.bone_disp(idx, False)
+                    # print("2023-July-02, DEBUG: clear_all_poses(): trying to restore ik_handle idx=" + str(idx))
+                    DtbIKBones.hide_ik(idx, False)
                     DtbIKBones.fktoik(idx)
         except:
             pass
         bpy.ops.pose.select_all(action="DESELECT")
 
     def execute(self, context):
-        self.clear_pose()
+        self.clear_all_poses()
+        # print("2023-July-02, DEBUG: clear_all_poses() has finished.")
         return {"FINISHED"}
 
 
@@ -499,7 +503,7 @@ class OPTIMIZE_OT_material(bpy.types.Operator):
 # Start of Rigify Classes
 
 
-def clear_pose():
+def clear_pose_for_rigify():
     if bpy.context.object is None:
         return
     if (
@@ -532,7 +536,7 @@ class TRANS_OT_Rigify(bpy.types.Operator):
         if Global.getIsG9():
             self.report({"ERROR"}, "Genesis 9 is not supported yet in the auto Rigify tool.")
             return {"FINISHED"}
-        clear_pose()
+        clear_pose_for_rigify()
         Util.active_object_to_current_collection()
         dtu = DataBase.DtuLoader()
         trf = ToRigify.ToRigify(dtu)

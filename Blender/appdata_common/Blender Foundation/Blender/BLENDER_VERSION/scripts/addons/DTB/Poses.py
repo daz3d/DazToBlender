@@ -579,6 +579,7 @@ class Posing:
        
     
     def restore_pose(self):
+        # print("2023-July-02, DEBUG: restore_pose() called.")
         Versions.active_object(Global.getAmtr())
         Global.setOpsMode("POSE")
         self.make_pose()
