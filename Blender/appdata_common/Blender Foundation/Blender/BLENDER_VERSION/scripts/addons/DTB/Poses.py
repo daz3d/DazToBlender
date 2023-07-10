@@ -329,6 +329,9 @@ class Posing:
             return
         pose_data = self.load_duf(dur)
         self.pose_data_dict["Asset Name"] = pose_data["asset_info"]["id"].split("/")[-1].replace("%20"," ").replace(".duf","")
+        if "animations" not in pose_data["scene"].keys():
+            print("ERROR: Import Pose: No Pose Data in selected file.")
+            return
         for info in pose_data["scene"]["animations"]:
             url = info["url"]
             keys = info["keys"]
@@ -344,8 +347,12 @@ class Posing:
                 axis = sep[3]
             else:
                 bone = sep[3].split(":?")[0]
-                transform = sep[3].split(":?")[1]
-                axis = sep[4]
+                try:
+                    transform = sep[3].split(":?")[1]
+                    axis = sep[4]
+                except Exception as e:
+                    print("ERROR: Import Pose: error retrieving pose data for bone: " + bone + ": " + str(e))
+                    continue
 
             value = keys[0][1]
             if bone not in self.pose_data_dict.keys():
@@ -354,6 +361,8 @@ class Posing:
                 self.pose_data_dict[bone]["Position"] = [0, 0, 0]
             if "Rotation" not in self.pose_data_dict[bone].keys():
                 self.pose_data_dict[bone]["Rotation"] = [0, 0, 0]
+            if "Scale" not in self.pose_data_dict[bone].keys():
+                self.pose_data_dict[bone]["Scale"] = [0, 0, 0]
             if axis == "x":
                 index = 0
             if axis == "y":
@@ -364,6 +373,8 @@ class Posing:
                 trans_key = "Position"
             if transform == "rotation":
                 trans_key = "Rotation"
+            if transform == "scale":
+                trans_key = "Scale"
             self.pose_data_dict[bone][trans_key][index] = value
 
         self.make_pose()
