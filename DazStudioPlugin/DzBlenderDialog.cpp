@@ -71,7 +71,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
     <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://youtu.be/iYUjVWGiSyM\">Tutorial Video</a></td>\
   </tr>\
   <tr>\
-    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"") + sPdfPath + tr("\">PDF</a></td>\
+    <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"file:///") + sPdfPath + tr("\">PDF</a></td>\
     <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://www.daz3d.com/forums/categories/blender-discussion\">Forums</a></td>\
     <td width=33% style=\"text-align:center; background-color:#282f41;\"><div align=center><a href=\"https://github.com/daz3d/DazToBlender/issues\">Report Bug</a></td>\
   </tr>\

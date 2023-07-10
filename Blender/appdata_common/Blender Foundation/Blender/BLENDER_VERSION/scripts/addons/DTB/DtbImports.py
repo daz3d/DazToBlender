@@ -10,9 +10,9 @@ def fbx_catched_error(filepath):
                             use_custom_normals = True,
                             use_image_search = True, # check if needed
                             use_anim = True,
-                            anim_offset = 0,
+                            anim_offset = 1,
                             ignore_leaf_bones = False,
-                            force_connect_children = True,
+                            force_connect_children = False,
                             automatic_bone_orientation = False,
                             primary_bone_axis = 'Y',
                             secondary_bone_axis = 'X',
