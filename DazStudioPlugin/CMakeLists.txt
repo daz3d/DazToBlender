@@ -68,9 +68,18 @@ set_target_properties (${DZ_PLUGIN_TGT_NAME}
 	PROJECT_LABEL ${DZ_PLUGIN_PROJECT_NAME}
 )
 
-target_compile_definitions(${DZ_PLUGIN_TGT_NAME}
-	PUBLIC
-	$<$<CONFIG:DEBUG>:UNITTEST_DZBRIDGE>
-	${DZBRIDGE_LIB_FLAGS}
-	__LEGACY_PATHS__
-)
+if(WIN32)
+	target_compile_definitions(${DZ_PLUGIN_TGT_NAME}
+		PUBLIC
+		$<$<CONFIG:DEBUG>:UNITTEST_DZBRIDGE>
+		${DZBRIDGE_LIB_FLAGS}
+		__LEGACY_PATHS__
+	)
+else()
+	target_compile_definitions(${DZ_PLUGIN_TGT_NAME}
+		PUBLIC
+		$<$<CONFIG:DEBUG>:UNITTEST_DZBRIDGE>
+		${DZBRIDGE_LIB_FLAGS}
+		__LEGACY_PATHS__
+	)
+endif()
