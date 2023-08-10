@@ -69,6 +69,7 @@ def forbitMinus():
                     if len(node_input.links) != 0:
                         continue
                     if type(node_input.default_value) is float:
+                        print("DEBUG: forbitMinus(): node_input.name = " + node_input.name + ", node_input.default_value=" + str(node_input.default_value))
                         if node_input.default_value < 0:
                             node_input.default_value = 0.0
                         if (
@@ -85,6 +86,7 @@ def forbitMinus():
                         for i in node_input.default_value:
                             if type(i) is float:
                                 if node_input.default_value < 0:
+                                    print("DEBUG: forbitMinus(): node_input.name = " + node_input.name + ", node_input.default_value = " + str(node_input.default_value))
                                     node_input.default_value = 0.0
 
 

@@ -11,6 +11,7 @@ class DtuLoader:
     bone_head_tail_dict = dict()
     morph_links_dict = dict()
     asset_name = ""
+    asset_type = ""
     import_name = ""
     materials_list = []
 
@@ -35,6 +36,16 @@ class DtuLoader:
         if self.asset_name == "":
             self.load_asset_name()
         return self.asset_name
+
+    # DB 2023-Aug-09: asset type
+    def load_asset_type(self):
+        dtu_dict = self.get_dtu_dict()
+        self.asset_type = dtu_dict["Asset Type"]
+    
+    def get_asset_type(self):
+        if self.asset_type == "":
+            self.load_asset_type()
+        return self.asset_type
 
     def load_import_name(self):
         dtu_dict = self.get_dtu_dict()

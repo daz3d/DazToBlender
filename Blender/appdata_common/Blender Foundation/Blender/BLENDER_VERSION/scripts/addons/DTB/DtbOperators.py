@@ -219,6 +219,29 @@ class IMP_OT_FBX(bpy.types.Operator):
 
         if Global.getAmtr() is not None and Global.getBody() is not None:
 
+            ###############################
+            # materials
+            dtb_shaders.make_dct()
+            dtb_shaders.load_shader_nodes()
+            body = Global.getBody()
+            dtb_shaders.setup_materials(body)
+            self.pbar(35, wm)
+            
+            fig_objs_names = [Global.get_Body_name()]
+            for obj in Util.myacobjs():
+                # Skip for any of the following cases
+                case1 = not Global.isRiggedObject(obj)
+                case2 = obj.name in fig_objs_names
+                if case1 or case2:
+                    continue
+                dtb_shaders.setup_materials(obj)
+            self.pbar(40, wm)
+
+            # # materials
+            # DtbMaterial.forbitMinus()
+            # self.pbar(95, wm)
+            # Global.deselect()
+
             # Set Custom Properties
             Global.getAmtr()["Asset Name"] = dtu.get_asset_name()
             Global.getAmtr()["Collection"] = Util.cur_col_name()
@@ -230,6 +253,8 @@ class IMP_OT_FBX(bpy.types.Operator):
             DtbIKBones.bone_name = DataBase.translate_bonenames(DtbIKBones.bone_name)
             db.translate_member_bonenames()
 
+            #############################
+            # Re-orient rest pose
             Global.deselect()  # deselect all the objects
             pose.clear_pose()  # Select Armature and clear transform
             drb.mub_ary_A()  # Find and read FIG.dat file
@@ -240,6 +265,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(20, wm)
             drb.set_bone_head_tail()  # Sets head and tail positions for all the bones
 
+            # Re-orient active pose and animations
             Global.deselect()
             self.pbar(25, wm)
             drb.bone_limit_modify()
@@ -249,24 +275,6 @@ class IMP_OT_FBX(bpy.types.Operator):
             self.pbar(30, wm)
             drb.unwrapuv()
             Global.deselect()
-
-            # materials
-            dtb_shaders.make_dct()
-            dtb_shaders.load_shader_nodes()
-            body = Global.getBody()
-            dtb_shaders.setup_materials(body)
-            self.pbar(35, wm)
-
-            fig_objs_names = [Global.get_Body_name()]
-            for obj in Util.myacobjs():
-                # Skip for any of the following cases
-                case1 = not Global.isRiggedObject(obj)
-                case2 = obj.name in fig_objs_names
-                if case1 or case2:
-                    continue
-                dtb_shaders.setup_materials(obj)
-
-            self.pbar(40, wm)
 
             if Global.getIsGen():
                 drb.fixGeniWeight(db)
@@ -284,6 +292,7 @@ class IMP_OT_FBX(bpy.types.Operator):
             Global.deselect()
             self.pbar(60, wm)
 
+            # Make IK controls
             drb.makeRoot()
             drb.makePole()
             drb.makeIK()
@@ -291,11 +300,8 @@ class IMP_OT_FBX(bpy.types.Operator):
             drb.mub_ary_Z()
             self.pbar(70, wm)
             Global.setOpsMode("OBJECT")
-            try:
-                CustomBones.CBones()
-            except:
-                print("Custom bones currently not supported for this character")
-            self.pbar(80, wm)
+
+            # Assign IK constraints
             Global.setOpsMode("OBJECT")
             Global.deselect()
             self.pbar(90, wm)
@@ -314,29 +320,42 @@ class IMP_OT_FBX(bpy.types.Operator):
             )  # lock movements around axes with zeroed limits for each bone
             Global.deselect()
 
-            # materials
-            DtbMaterial.forbitMinus()
-            self.pbar(95, wm)
-            Global.deselect()
+            # Do custom bone shapes
+            try:
+                CustomBones.CBones()
+            except:
+                print("Custom bones currently not supported for this character")
+            self.pbar(80, wm)
+
+            # Hide and disable IK controls
+            DtbIKBones.hide_ik(-1, True)
+            DtbIKBones.set_scene_settings(anim.total_key_count)
+            self.pbar(100, wm)
+            DtbIKBones.ik_access_ban = False
+
 
             Versions.active_object(Global.getAmtr())
             Global.setOpsMode("POSE")
             drb.mub_ary_Z()
             Global.setOpsMode("OBJECT")
             drb.finishjob()
+
             Global.setOpsMode("OBJECT")
             if not anim.has_keyframe(Global.getAmtr()):
                 pose.update_scale()
                 pose.restore_pose()  # Run when no animation exists.
-            DtbIKBones.hide_ik(-1, True)
-            DtbIKBones.set_scene_settings(anim.total_key_count)
-            self.pbar(100, wm)
-            DtbIKBones.ik_access_ban = False
+
+
             if bpy.context.window_manager.morph_prefix:
                 bpy.ops.rename.morphs('EXEC_DEFAULT')
+
             self.report({"INFO"}, "Success")
         else:
-            self.show_error()
+            # if dtu asset type is Animation, then skip error message
+            if dtu.get_asset_type() == "Animation":
+                print("DEBUG: IMP_OT_FBX.import_one(): ERROR: Global.getAmtr()=" + str(Global.getAmtr()) + ", Global.getBody()=" + str(Global.getBody()))
+            else:
+                self.show_error()
 
         wm.progress_end()
         DtbIKBones.ik_access_ban = False
