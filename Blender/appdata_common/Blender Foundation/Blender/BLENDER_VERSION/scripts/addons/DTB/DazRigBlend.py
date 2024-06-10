@@ -326,15 +326,20 @@ class DazRigBlend:
 
                 bone.use_connect = False
 
-                # set head
-                bone.head[0] = float(head_and_tail[0])
-                bone.head[1] = -float(head_and_tail[2])
-                bone.head[2] = float(head_and_tail[1])
+                # DB 2024-06-09: BUGFIX misalignment of bones from Daz-space to Blender-space
+                correction_vector = mathutils.Vector((0, 0, 0))
+                correction_vector[0] = float(head_and_tail[0]) - bone.head[0]
+                correction_vector[1] = -float(head_and_tail[2]) - bone.head[1]
+                correction_vector[2] = float(head_and_tail[1]) - bone.head[2]
+                # # set head
+                # bone.head[0] = float(head_and_tail[0])
+                # bone.head[1] = -float(head_and_tail[2])
+                # bone.head[2] = float(head_and_tail[1])
 
                 # set tail
-                bone.tail[0] = float(head_and_tail[3])
-                bone.tail[1] = -float(head_and_tail[5])
-                bone.tail[2] = float(head_and_tail[4])
+                bone.tail[0] = float(head_and_tail[3]) - correction_vector[0]
+                bone.tail[1] = -float(head_and_tail[5]) - correction_vector[1]
+                bone.tail[2] = float(head_and_tail[4]) - correction_vector[2]
 
                 # calculate roll aligning bone towards a vector
                 align_axis_vec = mathutils.Vector(
