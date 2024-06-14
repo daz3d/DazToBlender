@@ -346,6 +346,33 @@ class IMP_OT_FBX(bpy.types.Operator):
                 pose.restore_pose()  # Run when no animation exists.
 
 
+            # DB 2024-06-14: work-around for dForce hair
+            if dtu.dtu_dict["dForce"] is not None:
+                dforce_data = dtu.dtu_dict["dForce"]
+                for dforce_obj in dforce_data:
+                    if dforce_obj is not None:
+                        obj_name = dforce_obj["Asset Name"]
+                        if obj_name is not None:
+                            obj = bpy.data.objects.get(obj_name + ".Shape")
+                            if obj is not None:
+                                # get DForce-Modifiers
+                                has_dforce_hairs = False
+                                if dforce_obj["DForce-Modifiers"] is not None:
+                                    for dforce_modifier in dforce_obj["DForce-Modifiers"]:
+                                        if dforce_modifier is not None:
+                                            modifier_class = dforce_modifier["Modifier Class"]
+                                            if modifier_class is not None and "dforcehair" in modifier_class.lower():
+                                                has_dforce_hairs = True
+                                                break
+                                if has_dforce_hairs:
+                                    # check for vertex groups
+                                    if len(obj.vertex_groups) == 0:
+                                        # create vertex group
+                                        obj.vertex_groups.new(name="head")
+                                        # assign all vertices to the vertex group
+                                        for v in obj.data.vertices:
+                                            obj.vertex_groups[0].add([v.index], 1.0, "REPLACE")
+
             if bpy.context.window_manager.morph_prefix:
                 bpy.ops.rename.morphs('EXEC_DEFAULT')
 
