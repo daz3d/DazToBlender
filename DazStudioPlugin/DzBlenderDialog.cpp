@@ -165,6 +165,10 @@ Bridge Export process."));
 	 // Load Settings
 	 loadSavedSettings();
 
+	 // Daz Ultra
+	 m_WelcomeLabel->hide();
+	 setWindowTitle(tr("Blender Export Options"));
+
 }
 
 bool DzBlenderDialog::loadSavedSettings()

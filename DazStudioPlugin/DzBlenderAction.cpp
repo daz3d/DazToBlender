@@ -38,7 +38,7 @@
 #include "dzbridge.h"
 
 DzBlenderAction::DzBlenderAction() :
-	DzBridgeAction(tr("Daz To &Blender"), tr("Send the selected node to Blender."))
+	DzBridgeAction(tr("Send to &Blender..."), tr("Send the selected node to Blender."))
 {
 	m_nNonInteractiveMode = 0;
 	m_sAssetType = QString("SkeletalMesh");
