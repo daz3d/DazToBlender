@@ -48,6 +48,7 @@ DzBlenderAction::DzBlenderAction() :
 	QIcon icon;
 	icon.addPixmap(basePixmap, QIcon::Normal, QIcon::Off);
 	QAction::setIcon(icon);
+	// Enable Optional Daz Bridge Behaviors
 
 }
 
@@ -166,18 +167,18 @@ void DzBlenderAction::executeAction()
 			{
 				m_morphSelectionDialog = DZ_BRIDGE_NAMESPACE::DzBridgeMorphSelectionDialog::Get(m_bridgeDialog);
 			}
-			m_mMorphNameToLabel.clear();
+			m_MorphNamesToExport.clear();
 			foreach(QString morphName, m_aMorphListOverride)
 			{
 				QString label = m_morphSelectionDialog->GetMorphLabelFromName(morphName);
-				m_mMorphNameToLabel.insert(morphName, label);
+				m_MorphNamesToExport.append(morphName);
 			}
 		}
 		else
 		{
 			m_bEnableMorphs = false;
 			m_sMorphSelectionRule = "";
-			m_mMorphNameToLabel.clear();
+			m_MorphNamesToExport.clear();
 		}
 
 	}

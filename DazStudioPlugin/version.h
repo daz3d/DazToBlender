@@ -2,7 +2,7 @@
 #include "dzversion.h"
 
 // Version number for dzBridge-Blender
-#define PLUGIN_MAJOR	2023
+#define PLUGIN_MAJOR	2024
 #define PLUGIN_MINOR	1
 #define PLUGIN_REV		1
 #define PLUGIN_BUILD	17
