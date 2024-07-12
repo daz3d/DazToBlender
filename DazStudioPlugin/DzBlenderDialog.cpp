@@ -109,7 +109,8 @@ Bridge Export process."));
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
 	 intermediateFolderEdit = new QLineEdit(this);
-	 intermediateFolderButton = new QPushButton("...", this);
+	 //intermediateFolderButton = new QPushButton("...", this);
+	 intermediateFolderButton = new DzBridgeBrowseButton(this);
 	 intermediateFolderLayout->addWidget(intermediateFolderEdit);
 	 intermediateFolderLayout->addWidget(intermediateFolderButton);
 	 connect(intermediateFolderButton, SIGNAL(released()), this, SLOT(HandleSelectIntermediateFolderButton()));
