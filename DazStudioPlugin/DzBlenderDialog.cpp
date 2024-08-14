@@ -80,18 +80,18 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 ");
 	 m_WelcomeLabel->setText(sSetupModeString);
 
-	 // Disable Subdivision UI
+//	 // Disable Subdivision UI
 //	 subdivisionEnabledCheckBox->setChecked(false);
 //	 subdivisionEnabledCheckBox->setDisabled(true);
 //	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
 //	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
-like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
-Bridge Export process."));
+//like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
+//Bridge Export process."));
 //	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
 //	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
-like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
-Bridge Export process."));
-	 //	 subdivisionButton->setDisabled(true);
+//like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
+//Bridge Export process."));
+//	 //	 subdivisionButton->setDisabled(true);
 //	 disconnect(subdivisionButton, 0, this, 0);
 //	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
 
@@ -135,7 +135,7 @@ Bridge Export process."));
 	 setBridgeVersionStringAndLabel(sBlenderVersionString);
 
 	 // Configure Target Plugin Installer
-	 renameTargetPluginInstaller("Blender Plugin Installer");
+	 renameTargetPluginInstaller("Blender Addon Installer");
 	 m_TargetSoftwareVersionCombo->clear();
 	 m_TargetSoftwareVersionCombo->addItem("Select Blender Version");
      m_TargetSoftwareVersionCombo->addItem("Blender 2.83");
@@ -162,7 +162,7 @@ Bridge Export process."));
 	 assetTypeCombo->setWhatsThis("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
 	 intermediateFolderEdit->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
 	 intermediateFolderButton->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
-	 m_wTargetPluginInstaller->setWhatsThis("You can install the Blender Plugin by selecting the desired Blender version and then clicking Install.");
+	 m_wTargetPluginInstaller->setWhatsThis("You can install the Blender Addon by selecting the desired Blender version and then clicking Install.");
 
 	 // Set Defaults
 	 resetToDefaults();
@@ -308,7 +308,7 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 {
 	// Get Software Versio
 	DzBridgeDialog::m_sEmbeddedFilesPath = ":/DazBridgeBlender";
-	QString sBinariesFile = "/blenderplugin.zip";
+	QString sBinariesFile = "/blenderaddon.zip";
 	QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
 #ifdef __APPLE__
     QString sAppData = QDir::homePath() + "/Library/Application Support";
@@ -371,7 +371,7 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	}
 	else
 	{
-		// Warning, not a valid plugins folder path
+		// Warning, not a valid addons folder path
 		QMessageBox::information(0, "DazToBlender Bridge",
 			tr("Please select a Blender version."));
 		return;
@@ -405,7 +405,7 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 			tr("The destination folder may not be a valid Blender Addons folder.  Please make sure \
 Blender is properly installed or the custom scripts path is properly configured in Blender \
 Preferences:\n\n") + sPluginsPath + tr("\n\nYou can choose to Abort and select a new folder, \
-or Ignore this warning and install the plugin anyway."),
+or Ignore this warning and install the addon anyway."),
 QMessageBox::Ignore | QMessageBox::Abort,
 QMessageBox::Abort);
 		if (userChoice == QMessageBox::StandardButton::Abort)
@@ -425,7 +425,7 @@ QMessageBox::Abort);
 	if (bInstallSuccessful)
 	{
 		QMessageBox::information(0, "Daz To Blender",
-			tr("Blender Plugin successfully installed to: ") + sPluginsPath +
+			tr("Blender Addon successfully installed to: ") + sPluginsPath +
 			tr("\n\nIf Blender is running, please quit and restart Blender to continue \
 Bridge Export process."));
 	}
@@ -433,7 +433,7 @@ Bridge Export process."));
 	{
 		QMessageBox::warning(0, "Daz To Blender",
 			tr("Sorry, an unknown error occured. Unable to install Blender \
-Plugin to: ") + sPluginsPath);
+Addon to: ") + sPluginsPath);
 		return;
 	}
 
