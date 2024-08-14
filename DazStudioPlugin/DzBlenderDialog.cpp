@@ -108,6 +108,7 @@ Bridge Export process."));
 
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
+	 intermediateFolderLayout->setSpacing(0);
 	 intermediateFolderEdit = new QLineEdit(this);
 	 //intermediateFolderButton = new QPushButton("...", this);
 	 intermediateFolderButton = new DzBridgeBrowseButton(this);
@@ -172,6 +173,9 @@ Bridge Export process."));
 	 // Daz Ultra
 	 m_WelcomeLabel->hide();
 	 setWindowTitle(tr("Blender Export Options"));
+	 this->m_wPdfButton->show();
+	 this->m_wSupportButton->show();
+	 this->m_wYoutubeButton->show();
 
 }
 
@@ -194,6 +198,16 @@ bool DzBlenderDialog::loadSavedSettings()
 	}
 
 	return true;
+}
+
+void DzBlenderDialog::accept()
+{
+	saveSettings();
+
+	if (m_bSetupMode)
+		return  DzBasicDialog::reject();
+
+	return DzBasicDialog::accept();
 }
 
 void DzBlenderDialog::saveSettings()
@@ -489,6 +503,27 @@ void DzBlenderDialog::refreshAsset()
 	}
 #endif
 
+}
+
+#include <QDesktopServices>
+#include <QUrl>
+void DzBlenderDialog::HandlePdfButton()
+{
+	QString sDazAppDir = dzApp->getHomePath().replace("\\", "/");
+	QString sPdfPath = sDazAppDir + "/docs/Plugins" + "/Daz to Blender/Daz to Blender.pdf";
+	QDesktopServices::openUrl(QUrl(sPdfPath));
+}
+
+void DzBlenderDialog::HandleYoutubeButton()
+{
+	QString url = "https://youtu.be/iYUjVWGiSyM";
+	QDesktopServices::openUrl(QUrl(url));
+}
+
+void DzBlenderDialog::HandleSupportButton()
+{
+	QString url = "https://bugs.daz3d.com/hc/en-us/requests/new";
+	QDesktopServices::openUrl(QUrl(url));
 }
 
 

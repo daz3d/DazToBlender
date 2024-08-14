@@ -41,6 +41,9 @@ protected slots:
 	void HandleTargetPluginInstallerButton();
 	virtual void HandleDisabledChooseSubdivisionsButton();
 	virtual void HandleOpenIntermediateFolderButton(QString sFolderPath="");
+	void HandlePdfButton() override;
+	void HandleYoutubeButton() override;
+	void HandleSupportButton() override;
 
 protected:
 	QLineEdit* intermediateFolderEdit;
