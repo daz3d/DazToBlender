@@ -40,6 +40,7 @@ add_library( ${DZ_PLUGIN_TGT_NAME} SHARED
 	DzBlenderDialog.h
 	pluginmain.cpp
 	version.h
+	real_version.h
 	Resources/resources.qrc
 	${DPC_IMAGES_CPP}
 	${OS_SOURCES}
