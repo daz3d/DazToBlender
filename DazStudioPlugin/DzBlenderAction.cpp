@@ -25,6 +25,7 @@
 #include "dzfacetmesh.h"
 #include "dzfacegroup.h"
 #include "dzprogress.h"
+#include "dzscript.h"
 
 #include "DzBlenderAction.h"
 #include "DzBlenderDialog.h"
@@ -36,6 +37,22 @@
 #endif
 
 #include "dzbridge.h"
+
+DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
+{
+//	QString scriptContents = "\
+//var action = new DzBlenderAction;\
+//action.executeAction();";
+//	DzScript oScript;
+//	oScript.addCode(scriptContents);
+//	oScript.execute();
+
+	DzBlenderAction* pBlenderAction = new DzBlenderAction();
+//	pBlenderAction->setNonInteractiveMode(true);
+	pBlenderAction->executeAction();
+
+	return DZ_NO_ERROR;
+};
 
 DzBlenderAction::DzBlenderAction() :
 	DzBridgeAction(tr("Send to &Blender..."), tr("Send the selected node to Blender."))
