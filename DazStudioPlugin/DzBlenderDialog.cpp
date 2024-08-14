@@ -147,6 +147,9 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.0");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.2");
 	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
 	 showTargetPluginInstaller(true);
 
@@ -354,11 +357,23 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 	{
 		sDestinationPath += "/3.6/scripts";
 	}
+	else if (softwareVersion.contains("4.0"))
+	{
+		sDestinationPath += "/4.0/scripts";
+	}
+	else if (softwareVersion.contains("4.1"))
+	{
+		sDestinationPath += "/4.1/scripts";
+	}
+	else if (softwareVersion.contains("4.2"))
+	{
+		sDestinationPath += "/4.2/scripts";
+	}
 	else if (softwareVersion.contains("Custom"))
 	{
 		// Get Destination Folder
 		sDestinationPath = QFileDialog::getExistingDirectory(this,
-			tr("Choose select a Blender Scripts Folder. DazToBlender will install into the addons subfolder."),
+			tr("Please select a Blender Version Folder. DazToBlender will install into the correct addons subfolder."),
 			sDestinationPath,
 			QFileDialog::ShowDirsOnly
 			| QFileDialog::DontResolveSymlinks);
@@ -379,14 +394,38 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 
 	// fix path separators
 	sDestinationPath = sDestinationPath.replace("\\", "/");
-
+	// load with default values
+	QString sRootPath = sDestinationPath;
+	QString sPluginsPath = sRootPath;
 	// verify plugin path
-	bool bIsPluginPath = false;
-	QString sPluginsPath = sDestinationPath;
-    if (sPluginsPath.endsWith("/addons", Qt::CaseInsensitive)==false)
-    {
-        sPluginsPath += "/addons";
-    }
+	bool bIsPluginPath = false;	
+	//if (sPluginsPath.endsWith("/addons", Qt::CaseInsensitive)==false)
+ //   {
+ //       sPluginsPath += "/addons";
+ //   }
+
+	if (QRegExp(".*/blender/\\d+\\.\\d+$").exactMatch(sDestinationPath.toLower()) == true)
+	{
+		sRootPath = sDestinationPath;
+		sPluginsPath = sRootPath + "/scripts/addons";
+	}
+	else if (QRegExp(".*/blender/\\d+\\.\\d+/scripts$").exactMatch(sDestinationPath.toLower()) == true)
+	{
+		sRootPath = sDestinationPath;
+		sPluginsPath = sRootPath + "/addons";
+	}
+	else if (QRegExp(".*/blender/\\d+\\.\\d+/scripts/addons$").exactMatch(sDestinationPath.toLower()) == true)
+	{
+		sPluginsPath = sDestinationPath;
+		sRootPath = QFileInfo(sPluginsPath).dir().path();
+	}
+	// Less accurate fallback
+	else if (QRegExp(".*/\\d+\\.\\d+$").exactMatch(sDestinationPath.toLower()) == true)
+	{
+		sRootPath = sDestinationPath;
+		sPluginsPath = sRootPath + "/scripts/addons";
+	}
+
 	// Check for "/scripts/addon" at end of path
 	if (sPluginsPath.endsWith("/scripts/addons", Qt::CaseInsensitive))
 	{
