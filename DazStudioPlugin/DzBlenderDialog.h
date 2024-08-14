@@ -32,6 +32,8 @@ public:
 
 	Q_INVOKABLE void resetToDefaults() override;
 	Q_INVOKABLE bool loadSavedSettings() override;
+	Q_INVOKABLE void saveSettings() override;
+	void accept() override;
 
 protected slots:
 	void HandleSelectIntermediateFolderButton();

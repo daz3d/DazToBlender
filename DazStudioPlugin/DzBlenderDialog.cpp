@@ -116,17 +116,20 @@ Bridge Export process."));
 	 connect(intermediateFolderButton, SIGNAL(released()), this, SLOT(HandleSelectIntermediateFolderButton()));
 
 	 // Advanced Options
-#if __LEGACY_PATHS__
+#ifdef __LEGACY_PATHS__
 	 assetNameEdit->setValidator(new QRegExpValidator(QRegExp("*"), this));
-	 intermediateFolderEdit->setVisible(false);
-	 intermediateFolderButton->setVisible(false);
-#else
-	 QFormLayout* advancedLayout = qobject_cast<QFormLayout*>(advancedWidget->layout());
+//	 intermediateFolderEdit->setVisible(false);
+//	 intermediateFolderButton->setVisible(false);
+#endif
+//	 QFormLayout* advancedLayout = qobject_cast<QFormLayout*>(advancedSettingsGroupBox->layout());
 	 if (advancedLayout)
 	 {
 		 advancedLayout->addRow("Intermediate Folder", intermediateFolderLayout);
+		 // reposition the Open Intermediate Folder button so it aligns with the center section
+		 advancedLayout->removeWidget(m_OpenIntermediateFolderButton);
+		 advancedLayout->addRow("", m_OpenIntermediateFolderButton);
 	 }
-#endif
+
 	 QString sBlenderVersionString = tr("DazToBlender Bridge %1 v%2.%3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD);
 	 setBridgeVersionStringAndLabel(sBlenderVersionString);
 
@@ -179,15 +182,38 @@ bool DzBlenderDialog::loadSavedSettings()
 	if (!settings->value("IntermediatePath").isNull())
 	{
 		QString directoryName = settings->value("IntermediatePath").toString();
+		directoryName = directoryName.replace("\\", "/");
 		intermediateFolderEdit->setText(directoryName);
 	}
 	else
 	{
-		QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+//		QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+		QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+		DefaultPath = DefaultPath.replace("\\", "/");
 		intermediateFolderEdit->setText(DefaultPath);
 	}
 
 	return true;
+}
+
+void DzBlenderDialog::saveSettings()
+{
+	if (settings == nullptr || m_bDontSaveSettings) return;
+
+	DzBridgeDialog::saveSettings();
+
+	QString sIntermediateFolderPath = intermediateFolderEdit->text();
+	if (sIntermediateFolderPath == "")
+	{
+#ifdef __LEGACY_PATHS__
+		sIntermediateFolderPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+#else
+		sIntermediateFolderPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+#endif
+	}
+	sIntermediateFolderPath = sIntermediateFolderPath.replace("\\", "/");
+	settings->setValue("IntermediatePath", sIntermediateFolderPath);
+
 }
 
 void DzBlenderDialog::resetToDefaults()
@@ -195,7 +221,8 @@ void DzBlenderDialog::resetToDefaults()
 	m_bDontSaveSettings = true;
 	DzBridgeDialog::resetToDefaults();
 
-	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+//	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
 	intermediateFolderEdit->setText(DefaultPath);
 
 	DzNode* Selection = dzScene->getPrimarySelection();
@@ -420,12 +447,24 @@ void DzBlenderDialog::HandleOpenIntermediateFolderButton(QString sFolderPath)
 {
 	QString sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 #if __LEGACY_PATHS__
-	sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender";
+	sIntermediateFolder == "";
+	if (intermediateFolderEdit != nullptr)
+	{
+		sIntermediateFolder = intermediateFolderEdit->text();
+	}
+	if (sIntermediateFolder == "")
+	{
+		sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender";
+		// add back to edit widget
+		if (intermediateFolderEdit) {
+			intermediateFolderEdit->setText(sIntermediateFolder);
+		}
+	}
 	if (QFile(sIntermediateFolder).exists() == false)
 	{
 		QDir().mkpath(sIntermediateFolder);
 	}
-	if (QFile(sIntermediateFolder + "/Exports").exists())
+	if (!sIntermediateFolder.endsWith("/Exports", Qt::CaseInsensitive) && QFile(sIntermediateFolder + "/Exports").exists())
 	{
 		sIntermediateFolder += "/Exports";
 	}

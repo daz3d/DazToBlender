@@ -204,9 +204,12 @@ void DzBlenderAction::executeAction()
 //		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 #if __LEGACY_PATHS__
+		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+		if (m_sRootFolder == "") 
+			m_sRootFolder = sDefaultRootFolder;
 		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
 		{
-			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG";
+			m_sRootFolder = m_sRootFolder + "/Exports/FIG";
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "FIG0";
 			m_sExportFbx = "B_FIG";
@@ -214,7 +217,7 @@ void DzBlenderAction::executeAction()
 		}
 		else
 		{
-			m_sRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV";
+			m_sRootFolder = m_sRootFolder + "/Exports/ENV";
 			m_sRootFolder = m_sRootFolder.replace("\\", "/");
 			m_sExportSubfolder = "ENV0";
 			m_sExportFbx = "B_ENV";
@@ -342,6 +345,15 @@ QString DzBlenderAction::readGuiRootFolder()
 		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV/ENV0";
 		rootFolder = rootFolder.replace("\\", "/");
 	}
+	if (m_bridgeDialog)
+	{
+		QLineEdit* intermediateFolderEdit = nullptr;
+		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
+		if (blenderDialog)
+			intermediateFolderEdit = blenderDialog->getIntermediateFolderEdit();
+		if (intermediateFolderEdit)
+			rootFolder = intermediateFolderEdit->text().replace("\\", "/");
+	}
 #else
 	if (m_bridgeDialog)
 	{
@@ -349,7 +361,7 @@ QString DzBlenderAction::readGuiRootFolder()
 		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 		if (blenderDialog)
-			intermediateFolderEdit = blenderDialog->getAssetsFolderEdit();
+			intermediateFolderEdit = blenderDialog->getIntermediateFolderEdit();
 
 		if (intermediateFolderEdit)
 			rootFolder = intermediateFolderEdit->text().replace("\\", "/") + "/Daz3D";
