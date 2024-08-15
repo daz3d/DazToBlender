@@ -1267,7 +1267,7 @@ def float_by_size(float):
 
 def scale_settings():
     global bNonInteractiveMode
-    if (bNonInteractiveMode != 0):
+    if bNonInteractiveMode != 0:
         return
     scene = bpy.context.scene
     scene.tool_settings.use_keyframe_insert_auto = False

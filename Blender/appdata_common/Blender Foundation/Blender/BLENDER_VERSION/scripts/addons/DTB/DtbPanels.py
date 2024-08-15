@@ -44,7 +44,7 @@ class DTB_PT_MAIN(View3DPanel, bpy.types.Panel):
         l = self.layout
         box = l.box()
         w_mgr = context.window_manager
-        box.operator("import_dtu.fbx", icon="POSE_HLT")
+        box.operator("import_dtu.fig", icon="POSE_HLT")
         box.operator("import_dtu.env", icon="WORLD")
         if context.object and context.active_object:
             cobj = context.active_object

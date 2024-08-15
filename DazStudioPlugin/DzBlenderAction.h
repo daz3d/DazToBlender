@@ -13,10 +13,11 @@ class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
 
-enum eNonInteractiveMode {
-	InteractiveMode = 0, // default, all GUI
-	ScriptMode = 1, // script mode, no GUI
-	ReducedPopup = 2
+
+class DzBlenderUtils
+{
+public:
+	static bool generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
 };
 
 class DzBlenderExporter : public DzExporter {

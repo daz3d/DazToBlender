@@ -87,6 +87,8 @@ def _main(argv):
 
     if ("B_FIG" in fbxPath):
         jsonPath = fbxPath.replace("B_FIG.fbx", "FIG.dtu")
+    elif ("B_ENV" in fbxPath):
+        jsonPath = fbxPath.replace("B_ENV.fbx", "ENV.dtu")
     else:
         jsonPath = fbxPath.replace(".fbx", ".dtu")
 
@@ -94,22 +96,25 @@ def _main(argv):
 
         # load DazToBlender addon
         _add_to_log("DEBUG: main(): loading DazToBlender addon")
-        DTB.Global.bNonInteractiveMode = 1;
-        DTB.Global.nSceneScaleOverride = float(bpy.context.window_manager.scene_scale);
-    #    DTB.Global.nSceneScaleOverride = 1;
+        DTB.Global.bNonInteractiveMode = 1
+        DTB.Global.nSceneScaleOverride = float(bpy.context.window_manager.scene_scale)
+
         sDtuFolderPath = os.path.dirname(jsonPath)
-        oDtu = DTB.DataBase.DtuLoader();
+        oDtu = DTB.DataBase.DtuLoader()
         with open(jsonPath, "r") as data:
             oDtu.dtu_dict = json.load(data)
+
         DTB.Global.clear_variables()
         DTB.Global.setHomeTown(sDtuFolderPath)
         DTB.Global.load_asset_name()
-    #    DTB.Util.decideCurrentCollection('ENV')
-    #    DTB.Environment.ReadFbx(jsonPath, 0, 0, oDtu)
-        oImportHelper = DTB.DtbOperators.ImportHelper()
-        oImportHelper.import_one(fbxPath)
 
-        DTB.Global.bNonInteractiveMode = 0;
+        asset_type = oDtu.get_asset_type()
+        if asset_type == "SkeletalMesh":
+            bpy.ops.import_dtu.fig()
+        else:
+            bpy.ops.import_dtu.env()
+
+        DTB.Global.bNonInteractiveMode = 0
 
     else:
         # load FBX

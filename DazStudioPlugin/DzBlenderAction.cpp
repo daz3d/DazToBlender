@@ -38,7 +38,7 @@
 
 #include "dzbridge.h"
 
-bool generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs)
+bool DzBlenderUtils::generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs)
 {
 	// 4. Generate manual batch file to launch blender scripts
 	QString sBatchString = QString("\"%1\"").arg(sBlenderExecutablePath);
@@ -87,7 +87,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	exportProgress.step(25);
 
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
-	pBlenderAction->setNonInteractiveMode(eNonInteractiveMode::ReducedPopup);
+	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::ReducedPopup);
 
 	pBlenderAction->executeAction();
 
@@ -124,14 +124,13 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 #if WIN32
 	QString batchFilePath = sIntermediatePath + "/" + "create_blend.bat";
 #else
-	QString batchFilePath = dzApp->getTempPath() + "/" + "create_blend.sh";
+	QString batchFilePath = sIntermediatePath + "/" + "create_blend.sh";
 #endif
-	generateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+	DzBlenderUtils::generateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
 	bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
-	exportProgress.finish();
-
+	exportProgress.step(25);
 	if (result) 
 	{
 		bool replace = true;
@@ -166,11 +165,8 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		args << "-e";
 		args << "activate";
 		args << "-e";
-		if (m_sAssetType.contains("R15")) {
-			args << "select POSIX file \"" + sBlenderOutputPath + "/" + m_sExportFilename + R15_POSTFIX_STRING + ".fbx" + "\"";
-		}
-		else if (m_sAssetType.contains("S1")) {
-			args << "select POSIX file \"" + sBlenderOutputPath + "/" + m_sExportFilename + S1_POSTFIX_STRING + ".fbx" + "\"";
+		if (QFileInfo(filename).exists()) {
+			args << "select POSIX file \"" + filename + "\"";
 		}
 		else {
 			args << "select POSIX file \"" + sBlenderOutputPath + "/." + "\"";
@@ -188,13 +184,13 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 			sErrorString += QString("An error occured while running the Blender Python script (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("\nPlease check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
 			sErrorString += QString("\nYou can rerun the Blender command-line script manually using: %1").arg(batchFilePath);
-			QMessageBox::critical(0, "Roblox Studio Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
 		}
 		else {
 			QString sErrorString;
 			sErrorString += QString("An error occured during the export process (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("Please check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
-			QMessageBox::critical(0, "Roblox Studio Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
 		}
 #ifdef WIN32
 		ShellExecuteA(NULL, "open", pBlenderAction->m_sDestinationPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
@@ -212,7 +208,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 #endif
 	}
 
-
+	exportProgress.finish();
 
 	return DZ_NO_ERROR;
 };
@@ -248,34 +244,25 @@ Do you want to Abort the operation now?");
 					sTimeoutText,
 					QMessageBox::Ignore,
 					QMessageBox::Abort);
-				if (result == QMessageBox::Ignore)
-				{
+				if (result == QMessageBox::Ignore) {
 					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
 					timeoutTicks += snoozeTime;
-				}
-				else
-				{
+				} else {
 					bUserInitiatedTermination = true;
 				}
-			}
-			else
+			} 
+			else 
 			{
-				if (currentTick - timeoutTicks < 5)
-				{
+				if (currentTick - timeoutTicks < 5) {
 					pToolProcess->terminate();
-				}
-				else
-				{
+				} else {
 					pToolProcess->kill();
 				}
 			}
 		}
-		if (pToolProcess->state() == QProcess::Running)
-		{
+		if (pToolProcess->state() == QProcess::Running) {
 			progress->step();
-		}
-		else
-		{
+		} else {
 			break;
 		}
 	}
@@ -289,12 +276,9 @@ Do you want to Abort the operation now?");
 	if (m_nBlenderExitCode != 0)
 #endif
 	{
-		if (m_nBlenderExitCode == m_nPythonExceptionExitCode)
-		{
+		if (m_nBlenderExitCode == m_nPythonExceptionExitCode) {
 			dzApp->log(QString("Daz To Blender: ERROR: Python error:.... %1").arg(m_nBlenderExitCode));
-		}
-		else
-		{
+		} else {
 			dzApp->log(QString("Daz To Blender: ERROR: exit code = %1").arg(m_nBlenderExitCode));
 		}
 		return false;
@@ -412,7 +396,7 @@ void DzBlenderAction::executeAction()
 	}
 	else
 	{
-		if (m_nNonInteractiveMode == 0)
+		if ( isInteractiveMode() )
 		{
 			m_bridgeDialog->resetToDefaults();
 			m_bridgeDialog->loadSavedSettings();
@@ -420,7 +404,7 @@ void DzBlenderAction::executeAction()
 	}
 
 	// Prepare member variables when not using GUI
-	if (m_nNonInteractiveMode == 1)
+	if (isInteractiveMode() == false)
 	{
 //		if (m_sRootFolder != "") m_bridgeDialog->getIntermediateFolderEdit()->setText(m_sRootFolder);
 
@@ -451,12 +435,11 @@ void DzBlenderAction::executeAction()
 
 	// If the Accept button was pressed, start the export
 	int dlgResult = -1;
-	if (m_nNonInteractiveMode == eNonInteractiveMode::InteractiveMode ||
-		m_nNonInteractiveMode == eNonInteractiveMode::ReducedPopup)
+	if ( isInteractiveMode() )
 	{
 		dlgResult = m_bridgeDialog->exec();
 	}
-	if (m_nNonInteractiveMode == 1 || dlgResult == QDialog::Accepted)
+	if (isInteractiveMode() == false || dlgResult == QDialog::Accepted)
 	{
 		// Read Common GUI values
 		if (readGui(m_bridgeDialog) == false)
@@ -467,29 +450,29 @@ void DzBlenderAction::executeAction()
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
 
-#if __LEGACY_PATHS__
-		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
-		if (m_sRootFolder == "") 
-			m_sRootFolder = sDefaultRootFolder;
-		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
-		{
-			m_sRootFolder = m_sRootFolder + "/Exports/FIG";
-			m_sRootFolder = m_sRootFolder.replace("\\", "/");
-			m_sExportSubfolder = "FIG0";
-			m_sExportFbx = "B_FIG";
-			m_sExportFilename = "FIG";
-		}
-		else
-		{
-			m_sRootFolder = m_sRootFolder + "/Exports/ENV";
-			m_sRootFolder = m_sRootFolder.replace("\\", "/");
-			m_sExportSubfolder = "ENV0";
-			m_sExportFbx = "B_ENV";
-			m_sExportFilename = "ENV";
-		}
-		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
-		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
-#endif
+//#if __LEGACY_PATHS__
+//		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+//		if (m_sRootFolder == "") 
+//			m_sRootFolder = sDefaultRootFolder;
+//		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+//		{
+//			m_sRootFolder = m_sRootFolder + "/Exports/FIG";
+//			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+//			m_sExportSubfolder = "FIG0";
+//			m_sExportFbx = "B_FIG";
+//			m_sExportFilename = "FIG";
+//		}
+//		else
+//		{
+//			m_sRootFolder = m_sRootFolder + "/Exports/ENV";
+//			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+//			m_sExportSubfolder = "ENV0";
+//			m_sExportFbx = "B_ENV";
+//			m_sExportFilename = "ENV";
+//		}
+//		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
+//		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
+//#endif
 
 		//Create Daz3D folder if it doesn't exist
 		QDir dir;
@@ -599,7 +582,7 @@ QString DzBlenderAction::readGuiRootFolder()
 {
 	QString rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 #if __LEGACY_PATHS__
-	if (m_sAssetType == "SkeletalMesh")
+	if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
 	{
 		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG/FIG0";
 		rootFolder = rootFolder.replace("\\", "/");
@@ -643,12 +626,36 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 		return false;
 	}
 
+#if __LEGACY_PATHS__
+	QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+	if (m_sRootFolder == "")
+		m_sRootFolder = sDefaultRootFolder;
+	if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+	{
+		m_sRootFolder = m_sRootFolder + "/Exports/FIG";
+		m_sRootFolder = m_sRootFolder.replace("\\", "/");
+		m_sExportSubfolder = "FIG0";
+		m_sExportFbx = "B_FIG";
+		m_sExportFilename = "FIG";
+	}
+	else
+	{
+		m_sRootFolder = m_sRootFolder + "/Exports/ENV";
+		m_sRootFolder = m_sRootFolder.replace("\\", "/");
+		m_sExportSubfolder = "ENV0";
+		m_sExportFbx = "B_ENV";
+		m_sExportFilename = "ENV";
+	}
+	m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
+	m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
+#endif
+
 	// Read Custom GUI values
 	DzBlenderDialog* pBlenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 	if (pBlenderDialog)
 	{
-		if (m_sBlenderExecutablePath == "" || m_nNonInteractiveMode == 0) m_sBlenderExecutablePath = pBlenderDialog->m_wBlenderExecutablePathEdit->text().replace("\\", "/");
+		if (m_sBlenderExecutablePath == "" || isInteractiveMode() ) m_sBlenderExecutablePath = pBlenderDialog->m_wBlenderExecutablePathEdit->text().replace("\\", "/");
 
 	}
 	else
