@@ -7,6 +7,9 @@ from . import DataBase
 from . import Versions
 from . import Util
 
+bNonInteractiveMode = 0
+nSceneScaleOverride = 1
+
 isMan = False
 root = ""
 isGen = False
@@ -1209,7 +1212,12 @@ def ifNeedToSnapKnee(r_l):
 
 
 def get_size():
-    return float(bpy.context.window_manager.scene_scale)
+    global bNonInteractiveMode
+    global nSceneScaleOverride
+    scene_scale = float(bpy.context.window_manager.scene_scale)
+    if bNonInteractiveMode != 0:
+        scene_scale = nSceneScaleOverride
+    return scene_scale
 
 
 def change_size(root):
@@ -1258,6 +1266,9 @@ def float_by_size(float):
 
 
 def scale_settings():
+    global bNonInteractiveMode
+    if (bNonInteractiveMode != 0):
+        return
     scene = bpy.context.scene
     scene.tool_settings.use_keyframe_insert_auto = False
     scene.unit_settings.system = "METRIC"

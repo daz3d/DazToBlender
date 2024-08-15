@@ -38,11 +38,21 @@ Local definitions
 
 #include "dzbridge.h"
 
+QValidator::State DzFileValidator::validate(QString& input, int& pos) const {
+	QFileInfo fi(input);
+	if (fi.exists() == false) {
+		dzApp->log("DzBridge: DzFileValidator: DEBUG: file does not exist: " + input);
+		return QValidator::Intermediate;
+	}
+
+	return QValidator::Acceptable;
+};
+
 DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 DzBridgeDialog(parent, DAZ_BRIDGE_PLUGIN_NAME)
 {
-	 intermediateFolderEdit = nullptr;
-	 intermediateFolderButton = nullptr;
+	 m_wIntermediateFolderEdit = nullptr;
+	 m_wIntermediateFolderButton = nullptr;
 
 	 settings = new QSettings("Daz 3D", "DazToBlender");
 
@@ -80,21 +90,6 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 ");
 	 m_WelcomeLabel->setText(sSetupModeString);
 
-//	 // Disable Subdivision UI
-//	 subdivisionEnabledCheckBox->setChecked(false);
-//	 subdivisionEnabledCheckBox->setDisabled(true);
-//	 subdivisionButton->setToolTip(tr("Subdivision Baking Disabled"));
-//	 subdivisionButton->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
-//like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
-//Bridge Export process."));
-//	 subdivisionEnabledCheckBox->setToolTip(tr("Subdivision Baking Disabled."));
-//	subdivisionEnabledCheckBox->setWhatsThis(tr("Blender 2.8+ now supports built-in Catmull-Clark Subdivision Surfaces \
-//like Daz Studio. This is much faster and should be used instead of baking out subdivision levels during the \
-//Bridge Export process."));
-//	 //	 subdivisionButton->setDisabled(true);
-//	 disconnect(subdivisionButton, 0, this, 0);
-//	 connect(subdivisionButton, SIGNAL(released()), this, SLOT(HandleDisabledChooseSubdivisionsButton()));
-
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
 	 QStandardItem* item = nullptr;
@@ -106,15 +101,29 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Connect new asset type handler
 	 connect(assetTypeCombo, SIGNAL(activated(int)), this, SLOT(HandleAssetTypeComboChange(int)));
 
+	 // Select Blender Executable Path GUI
+	 QHBoxLayout* blenderExecutablePathLayout = new QHBoxLayout();
+	 blenderExecutablePathLayout->setSpacing(0);
+	 m_wBlenderExecutablePathEdit = new QLineEdit(this);
+	 m_wBlenderExecutablePathEdit->setValidator(&m_dzValidatorFileExists);
+	 m_wBlenderExecutablePathButton = new DzBridgeBrowseButton(this);
+	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathEdit);
+	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathButton);
+	 connect(m_wBlenderExecutablePathButton, SIGNAL(released()), this, SLOT(HandleSelectBlenderExecutablePathButton()));
+	 connect(m_wBlenderExecutablePathEdit, SIGNAL(textChanged(const QString&)), this, SLOT(HandleTextChanged(const QString&)));
+
+	 mainLayout->insertRow(0, tr("Blender Executable"), blenderExecutablePathLayout);
+
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
 	 intermediateFolderLayout->setSpacing(0);
-	 intermediateFolderEdit = new QLineEdit(this);
+	 m_wIntermediateFolderEdit = new QLineEdit(this);
 	 //intermediateFolderButton = new QPushButton("...", this);
-	 intermediateFolderButton = new DzBridgeBrowseButton(this);
-	 intermediateFolderLayout->addWidget(intermediateFolderEdit);
-	 intermediateFolderLayout->addWidget(intermediateFolderButton);
-	 connect(intermediateFolderButton, SIGNAL(released()), this, SLOT(HandleSelectIntermediateFolderButton()));
+	 m_wIntermediateFolderButton = new DzBridgeBrowseButton(this);
+	 intermediateFolderLayout->addWidget(m_wIntermediateFolderEdit);
+	 intermediateFolderLayout->addWidget(m_wIntermediateFolderButton);
+	 connect(m_wIntermediateFolderButton, SIGNAL(released()), this, SLOT(HandleSelectIntermediateFolderButton()));
+	 connect(m_wIntermediateFolderEdit, SIGNAL(textChanged(const QString&)), this, SLOT(HandleTextChanged(const QString&)));
 
 	 // Advanced Options
 #ifdef __LEGACY_PATHS__
@@ -125,7 +134,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 //	 QFormLayout* advancedLayout = qobject_cast<QFormLayout*>(advancedSettingsGroupBox->layout());
 	 if (advancedLayout)
 	 {
-		 advancedLayout->addRow("Intermediate Folder", intermediateFolderLayout);
+		 advancedLayout->addRow(tr("Intermediate Folder"), intermediateFolderLayout);
 		 // reposition the Open Intermediate Folder button so it aligns with the center section
 		 advancedLayout->removeWidget(m_OpenIntermediateFolderButton);
 		 advancedLayout->addRow("", m_OpenIntermediateFolderButton);
@@ -163,8 +172,8 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Help
 	 assetNameEdit->setWhatsThis("This is the name the asset will use in Blender.");
 	 assetTypeCombo->setWhatsThis("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
-	 intermediateFolderEdit->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
-	 intermediateFolderButton->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
+	 m_wIntermediateFolderEdit->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
+	 m_wIntermediateFolderButton->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
 	 m_wTargetPluginInstaller->setWhatsThis("You can install the Blender Addon by selecting the desired Blender version and then clicking Install.");
 
 	 // Set Defaults
@@ -173,12 +182,14 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Load Settings
 	 loadSavedSettings();
 
-	 // Daz Ultra
+	 // GUI Update
 	 m_WelcomeLabel->hide();
 	 setWindowTitle(tr("Blender Export Options"));
 	 this->m_wPdfButton->show();
 	 this->m_wSupportButton->show();
 	 this->m_wYoutubeButton->show();
+
+	 disableAcceptUntilAllRequirementsValid();
 
 }
 
@@ -190,14 +201,18 @@ bool DzBlenderDialog::loadSavedSettings()
 	{
 		QString directoryName = settings->value("IntermediatePath").toString();
 		directoryName = directoryName.replace("\\", "/");
-		intermediateFolderEdit->setText(directoryName);
+		m_wIntermediateFolderEdit->setText(directoryName);
 	}
 	else
 	{
 //		QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 		QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
 		DefaultPath = DefaultPath.replace("\\", "/");
-		intermediateFolderEdit->setText(DefaultPath);
+		m_wIntermediateFolderEdit->setText(DefaultPath);
+	}
+	if (!settings->value("BlenderExecutablePath").isNull())
+	{
+		m_wBlenderExecutablePathEdit->setText(settings->value("BlenderExecutablePath").toString());
 	}
 
 	return true;
@@ -205,12 +220,19 @@ bool DzBlenderDialog::loadSavedSettings()
 
 void DzBlenderDialog::accept()
 {
-	saveSettings();
+	bool bResult = HandleAcceptButtonValidationFeedback();
 
-	if (m_bSetupMode)
-		return  DzBasicDialog::reject();
+	if (bResult == true)
+	{
+		saveSettings();
 
-	return DzBasicDialog::accept();
+		if (m_bSetupMode)
+			return  DzBasicDialog::reject();
+
+		return DzBasicDialog::accept();
+
+	}
+
 }
 
 void DzBlenderDialog::saveSettings()
@@ -219,7 +241,8 @@ void DzBlenderDialog::saveSettings()
 
 	DzBridgeDialog::saveSettings();
 
-	QString sIntermediateFolderPath = intermediateFolderEdit->text();
+	// Intermediate Path
+	QString sIntermediateFolderPath = m_wIntermediateFolderEdit->text();
 	if (sIntermediateFolderPath == "")
 	{
 #ifdef __LEGACY_PATHS__
@@ -231,6 +254,9 @@ void DzBlenderDialog::saveSettings()
 	sIntermediateFolderPath = sIntermediateFolderPath.replace("\\", "/");
 	settings->setValue("IntermediatePath", sIntermediateFolderPath);
 
+	// Blender Executable Path
+	settings->setValue("BlenderExecutablePath", m_wBlenderExecutablePathEdit->text());
+
 }
 
 void DzBlenderDialog::resetToDefaults()
@@ -240,7 +266,7 @@ void DzBlenderDialog::resetToDefaults()
 
 //	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
-	intermediateFolderEdit->setText(DefaultPath);
+	m_wIntermediateFolderEdit->setText(DefaultPath);
 
 	DzNode* Selection = dzScene->getPrimarySelection();
 #ifdef __LEGACY_PATHS__
@@ -284,7 +310,7 @@ void DzBlenderDialog::HandleSelectIntermediateFolderButton()
 
 	 if (directoryName != NULL)
 	 {
-		 intermediateFolderEdit->setText(directoryName);
+		 m_wIntermediateFolderEdit->setText(directoryName);
 		 if (settings != nullptr)
 		 {
 			 settings->setValue("IntermediatePath", directoryName);
@@ -501,16 +527,16 @@ void DzBlenderDialog::HandleOpenIntermediateFolderButton(QString sFolderPath)
 	QString sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 #if __LEGACY_PATHS__
 	sIntermediateFolder == "";
-	if (intermediateFolderEdit != nullptr)
+	if (m_wIntermediateFolderEdit != nullptr)
 	{
-		sIntermediateFolder = intermediateFolderEdit->text();
+		sIntermediateFolder = m_wIntermediateFolderEdit->text();
 	}
 	if (sIntermediateFolder == "")
 	{
 		sIntermediateFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender";
 		// add back to edit widget
-		if (intermediateFolderEdit) {
-			intermediateFolderEdit->setText(sIntermediateFolder);
+		if (m_wIntermediateFolderEdit) {
+			m_wIntermediateFolderEdit->setText(sIntermediateFolder);
 		}
 	}
 	if (QFile(sIntermediateFolder).exists() == false)
@@ -565,5 +591,141 @@ void DzBlenderDialog::HandleSupportButton()
 	QDesktopServices::openUrl(QUrl(url));
 }
 
+void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
+{
+	// DB 2023-10-13: prepopulate with existing folder string
+	QString directoryName = "";
+	if (settings != nullptr && settings->value("BlenderExecutablePath").isNull() != true)
+	{
+		directoryName = QFileInfo(settings->value("BlenderExecutablePath").toString()).dir().dirName();
+	}
+#ifdef WIN32
+	QString sExeFilter = tr("Executable Files (*.exe)");
+#elif defined(__APPLE__)
+	QString sExeFilter = tr("Application Bundle (*.app)");
+#endif
+	QString fileName = QFileDialog::getOpenFileName(this,
+		tr("Select Blender Executable"),
+		directoryName,
+		sExeFilter,
+		&sExeFilter,
+		QFileDialog::ReadOnly |
+		QFileDialog::DontResolveSymlinks);
+
+#if defined(__APPLE__)
+	if (fileName != "")
+	{
+		fileName = fileName + "/Contents/MacOS/Blender";
+	}
+#endif
+
+	if (fileName != "")
+	{
+		m_wBlenderExecutablePathEdit->setText(fileName);
+		if (settings != nullptr)
+		{
+			settings->setValue("BlenderExecutablePath", fileName);
+		}
+	}
+}
+
+void DzBlenderDialog::HandleTextChanged(const QString& text)
+{
+	QObject* senderWidget = sender();
+
+	if (senderWidget == m_wBlenderExecutablePathEdit) {
+		// check if blender exe is valid
+		printf("DEBUG: check stuff here...");
+		//		disableAcceptUntilBlenderValid(text);
+		disableAcceptUntilAllRequirementsValid();
+	}
+
+	dzApp->log("DzBlenderDialog: DEBUG: HandleTextChanged: text = " + text);
+}
+
+bool DzBlenderDialog::isBlenderTextBoxValid(const QString& arg_text)
+{
+	QString temp_text(arg_text);
+
+	if (temp_text == "") {
+		// check widget text
+		temp_text = m_wBlenderExecutablePathEdit->text();
+	}
+
+	// validate blender executable
+	QFileInfo fi(temp_text);
+	if (fi.exists() == false) {
+		dzApp->log("DzBridge: disableAcceptUntilBlenderValid: DEBUG: file does not exist: " + temp_text);
+		return false;
+	}
+
+	return true;
+}
+
+bool DzBlenderDialog::disableAcceptUntilAllRequirementsValid()
+{
+	if (dzScene->getPrimarySelection() == NULL)
+	{
+		this->setAcceptButtonEnabled(false);
+		return true;
+	}
+	// otherwise, enable accept button so we can show feedback dialog to help user
+	this->setAcceptButtonEnabled(true);
+
+	if (!isBlenderTextBoxValid() )
+	{
+		//		this->setAcceptButtonEnabled(false);
+		this->setAcceptButtonText("Unable to Proceed");
+		return false;
+	}
+	this->setAcceptButtonText("Accept");
+	//	this->setAcceptButtonEnabled(true);
+	return true;
+
+}
+
+bool DzBlenderDialog::HandleAcceptButtonValidationFeedback() 
+{
+
+	// Check if Intermedia Folder and Blender Executable are valid, if not issue Error and fail gracefully
+	bool bSettingsValid = false;
+
+	if (m_wBlenderExecutablePathEdit->text() != "" && QFileInfo(m_wBlenderExecutablePathEdit->text()).exists() &&
+		assetTypeCombo->itemData(assetTypeCombo->currentIndex()).toString() != "__")
+	{
+		bSettingsValid = true;
+
+		return bSettingsValid;
+
+	}
+
+	if (m_wBlenderExecutablePathEdit->text() == "" || QFileInfo(m_wBlenderExecutablePathEdit->text()).exists() == false)
+	{
+		QMessageBox::warning(0, tr("Blender Executable Path"), tr("Blender Executable Path must be set."), QMessageBox::Ok);
+		// Enable Advanced Settings
+		if (advancedSettingsGroupBox->isChecked() == false)
+		{
+			advancedSettingsGroupBox->setChecked(true);
+
+			foreach(QObject * child, advancedSettingsGroupBox->children())
+			{
+				QWidget* widget = qobject_cast<QWidget*>(child);
+				if (widget)
+				{
+					widget->setHidden(false);
+					QString name = widget->objectName();
+					dzApp->log("DEBUG: widget name = " + name);
+				}
+			}
+		}
+	}
+	else if (assetTypeCombo->itemData(assetTypeCombo->currentIndex()).toString() == "__")
+	{
+		QMessageBox::warning(0, tr("Select Asset Type"), tr("Please select an asset type from the dropdown menu."), QMessageBox::Ok);
+	}
+
+	return bSettingsValid;
+
+}
 
 #include "moc_DzBlenderDialog.cpp"

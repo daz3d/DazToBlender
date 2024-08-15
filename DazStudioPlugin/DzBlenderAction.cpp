@@ -38,21 +38,270 @@
 
 #include "dzbridge.h"
 
+bool generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs)
+{
+	// 4. Generate manual batch file to launch blender scripts
+	QString sBatchString = QString("\"%1\"").arg(sBlenderExecutablePath);
+	foreach(QString arg, sCommandArgs.split(";"))
+	{
+		if (arg.contains(" "))
+		{
+			sBatchString += QString(" \"%1\"").arg(arg);
+		}
+		else
+		{
+			sBatchString += " " + arg;
+		}
+	}
+	// write batch
+	QFile batchFileOut(batchFilePath);
+	bool bResult = batchFileOut.open(QIODevice::WriteOnly | QIODevice::OpenModeFlag::Truncate);
+	if (bResult) {
+		batchFileOut.write(sBatchString.toAscii().constData());
+		batchFileOut.close();
+	}
+	else {
+		dzApp->log("ERROR: DazToRoblox: generateBlenderBatchFile(): Unable to open batch filr for writing: " + batchFilePath);
+	}
+
+	return true;
+}
+
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
-//	QString scriptContents = "\
-//var action = new DzBlenderAction;\
-//action.executeAction();";
-//	DzScript oScript;
-//	oScript.addCode(scriptContents);
-//	oScript.execute();
+	QString sBlenderOutputPath = QFileInfo(filename).dir().path().replace("\\", "/");
+
+	// process options
+	QMap<QString, QString> optionsMap;
+	int numKeys = options->getNumValues();
+	for (int i = 0; i < numKeys; i++) {
+		auto key = options->getKey(i);
+		auto val = options->getValue(i);
+		optionsMap.insert(key, val);
+		dzApp->log(QString("DEBUG: DzBlenderExporter: Options[%1]=[%2]").arg(key).arg(val) );
+	}
+
+	DzProgress exportProgress(tr("Blender Exporter"), 100, true, true );
+
+	exportProgress.setInfo("Generating intermediate file");
+	exportProgress.step(25);
 
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
-//	pBlenderAction->setNonInteractiveMode(true);
+	pBlenderAction->setNonInteractiveMode(eNonInteractiveMode::ReducedPopup);
+
 	pBlenderAction->executeAction();
+
+	// if Blender Executable is not set, fail gracefully
+	if (pBlenderAction->m_sBlenderExecutablePath == "") {
+		QMessageBox::critical(0, tr("No Blender Executable Found"), tr("You must set the path to your Blender Executable. Aborting."), QMessageBox::Abort );
+		return DZ_OPERATION_FAILED_ERROR;
+	}
+
+	QString sIntermediatePath = QFileInfo(pBlenderAction->m_sDestinationFBX).dir().path().replace("\\", "/");
+
+	QStringList aScriptFilelist = (QStringList() << 
+		"create_blend.py" <<
+		"blender_tools.py"
+		);
+	// copy 
+	foreach(auto sScriptFilename, aScriptFilelist)
+	{
+		bool replace = true;
+		QString sEmbeddedFolderPath = ":/DazBridgeBlender";
+		QString sEmbeddedFilepath = sEmbeddedFolderPath + "/" + sScriptFilename;
+		QFile srcFile(sEmbeddedFilepath);
+		QString tempFilepath = sIntermediatePath + "/" + sScriptFilename;
+		DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &tempFilepath, replace);
+		srcFile.close();
+	}
+
+	exportProgress.setInfo("Generating Blend File");
+	exportProgress.step(25);
+
+	QString sBlenderLogPath = sIntermediatePath + "/" + "create_blend.log";
+	QString sScriptPath = sIntermediatePath + "/" + "create_blend.py";
+	QString sCommandArgs = QString("--background;--log-file;%1;--python-exit-code;%2;--python;%3;%4").arg(sBlenderLogPath).arg(pBlenderAction->m_nPythonExceptionExitCode).arg(sScriptPath).arg(pBlenderAction->m_sDestinationFBX);
+#if WIN32
+	QString batchFilePath = sIntermediatePath + "/" + "create_blend.bat";
+#else
+	QString batchFilePath = dzApp->getTempPath() + "/" + "create_blend.sh";
+#endif
+	generateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+
+	bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+
+	exportProgress.finish();
+
+	if (result) 
+	{
+		bool replace = true;
+		QString sBlendIntermediateFile = QString(pBlenderAction->m_sDestinationFBX).replace(".fbx", ".blend", Qt::CaseInsensitive);
+		QFile srcFile(sBlendIntermediateFile);
+		bool copy_result = DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &QString(filename), replace);
+		srcFile.close();
+		if (copy_result == false) {
+			QMessageBox::critical(0, tr("Blender Exporter"), 
+				tr("Unable to copy Blend file to destination."), QMessageBox::Abort);
+		}
+	}
+
+	if (result)
+	{
+		QMessageBox::information(0, "Blender Exporter",
+			tr("Export from Daz Studio complete."), QMessageBox::Ok);
+
+#ifdef WIN32
+		ShellExecuteA(NULL, "open", sBlenderOutputPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
+		//// The above line does the equivalent as following lines, but has advantage of only opening 1 explorer window
+		//// with multiple clicks.
+		//
+		//	QStringList args;
+		//	args << "/select," << QDir::toNativeSeparators(sIntermediateFolderPath);
+		//	QProcess::startDetached("explorer", args);
+		//
+#elif defined(__APPLE__)
+		QStringList args;
+		args << "-e";
+		args << "tell application \"Finder\"";
+		args << "-e";
+		args << "activate";
+		args << "-e";
+		if (m_sAssetType.contains("R15")) {
+			args << "select POSIX file \"" + sBlenderOutputPath + "/" + m_sExportFilename + R15_POSTFIX_STRING + ".fbx" + "\"";
+		}
+		else if (m_sAssetType.contains("S1")) {
+			args << "select POSIX file \"" + sBlenderOutputPath + "/" + m_sExportFilename + S1_POSTFIX_STRING + ".fbx" + "\"";
+		}
+		else {
+			args << "select POSIX file \"" + sBlenderOutputPath + "/." + "\"";
+		}
+		args << "-e";
+		args << "end tell";
+		QProcess::startDetached("osascript", args);
+#endif
+	}
+	else
+	{
+		// custom message for code 11 (Python Error)
+		if (pBlenderAction->m_nBlenderExitCode == pBlenderAction->m_nPythonExceptionExitCode) {
+			QString sErrorString;
+			sErrorString += QString("An error occured while running the Blender Python script (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
+			sErrorString += QString("\nPlease check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
+			sErrorString += QString("\nYou can rerun the Blender command-line script manually using: %1").arg(batchFilePath);
+			QMessageBox::critical(0, "Roblox Studio Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+		}
+		else {
+			QString sErrorString;
+			sErrorString += QString("An error occured during the export process (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
+			sErrorString += QString("Please check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
+			QMessageBox::critical(0, "Roblox Studio Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+		}
+#ifdef WIN32
+		ShellExecuteA(NULL, "open", pBlenderAction->m_sDestinationPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
+#elif defined(__APPLE__)
+		QStringList args;
+		args << "-e";
+		args << "tell application \"Finder\"";
+		args << "-e";
+		args << "activate";
+		args << "-e";
+		args << "select POSIX file \"" + batchFilePath + "\"";
+		args << "-e";
+		args << "end tell";
+		QProcess::startDetached("osascript", args);
+#endif
+	}
+
+
 
 	return DZ_NO_ERROR;
 };
+
+bool DzBlenderAction::executeBlenderScripts(QString sFilePath, QString sCommandlineArguments)
+{
+	// fork or spawn child process
+	QString sWorkingPath = m_sDestinationPath;
+	QStringList args = sCommandlineArguments.split(";");
+
+	float fTimeoutInSeconds = 2 * 60;
+	float fMilliSecondsPerTick = 200;
+	int numTotalTicks = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
+	DzProgress* progress = new DzProgress("Running Blender Script", numTotalTicks, false, true);
+	progress->enable(true);
+	QProcess* pToolProcess = new QProcess(this);
+	pToolProcess->setWorkingDirectory(sWorkingPath);
+	pToolProcess->start(sFilePath, args);
+	int currentTick = 0;
+	int timeoutTicks = numTotalTicks;
+	bool bUserInitiatedTermination = false;
+	while (pToolProcess->waitForFinished(fMilliSecondsPerTick) == false) {
+		// if timeout reached, then terminate process
+		if (currentTick++ > timeoutTicks) {
+			if (!bUserInitiatedTermination)
+			{
+				QString sTimeoutText = tr("\
+The current Blender operation is taking a long time.\n\
+Do you want to Ignore this time-out and wait a little longer, or \n\
+Do you want to Abort the operation now?");
+				int result = QMessageBox::critical(0,
+					tr("Daz To Blender: Blender Timout Error"),
+					sTimeoutText,
+					QMessageBox::Ignore,
+					QMessageBox::Abort);
+				if (result == QMessageBox::Ignore)
+				{
+					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
+					timeoutTicks += snoozeTime;
+				}
+				else
+				{
+					bUserInitiatedTermination = true;
+				}
+			}
+			else
+			{
+				if (currentTick - timeoutTicks < 5)
+				{
+					pToolProcess->terminate();
+				}
+				else
+				{
+					pToolProcess->kill();
+				}
+			}
+		}
+		if (pToolProcess->state() == QProcess::Running)
+		{
+			progress->step();
+		}
+		else
+		{
+			break;
+		}
+	}
+	progress->setCurrentInfo("Blender Script Completed.");
+	progress->finish();
+	delete progress;
+	m_nBlenderExitCode = pToolProcess->exitCode();
+#ifdef __APPLE__
+	if (m_nBlenderExitCode != 0 && m_nBlenderExitCode != 120)
+#else
+	if (m_nBlenderExitCode != 0)
+#endif
+	{
+		if (m_nBlenderExitCode == m_nPythonExceptionExitCode)
+		{
+			dzApp->log(QString("Daz To Blender: ERROR: Python error:.... %1").arg(m_nBlenderExitCode));
+		}
+		else
+		{
+			dzApp->log(QString("Daz To Blender: ERROR: exit code = %1").arg(m_nBlenderExitCode));
+		}
+		return false;
+	}
+
+	return true;
+}
 
 DzBlenderAction::DzBlenderAction() :
 	DzBridgeAction(tr("Send to &Blender..."), tr("Send the selected node to Blender."))
@@ -82,16 +331,7 @@ bool DzBlenderAction::createUI()
 		return false;
 	}
 
-	// m_subdivisionDialog creation REQUIRES valid Character or Prop selected
-	if (dzScene->getNumSelectedNodes() != 1)
-	{
-		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
-			tr("Please select one Character or Prop to send."), QMessageBox::Ok);
-
-		return false;
-	}
-
-	 // Create the dialog
+	// Create the dialog
 	if (!m_bridgeDialog)
 	{
 		m_bridgeDialog = new DzBlenderDialog(mw);
@@ -104,6 +344,15 @@ bool DzBlenderAction::createUI()
 			blenderDialog->resetToDefaults();
 			blenderDialog->loadSavedSettings();
 		}
+	}
+
+	// m_subdivisionDialog creation REQUIRES valid Character or Prop selected
+	if (dzScene->getNumSelectedNodes() != 1)
+	{
+		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
+			tr("Please select one Character or Prop to send."), QMessageBox::Ok);
+
+		return false;
 	}
 
 	if (!m_subdivisionDialog) m_subdivisionDialog = DZ_BRIDGE_NAMESPACE::DzBridgeSubdivisionDialog::Get(m_bridgeDialog);
@@ -202,7 +451,8 @@ void DzBlenderAction::executeAction()
 
 	// If the Accept button was pressed, start the export
 	int dlgResult = -1;
-	if (m_nNonInteractiveMode == 0)
+	if (m_nNonInteractiveMode == eNonInteractiveMode::InteractiveMode ||
+		m_nNonInteractiveMode == eNonInteractiveMode::ReducedPopup)
 	{
 		dlgResult = m_bridgeDialog->exec();
 	}
@@ -216,9 +466,6 @@ void DzBlenderAction::executeAction()
 
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
-
-		// Read Custom GUI values
-//		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
 
 #if __LEGACY_PATHS__
 		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
@@ -267,9 +514,9 @@ void DzBlenderAction::executeAction()
 QString DzBlenderAction::createBlenderFiles(bool replace)
 {
 
-	QString srcPath = ":/DazBridgeBlender/BlenderPlugin.zip";
+	QString srcPath = ":/DazBridgeBlender/BlenderAddon.zip";
 	QFile srcFile(srcPath);
-//	QString destPath = destinationFolder + "/BlenderPlugin.zip";
+//	QString destPath = destinationFolder + "/BlenderAddon.zip";
 //	this->copyFile(&srcFile, &destPath, replace);
 	srcFile.close();
 
@@ -386,6 +633,33 @@ QString DzBlenderAction::readGuiRootFolder()
 #endif
 
 	return rootFolder;
+}
+
+bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
+{
+	bool bResult = DzBridgeAction::readGui(BridgeDialog);
+	if (!bResult)
+	{
+		return false;
+	}
+
+	// Read Custom GUI values
+	DzBlenderDialog* pBlenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
+
+	if (pBlenderDialog)
+	{
+		if (m_sBlenderExecutablePath == "" || m_nNonInteractiveMode == 0) m_sBlenderExecutablePath = pBlenderDialog->m_wBlenderExecutablePathEdit->text().replace("\\", "/");
+
+	}
+	else
+	{
+		// TODO: issue error and fail gracefully
+		dzApp->log("Daz To Blender: ERROR: Blender Dialog was not initialized.  Cancelling operation...");
+
+		return false;
+	}
+
+	return true;
 }
 
 #include "moc_DzBlenderAction.cpp"

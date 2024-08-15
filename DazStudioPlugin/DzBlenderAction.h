@@ -13,6 +13,12 @@ class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
 
+enum eNonInteractiveMode {
+	InteractiveMode = 0, // default, all GUI
+	ScriptMode = 1, // script mode, no GUI
+	ReducedPopup = 2
+};
+
 class DzBlenderExporter : public DzExporter {
 	Q_OBJECT
 public:
@@ -39,7 +45,14 @@ protected:
 	 Q_INVOKABLE void writeConfiguration();
 	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions);
 	 Q_INVOKABLE QString createBlenderFiles(bool replace = true);
-	 QString readGuiRootFolder();
+	 virtual QString readGuiRootFolder() override;
+	 Q_INVOKABLE virtual bool readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog*) override;
+
+	 Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
+
+	 int m_nPythonExceptionExitCode = 11;  // arbitrary exit code to check for blener python exceptions
+	 int m_nBlenderExitCode = 0;
+	 QString m_sBlenderExecutablePath = "";
 
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE
