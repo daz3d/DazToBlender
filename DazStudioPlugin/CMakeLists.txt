@@ -92,6 +92,7 @@ endif()
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/Blender/appdata_common/Blender Foundation/Blender/BLENDER_VERSION/scripts/addons")
 set(ZIP_DEST_DIR "${CMAKE_SOURCE_DIR}/DazStudioPlugin/Resources")
 set(ZIP_NAME "blenderaddon.zip")
+set(INIT_PY_FILE "${SOURCE_DIR}/DTB/__init__.py")
 # Get all files in the PluginData directory
 file(GLOB_RECURSE PLUGINDATA_FILES "${SOURCE_DIR}/*")
 # Create the destination directory if it doesn't exist
@@ -120,6 +121,11 @@ add_custom_target(plugindata ALL
 				DEPENDS ${ZIP_DEST_DIR}/${ZIP_NAME})
 # Make sure your main target depends on this custom target
 add_dependencies(${DZ_PLUGIN_TGT_NAME} plugindata)
+# Add the __init__.py file to the project
+target_sources(plugindata
+    PRIVATE
+    ${INIT_PY_FILE}
+)
 set_target_properties (plugindata
 	PROPERTIES
 	FOLDER ""
