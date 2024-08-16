@@ -109,10 +109,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 m_wBlenderExecutablePathButton = new DzBridgeBrowseButton(this);
 	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathEdit);
 	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathButton);
+	 QLabel* wBlenderExecutableLabel = new QLabel(tr("Blender Executable"));
 	 connect(m_wBlenderExecutablePathButton, SIGNAL(released()), this, SLOT(HandleSelectBlenderExecutablePathButton()));
 	 connect(m_wBlenderExecutablePathEdit, SIGNAL(textChanged(const QString&)), this, SLOT(HandleTextChanged(const QString&)));
-
-	 mainLayout->insertRow(0, tr("Blender Executable"), blenderExecutablePathLayout);
+	 mainLayout->insertRow(0, wBlenderExecutableLabel, blenderExecutablePathLayout);
+	 aRowLabels.append(wBlenderExecutableLabel);
 
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
@@ -134,7 +135,9 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 //	 QFormLayout* advancedLayout = qobject_cast<QFormLayout*>(advancedSettingsGroupBox->layout());
 	 if (advancedLayout)
 	 {
-		 advancedLayout->addRow(tr("Intermediate Folder"), intermediateFolderLayout);
+		 QLabel* wIntermediateFolderRowLabel = new QLabel(tr("Intermediate Folder"));
+		 advancedLayout->addRow(wIntermediateFolderRowLabel, intermediateFolderLayout);
+		 aRowLabels.append(wIntermediateFolderRowLabel);
 		 // reposition the Open Intermediate Folder button so it aligns with the center section
 		 advancedLayout->removeWidget(m_OpenIntermediateFolderButton);
 		 advancedLayout->addRow("", m_OpenIntermediateFolderButton);
@@ -170,11 +173,32 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 update();
 
 	 // Help
-	 assetNameEdit->setWhatsThis("This is the name the asset will use in Blender.");
-	 assetTypeCombo->setWhatsThis("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
-	 m_wIntermediateFolderEdit->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
-	 m_wIntermediateFolderButton->setWhatsThis("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
-	 m_wTargetPluginInstaller->setWhatsThis("You can install the Blender Addon by selecting the desired Blender version and then clicking Install.");
+	 QString sBlenderExeHelp = tr("Select a Blender executable to run scripts");
+	 QString sBlenderExeHelp2 = tr("Select a Blender executable to run scripts. \
+Blender scripts are used for generating a .blend file when File->Export is used. \
+Recommend using the lowest version of Blender LTS that is compatible with your projects.");
+	 m_wBlenderExecutablePathEdit->setToolTip(sBlenderExeHelp);
+	 m_wBlenderExecutablePathEdit->setWhatsThis(sBlenderExeHelp2);
+	 m_wBlenderExecutablePathButton->setToolTip(sBlenderExeHelp);
+	 m_wBlenderExecutablePathButton->setWhatsThis(sBlenderExeHelp2);
+	 wBlenderExecutableLabel->setToolTip(sBlenderExeHelp);
+	 wBlenderExecutableLabel->setWhatsThis(sBlenderExeHelp2);
+
+	 QString sAssetNameHelp = tr("This is the name the asset will use in Blender.");
+	 QString sAssetTypeHelp = tr("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
+	 QString sIntermediateFolderHelp = tr("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
+	 QString sTargetPluginInstallerHelp = tr("You can install the Blender Addon by selecting the desired Blender version and then clicking Install.");
+
+	 assetNameEdit->setToolTip(sAssetNameHelp);
+	 assetNameEdit->setWhatsThis(sAssetNameHelp);
+	 assetTypeCombo->setToolTip(sAssetTypeHelp);
+	 assetTypeCombo->setWhatsThis(sAssetTypeHelp);
+	 m_wIntermediateFolderEdit->setToolTip(sIntermediateFolderHelp);
+	 m_wIntermediateFolderEdit->setWhatsThis(sIntermediateFolderHelp);
+	 m_wIntermediateFolderButton->setToolTip(sIntermediateFolderHelp);
+	 m_wIntermediateFolderButton->setWhatsThis(sIntermediateFolderHelp);
+	 m_wTargetPluginInstaller->setToolTip(sTargetPluginInstallerHelp);
+	 m_wTargetPluginInstaller->setWhatsThis(sTargetPluginInstallerHelp);
 
 	 // Set Defaults
 	 resetToDefaults();
@@ -185,12 +209,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // GUI Update
 	 m_WelcomeLabel->hide();
 	 setWindowTitle(tr("Blender Export Options"));
-	 this->m_wPdfButton->show();
-	 this->m_wSupportButton->show();
-	 this->m_wYoutubeButton->show();
+	 wHelpMenuButton->show();
 
 	 disableAcceptUntilAllRequirementsValid();
 
+	 fixRowLabelWidths();
 }
 
 bool DzBlenderDialog::loadSavedSettings()
