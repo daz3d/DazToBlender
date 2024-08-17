@@ -109,10 +109,10 @@ def _main(argv):
         DTB.Global.load_asset_name()
 
         asset_type = oDtu.get_asset_type()
-        if asset_type == "SkeletalMesh":
-            bpy.ops.import_dtu.fig()
-        else:
+        if asset_type == "Environment" or asset_type == "StaticMesh":
             bpy.ops.import_dtu.env()
+        else:
+            bpy.ops.import_dtu.fig()
 
         DTB.Global.bNonInteractiveMode = 0
 
