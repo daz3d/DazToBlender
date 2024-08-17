@@ -4,7 +4,8 @@
         <file alias="blenderaddon.zip">blenderaddon.zip</file>
         <file alias="icon">Images/Daz to Blender.png</file>
         <file alias="banner.jpg">Images/banner.jpg</file>
-        <file alias="create_blend.py">create_blend.py</file>
-        <file alias="blender_tools.py">blender_tools.py</file>
+        <file alias="create_blend.py">Scripts/create_blend.py</file>
+        <file alias="blender_tools.py">Scripts/blender_tools.py</file>
+        <file alias="NodeArrange.py">Scripts/NodeArrange.py</file>
     </qresource>
 </RCC>
