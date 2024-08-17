@@ -132,7 +132,8 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 
 	QStringList aScriptFilelist = (QStringList() << 
 		"create_blend.py" <<
-		"blender_tools.py"
+		"blender_tools.py" <<
+		"NodeArrange.py"
 		);
 	// copy 
 	foreach(auto sScriptFilename, aScriptFilelist)

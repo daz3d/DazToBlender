@@ -64,6 +64,10 @@ def load_cached_image_to_material(matName, input_key, output_key, texture_map, t
     node_tex = nodes.new("ShaderNodeTexImage")
     node_tex.image = cached_image
 
+    # if input_key == "Specular" and blender version > 4, use roughness instead of specular
+    if input_key == "Specular" and bpy.app.version[0] >= 4:
+        _add_to_log("DEBUG: load_cached_image_to_material(): using IOR Level instead of specular for blender version 4")
+        input_key = "Specular IOR Level"
     bsdf_inputs[input_key].default_value = texture_value
     links = data.node_tree.links
     link = links.new(node_tex.outputs[output_key], bsdf_inputs[input_key])
@@ -480,7 +484,7 @@ def process_material(mat, lowres_mode=None):
             # node_tex.image.colorspace_settings.name = "Non-Color"
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Specular"])
-            load_cached_image_to_material(matName, "Specular", "Color", reflectivity_map, reflectivity_value, "Non-Color")
+            load_cached_image_to_material(matName, "Roughness", "Color", reflectivity_map, reflectivity_value, "Non-Color")
     elif (specular_weight_map != ""):
         if (not os.path.exists(specular_weight_map)):
             _add_to_log("ERROR: process_dtu(): specular weight map file does not exist, skipping...")
@@ -492,7 +496,7 @@ def process_material(mat, lowres_mode=None):
             # node_tex.image.colorspace_settings.name = "Non-Color"
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Specular"])
-            load_cached_image_to_material(matName, "Specular", "Color", specular_weight_map, dual_lobe_specular_weight, "Non-Color")
+            load_cached_image_to_material(matName, "Roughness", "Color", specular_weight_map, dual_lobe_specular_weight, "Non-Color")
     elif (glossy_weight_map != ""):
         if (not os.path.exists(glossy_weight_map)):
             _add_to_log("ERROR: process_dtu(): glossy weight map file does not exist, skipping...")
@@ -504,9 +508,13 @@ def process_material(mat, lowres_mode=None):
             # node_tex.image.colorspace_settings.name = "Non-Color"
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Specular"])
-            load_cached_image_to_material(matName, "Specular", "Color", glossy_weight_map, glossy_weight, "Non-Color")
+            load_cached_image_to_material(matName, "Roughness", "Color", glossy_weight_map, glossy_weight, "Non-Color")
     elif (reflectivity_value != 0.0):
-        bsdf_inputs["Specular"].default_value = reflectivity_value
+        # if blender version 4, use roughness instead of specular
+        if bpy.app.version[0] >= 4:
+            bsdf_inputs["Specular IOR Level"].default_value = reflectivity_value
+        else:
+            bsdf_inputs["Specular"].default_value = reflectivity_value
     elif (dual_lobe_specular_weight != 0.0):
         bsdf_inputs["Specular"].default_value = dual_lobe_specular_weight
     elif (glossy_weight != 0.0):
@@ -542,9 +550,20 @@ def process_material(mat, lowres_mode=None):
             # node_tex.image.colorspace_settings.name = "Non-Color"
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Emission"])
-            load_cached_image_to_material(matName, "Emission", "Color", emissionMap, [0, 0, 0, 0], "Non-Color")
+            
+            # if blender version 4, use Emission Strength instead of Emission
+            if bpy.app.version[0] >= 4:
+                _add_to_log("DEBUG: process_dtu(): using Emission Strength instead of emission for blender version 4")
+                load_cached_image_to_material(matName, "Emission Strength", "Color", emissionMap, 0.0, "Non-Color")
+            else:
+                load_cached_image_to_material(matName, "Emission", "Color", emissionMap, [0, 0, 0, 0], "Non-Color")
     else:
-        bsdf_inputs["Emission"].default_value = [0, 0, 0, 0]
+        # if blender version 4, use emission strength instead of emission
+        if bpy.app.version[0] >= 4:
+            _add_to_log("DEBUG: process_dtu(): using Emission Strength instead of emission for blender version 4")
+            bsdf_inputs["Emission Strength"].default_value = 0.0
+        else:
+            bsdf_inputs["Emission"].default_value = [0, 0, 0, 0]
 
     if (normalMap != ""):
         if (not os.path.exists(normalMap)):
@@ -585,7 +604,7 @@ def process_material(mat, lowres_mode=None):
     if (cutoutMap != ""):
         if data.blend_method == "OPAQUE" or data.blend_method == "BLEND":
             data.blend_method = "HASHED"
-        load_cached_image_to_material(matName, "Alpha", "Alpha", cutoutMap, opacity_strength, "Non-Color")
+        load_cached_image_to_material(matName, "Alpha", "Color", cutoutMap, opacity_strength, "Non-Color")
     else:
         bsdf_inputs["Alpha"].default_value = opacity_strength
 
@@ -603,7 +622,12 @@ def process_material(mat, lowres_mode=None):
             bsdf_inputs["Alpha"].default_value = new_value
         _add_to_log("DEBUG: process_dtu(): refraction weight = " + str(refraction_weight) + ", alpha = " + str(bsdf_inputs["Alpha"].default_value))
         bsdf_inputs["Roughness"].default_value = bsdf_inputs["Roughness"].default_value * (1-refraction_weight)
-        bsdf_inputs["Specular"].default_value = bsdf_inputs["Specular"].default_value * (1-refraction_weight)
+        # if blender version 4, use ior level instead of specular
+        if bpy.app.version[0] >= 4:
+            _add_to_log("DEBUG: process_dtu(): using IOR Level instead of specular for blender version 4")
+            bsdf_inputs["Specular IOR Level"].default_value = bsdf_inputs["Specular IOR Level"].default_value * (1-refraction_weight)
+        else:
+            bsdf_inputs["Specular"].default_value = bsdf_inputs["Specular"].default_value * (1-refraction_weight)
         if bsdf_inputs["Metallic"].default_value < refraction_weight:
             bsdf_inputs["Metallic"].default_value = refraction_weight
         if (cutoutMap != ""):
@@ -618,7 +642,7 @@ def process_material(mat, lowres_mode=None):
                 node_math.operation = "MULTIPLY"
                 node_math.inputs[1].default_value = 0.5
                 links = data.node_tree.links
-                link = links.new(node_tex.outputs["Alpha"], node_math.inputs[0])
+                link = links.new(node_tex.outputs["Color"], node_math.inputs[0])
                 link = links.new(node_math.outputs[0], bsdf_inputs["Alpha"])
 
     remove_unlinked_shader_nodes(matName)
@@ -642,6 +666,54 @@ def process_dtu(jsonPath, lowres_mode=None):
         _add_to_log("ERROR: process_dtu(): unable to parse DTU: " + jsonPath)
         return
 
+    # extract object, label and type from materials
+    obj_data_dict = {}
+    for mat in materialsList:
+        obj_asset_name = mat["Asset Name"]
+        obj_asset_label = mat["Asset Label"]
+        obj_asset_type = mat["Value"]
+        if obj_asset_name not in obj_data_dict:
+            obj_data = {
+                "Asset Name": obj_asset_name,
+                "Asset Label": obj_asset_label,
+                "Asset Type": obj_asset_type
+            }
+            obj_data_dict[obj_asset_name] = obj_data
+
+    # process objects, mapping to DTU data
+    for obj in bpy.data.objects:
+        if obj.type != "MESH":
+            continue
+        obj_data = None
+        studio_label = None
+        studio_name = None
+        has_custom_properties = False
+        # if custom properties are present, use them instead of DTU data
+        try:
+            studio_label = obj["StudioNodeLabel"]
+            studio_name = obj["StudioNodeName"]
+            has_custom_properties = True
+        except:
+            print("ERROR: process_dtu(): unable to retrieve StudioNodeLabel/StudioNodeName Custom Proeprties for object: " + obj.name)
+            studio_name = obj.name.replace(".Shape", "")            
+        if studio_name in obj_data_dict:
+            obj_data = obj_data_dict[studio_name]
+            studio_label = obj_data["Asset Label"]
+        # populate custom data using DTU if custom properties were not found
+        if has_custom_properties == False and obj_data is not None:
+            obj["StudioNodeLabel"] = obj_data["Asset Label"]
+            obj["StudioNodeName"] = obj_data["Asset Name"]
+            obj["StudioPresentationType"] = obj_data["Asset Type"]
+        # rename object name to label
+        if studio_label is not None:
+            # skip hardcoded objects
+            if obj.name.lower().replace(".shape","") in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
+                continue
+            if obj.name.lower() in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
+                continue
+            print("DEBUG: process_dtu(): renaming object: " + obj.name + " to " + studio_label)
+            obj.name = studio_label
+
     # delete all nodes from materials so that we can rebuild them
     for mat in materialsList:
         matName = mat["Material Name"]
@@ -659,6 +731,9 @@ def process_dtu(jsonPath, lowres_mode=None):
             process_material(mat, lowres_mode)
         except Exception as e:
             _add_to_log("ERROR: exception caught while processing material: " + mat["Material Name"] + ", " + str(e))
+            if "moisture" not in mat["Material Name"].lower():
+#                raise e
+                pass
 
     _add_to_log("DEBUG: process_dtu(): done processing DTU: " + jsonPath)
     return jsonObj
@@ -688,6 +763,9 @@ def switch_to_layout_mode():
 
 
 def center_all_viewports():
+    # if Blender version is 4.0 or higher, then return
+    if bpy.app.version[0] >= 4:
+        return
     for wm in bpy.data.window_managers:
         for window in wm.windows:
             areas = [a for a in window.screen.areas if a.type == "VIEW_3D"]
@@ -696,3 +774,4 @@ def center_all_viewports():
                 for region in regions:
                     override = {'area': area, 'region': region}
                     bpy.ops.view3d.view_all(override, center=False)
+
