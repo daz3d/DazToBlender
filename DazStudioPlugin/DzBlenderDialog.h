@@ -12,6 +12,7 @@ class QGroupBox;
 class QLabel;
 class QWidget;
 class DzBlenderAction;
+class QHBoxLayout;
 
 class UnitTest_DzBlenderDialog;
 
@@ -44,6 +45,12 @@ public:
 	Q_INVOKABLE bool isBlenderTextBoxValid(const QString& text = "");
 	Q_INVOKABLE bool disableAcceptUntilAllRequirementsValid();
 
+	// Move Blender Executable Widgets to Top of Dialog
+	Q_INVOKABLE void requireBlenderExecutableWidget(bool bRequired);
+
+protected:
+	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
+
 protected slots:
 	void HandleSelectIntermediateFolderButton();
 	void HandleAssetTypeComboChange(int state);
@@ -57,6 +64,7 @@ protected slots:
 	void HandleSelectBlenderExecutablePathButton();
 	void HandleTextChanged(const QString &text);
 	bool HandleAcceptButtonValidationFeedback();
+	void updateBlenderExecutablePathEdit(bool isValid);
 
 protected:
 	QLineEdit* m_wIntermediateFolderEdit;
@@ -64,9 +72,12 @@ protected:
 
 	QLineEdit* m_wBlenderExecutablePathEdit;
 	QPushButton* m_wBlenderExecutablePathButton;
-	QWidget* m_wBlenderExecutablePathRowLabelWdiget;
+	QLabel* m_wBlenderExecutableRowLabel;
+	QHBoxLayout* m_wBlenderExecutablePathLayout;
 
 	virtual void refreshAsset();
+
+	bool m_bBlenderRequired = false;
 
 #ifdef UNITTEST_DZBRIDGE
 	friend class UnitTest_DzBlenderDialog;

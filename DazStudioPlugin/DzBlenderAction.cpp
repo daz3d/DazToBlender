@@ -69,6 +69,27 @@ bool DzBlenderUtils::generateBlenderBatchFile(QString batchFilePath, QString sBl
 
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
+	if (dzScene->getNumSelectedNodes() != 1)
+	{
+		DzNodeList rootNodes = DZ_BRIDGE_NAMESPACE::DzBridgeAction::BuildRootNodeList();
+		if (rootNodes.length() == 1)
+		{
+			dzScene->setPrimarySelection(rootNodes[0]);
+		}
+		else if (rootNodes.length() > 1)
+		{
+			QMessageBox::critical(0, tr("Error: No Selection"),
+					tr("Please select one Character or Prop in the scene to export."), QMessageBox::Abort);
+			return DZ_OPERATION_FAILED_ERROR;
+		}
+	}
+
+	//if (dzScene->getPrimarySelection() == NULL)
+	//{
+	//	QMessageBox::critical(0, tr("Blender Exporter: No Selection"), tr("Please select an object in the scene to export."), QMessageBox::Abort);
+	//	return DZ_OPERATION_FAILED_ERROR;
+	//}
+
 	QString sBlenderOutputPath = QFileInfo(filename).dir().path().replace("\\", "/");
 
 	// process options
@@ -88,8 +109,18 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
 	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::ReducedPopup);
+	pBlenderAction->createUI();
+	DzBlenderDialog* pDialog = qobject_cast<DzBlenderDialog*>(pBlenderAction->getBridgeDialog());
 
+	// Move Blender Executable Widgets to Top of Dialog
+	pDialog->requireBlenderExecutableWidget(true);
 	pBlenderAction->executeAction();
+	pDialog->requireBlenderExecutableWidget(false);
+
+	if (pDialog->result() == QDialog::Rejected) {
+		exportProgress.cancel();
+		return DZ_USER_CANCELLED_OPERATION;
+	}
 
 	// if Blender Executable is not set, fail gracefully
 	if (pBlenderAction->m_sBlenderExecutablePath == "") {
@@ -374,7 +405,7 @@ void DzBlenderAction::executeAction()
 	// input from the user.
 	if (dzScene->getNumSelectedNodes() != 1)
 	{
-		DzNodeList rootNodes = buildRootNodeList();
+		DzNodeList rootNodes = BuildRootNodeList();
 		if (rootNodes.length() == 1)
 		{
 			dzScene->setPrimarySelection(rootNodes[0]);

@@ -102,18 +102,19 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 connect(assetTypeCombo, SIGNAL(activated(int)), this, SLOT(HandleAssetTypeComboChange(int)));
 
 	 // Select Blender Executable Path GUI
-	 QHBoxLayout* blenderExecutablePathLayout = new QHBoxLayout();
-	 blenderExecutablePathLayout->setSpacing(0);
+	 m_wBlenderExecutablePathLayout = new QHBoxLayout();
+	 m_wBlenderExecutablePathLayout->setSpacing(0);
 	 m_wBlenderExecutablePathEdit = new QLineEdit(this);
 	 m_wBlenderExecutablePathEdit->setValidator(&m_dzValidatorFileExists);
 	 m_wBlenderExecutablePathButton = new DzBridgeBrowseButton(this);
-	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathEdit);
-	 blenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathButton);
-	 QLabel* wBlenderExecutableLabel = new QLabel(tr("Blender Executable"));
+	 m_wBlenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathEdit);
+	 m_wBlenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathButton);
+	 m_wBlenderExecutableRowLabel = new QLabel(tr("Blender Executable"));
 	 connect(m_wBlenderExecutablePathButton, SIGNAL(released()), this, SLOT(HandleSelectBlenderExecutablePathButton()));
 	 connect(m_wBlenderExecutablePathEdit, SIGNAL(textChanged(const QString&)), this, SLOT(HandleTextChanged(const QString&)));
-	 mainLayout->insertRow(0, wBlenderExecutableLabel, blenderExecutablePathLayout);
-	 aRowLabels.append(wBlenderExecutableLabel);
+//	 mainLayout->addRow(m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+	 advancedLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+	 m_aRowLabels.append(m_wBlenderExecutableRowLabel);
 
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
@@ -132,12 +133,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 //	 intermediateFolderEdit->setVisible(false);
 //	 intermediateFolderButton->setVisible(false);
 #endif
-//	 QFormLayout* advancedLayout = qobject_cast<QFormLayout*>(advancedSettingsGroupBox->layout());
 	 if (advancedLayout)
 	 {
 		 QLabel* wIntermediateFolderRowLabel = new QLabel(tr("Intermediate Folder"));
 		 advancedLayout->addRow(wIntermediateFolderRowLabel, intermediateFolderLayout);
-		 aRowLabels.append(wIntermediateFolderRowLabel);
+		 m_aRowLabels.append(wIntermediateFolderRowLabel);
 		 // reposition the Open Intermediate Folder button so it aligns with the center section
 		 advancedLayout->removeWidget(m_OpenIntermediateFolderButton);
 		 advancedLayout->addRow("", m_OpenIntermediateFolderButton);
@@ -181,8 +181,8 @@ Recommend using the lowest version of Blender LTS that is compatible with your p
 	 m_wBlenderExecutablePathEdit->setWhatsThis(sBlenderExeHelp2);
 	 m_wBlenderExecutablePathButton->setToolTip(sBlenderExeHelp);
 	 m_wBlenderExecutablePathButton->setWhatsThis(sBlenderExeHelp2);
-	 wBlenderExecutableLabel->setToolTip(sBlenderExeHelp);
-	 wBlenderExecutableLabel->setWhatsThis(sBlenderExeHelp2);
+	 m_wBlenderExecutableRowLabel->setToolTip(sBlenderExeHelp);
+	 m_wBlenderExecutableRowLabel->setWhatsThis(sBlenderExeHelp2);
 
 	 QString sAssetNameHelp = tr("This is the name the asset will use in Blender.");
 	 QString sAssetTypeHelp = tr("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
@@ -213,6 +213,7 @@ Recommend using the lowest version of Blender LTS that is compatible with your p
 
 	 disableAcceptUntilAllRequirementsValid();
 
+	 fixRowLabelStyle();
 	 fixRowLabelWidths();
 }
 
@@ -243,19 +244,17 @@ bool DzBlenderDialog::loadSavedSettings()
 
 void DzBlenderDialog::accept()
 {
-	bool bResult = HandleAcceptButtonValidationFeedback();
+	if (m_bSetupMode) {
+		saveSettings();
+		return DzBasicDialog::reject();
+	}
 
+	bool bResult = HandleAcceptButtonValidationFeedback();
 	if (bResult == true)
 	{
 		saveSettings();
-
-		if (m_bSetupMode)
-			return  DzBasicDialog::reject();
-
 		return DzBasicDialog::accept();
-
 	}
-
 }
 
 void DzBlenderDialog::saveSettings()
@@ -343,14 +342,12 @@ void DzBlenderDialog::HandleSelectIntermediateFolderButton()
 
 void DzBlenderDialog::HandleAssetTypeComboChange(int state)
 {
-	QString assetNameString = assetNameEdit->text();
-
-	// enable/disable Morphs and Subdivision only if Skeletal selected
-	if (assetTypeCombo->currentText() != "Skeletal Mesh")
-	{
-		morphsEnabledCheckBox->setChecked(false);
-		subdivisionEnabledCheckBox->setChecked(false);
-	}
+	//// enable/disable Morphs and Subdivision only if Skeletal selected
+	//if (assetTypeCombo->currentText() == "Skeletal Mesh")
+	//{
+	//	morphsEnabledCheckBox->setChecked(false);
+	//	subdivisionEnabledCheckBox->setChecked(false);
+	//}
 
 }
 
@@ -616,11 +613,15 @@ void DzBlenderDialog::HandleSupportButton()
 
 void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
 {
-	// DB 2023-10-13: prepopulate with existing folder string
+	// DB 2023-10-13: pre-populate with existing folder string
 	QString directoryName = "";
-	if (settings != nullptr && settings->value("BlenderExecutablePath").isNull() != true)
-	{
-		directoryName = QFileInfo(settings->value("BlenderExecutablePath").toString()).dir().dirName();
+	QString sBlenderExePath = m_wBlenderExecutablePathEdit->text();
+	directoryName = QFileInfo(sBlenderExePath).dir().path();
+	if (directoryName == "." || directoryName == "") {
+		if (settings != nullptr && settings->value("BlenderExecutablePath").isNull() != true) {
+			sBlenderExePath = settings->value("BlenderExecutablePath").toString();
+			directoryName = QFileInfo(sBlenderExePath).dir().path();
+		}
 	}
 #ifdef WIN32
 	QString sExeFilter = tr("Executable Files (*.exe)");
@@ -652,18 +653,24 @@ void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
 	}
 }
 
+void DzBlenderDialog::updateBlenderExecutablePathEdit(bool isValid) {
+	if (!isValid && m_bBlenderRequired) {
+//		m_wBlenderExecutablePathEdit->setStyleSheet("color: red;");
+		m_wBlenderExecutableRowLabel->setStyleSheet("color: red;");
+	}
+	else {
+		m_wBlenderExecutablePathEdit->setStyleSheet("");
+		m_wBlenderExecutableRowLabel->setStyleSheet("");
+	}
+}
+
 void DzBlenderDialog::HandleTextChanged(const QString& text)
 {
 	QObject* senderWidget = sender();
-
 	if (senderWidget == m_wBlenderExecutablePathEdit) {
-		// check if blender exe is valid
-		printf("DEBUG: check stuff here...");
-		//		disableAcceptUntilBlenderValid(text);
-		disableAcceptUntilAllRequirementsValid();
+		updateBlenderExecutablePathEdit(isBlenderTextBoxValid());
 	}
-
-	dzApp->log("DzBlenderDialog: DEBUG: HandleTextChanged: text = " + text);
+	disableAcceptUntilAllRequirementsValid();
 }
 
 bool DzBlenderDialog::isBlenderTextBoxValid(const QString& arg_text)
@@ -687,68 +694,57 @@ bool DzBlenderDialog::isBlenderTextBoxValid(const QString& arg_text)
 
 bool DzBlenderDialog::disableAcceptUntilAllRequirementsValid()
 {
-	if (dzScene->getPrimarySelection() == NULL)
-	{
-		this->setAcceptButtonEnabled(false);
-		return true;
-	}
-	// otherwise, enable accept button so we can show feedback dialog to help user
-	this->setAcceptButtonEnabled(true);
+	//if (dzScene->getPrimarySelection() == NULL)
+	//{
+	//	this->setAcceptButtonEnabled(false);
+	//	return true;
+	//}
+	//this->setAcceptButtonEnabled(true);
 
-	if (!isBlenderTextBoxValid() )
+	if (!isBlenderTextBoxValid() && m_bBlenderRequired)
 	{
-		//		this->setAcceptButtonEnabled(false);
 		this->setAcceptButtonText("Unable to Proceed");
 		return false;
 	}
 	this->setAcceptButtonText("Accept");
-	//	this->setAcceptButtonEnabled(true);
 	return true;
-
 }
 
 bool DzBlenderDialog::HandleAcceptButtonValidationFeedback() 
 {
-
 	// Check if Intermedia Folder and Blender Executable are valid, if not issue Error and fail gracefully
-	bool bSettingsValid = false;
-
-	if (m_wBlenderExecutablePathEdit->text() != "" && QFileInfo(m_wBlenderExecutablePathEdit->text()).exists() &&
-		assetTypeCombo->itemData(assetTypeCombo->currentIndex()).toString() != "__")
-	{
-		bSettingsValid = true;
-
-		return bSettingsValid;
-
-	}
-
-	if (m_wBlenderExecutablePathEdit->text() == "" || QFileInfo(m_wBlenderExecutablePathEdit->text()).exists() == false)
+	if (
+		(m_bBlenderRequired) &&
+		(m_wBlenderExecutablePathEdit->text() == "" || QFileInfo(m_wBlenderExecutablePathEdit->text()).exists() == false) 
+		)
 	{
 		QMessageBox::warning(0, tr("Blender Executable Path"), tr("Blender Executable Path must be set."), QMessageBox::Ok);
-		// Enable Advanced Settings
-		if (advancedSettingsGroupBox->isChecked() == false)
-		{
-			advancedSettingsGroupBox->setChecked(true);
-
-			foreach(QObject * child, advancedSettingsGroupBox->children())
-			{
-				QWidget* widget = qobject_cast<QWidget*>(child);
-				if (widget)
-				{
-					widget->setHidden(false);
-					QString name = widget->objectName();
-					dzApp->log("DEBUG: widget name = " + name);
-				}
-			}
-		}
+		return false;
 	}
 	else if (assetTypeCombo->itemData(assetTypeCombo->currentIndex()).toString() == "__")
 	{
 		QMessageBox::warning(0, tr("Select Asset Type"), tr("Please select an asset type from the dropdown menu."), QMessageBox::Ok);
+		return false;
 	}
 
-	return bSettingsValid;
+	return true;
+}
+
+void DzBlenderDialog::requireBlenderExecutableWidget(bool bRequired)
+{
+	m_bBlenderRequired = bRequired;
+
+	if (bRequired) {
+		advancedLayout->removeItem(m_wBlenderExecutablePathLayout);
+		mainLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+	}
+	else {
+		mainLayout->removeItem(m_wBlenderExecutablePathLayout);
+		advancedLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+	}
+	updateBlenderExecutablePathEdit(isBlenderTextBoxValid());
 
 }
+
 
 #include "moc_DzBlenderDialog.cpp"
