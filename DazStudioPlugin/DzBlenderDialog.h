@@ -31,7 +31,7 @@ public:
 	Q_INVOKABLE QLineEdit* getIntermediateFolderEdit() { return m_wIntermediateFolderEdit; }
 
 	/** Constructor **/
-	 DzBlenderDialog(QWidget *parent=nullptr);
+	 DzBlenderDialog(QWidget *parent=nullptr, const QString& windowTitle = "");
 
 	/** Destructor **/
 	virtual ~DzBlenderDialog() {}
@@ -47,6 +47,11 @@ public:
 
 	// Move Blender Executable Widgets to Top of Dialog
 	Q_INVOKABLE void requireBlenderExecutableWidget(bool bRequired);
+
+	Q_INVOKABLE bool showBlenderToolsOptions(const bool visible);
+	Q_INVOKABLE bool setOutputBlendFilepath(const QString& filename);
+	Q_INVOKABLE int getUseBlenderToolsCheckbox(bool &returnState);
+	Q_INVOKABLE int setUseBlenderToolsCheckbox(const bool state);
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -74,6 +79,12 @@ protected:
 	QPushButton* m_wBlenderExecutablePathButton;
 	QLabel* m_wBlenderExecutableRowLabel;
 	QHBoxLayout* m_wBlenderExecutablePathLayout;
+	QGroupBox* m_wRequiredInputFrame;
+	QFormLayout* m_wRequiredInputFrameLayout;
+
+	QGroupBox* m_wBlenderToolsGroupbox;
+	QLineEdit* m_wBlenderOutputFilename;
+	QCheckBox* m_wUseBlendToolsCheckBox;
 
 	virtual void refreshAsset();
 

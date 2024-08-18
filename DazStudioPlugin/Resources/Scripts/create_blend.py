@@ -92,7 +92,20 @@ def _main(argv):
     else:
         jsonPath = fbxPath.replace(".fbx", ".dtu")
 
-    if g_daz_addon_loaded:
+    use_blender_tools = False
+    output_blend_filepath = ""
+    try:
+        with open(jsonPath, "r") as file:
+            json_obj = json.load(file)
+        use_blender_tools = json_obj["Use Blender Tools"]
+        output_blend_filepath = json_obj["Output Blend Filepath"]
+    except:
+        pass
+
+    if output_blend_filepath != "":
+        blenderFilePath = output_blend_filepath
+
+    if g_daz_addon_loaded and not use_blender_tools:
 
         # load DazToBlender addon
         _add_to_log("DEBUG: main(): loading DazToBlender addon")
@@ -129,6 +142,7 @@ def _main(argv):
     bpy.ops.file.pack_all()
 
     bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath)
+    _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
 
     return
 

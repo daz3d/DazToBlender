@@ -48,7 +48,7 @@ QValidator::State DzFileValidator::validate(QString& input, int& pos) const {
 	return QValidator::Acceptable;
 };
 
-DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
+DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 DzBridgeDialog(parent, DAZ_BRIDGE_PLUGIN_NAME)
 {
 	 m_wIntermediateFolderEdit = nullptr;
@@ -60,14 +60,6 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 int margin = style()->pixelMetric(DZ_PM_GeneralMargin);
 	 int wgtHeight = style()->pixelMetric(DZ_PM_ButtonHeight);
 	 int btnMinWidth = style()->pixelMetric(DZ_PM_ButtonMinWidth);
-
-	 // Set the dialog title
-	 int revision = PLUGIN_REV % 1000;
-#ifdef _DEBUG
-	 setWindowTitle(tr("Daz To Blender Bridge %1 v%2.%3.%4 PreRelease Build").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD));
-#else
-	 setWindowTitle(tr("Daz To Blender Bridge %1 v%2.%3").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision));
-#endif
 
 	 QString sDazAppDir = dzApp->getHomePath().replace("\\","/");
 	 QString sPdfPath = sDazAppDir + "/docs/Plugins" + "/Daz to Blender/Daz to Blender.pdf";
@@ -90,6 +82,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 ");
 	 m_WelcomeLabel->setText(sSetupModeString);
 
+	 // GUI Update
+	 m_WelcomeLabel->hide();
+	 setWindowTitle(tr("Blender Export Options"));
+	 wHelpMenuButton->show();
+
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
 	 QStandardItem* item = nullptr;
@@ -102,25 +99,49 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 connect(assetTypeCombo, SIGNAL(activated(int)), this, SLOT(HandleAssetTypeComboChange(int)));
 
 	 // Select Blender Executable Path GUI
-	 m_wBlenderExecutablePathLayout = new QHBoxLayout();
-	 m_wBlenderExecutablePathLayout->setSpacing(0);
+	 m_wRequiredInputFrame = new QGroupBox();
+	 m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
+	 m_wRequiredInputFrameLayout = new QFormLayout(m_wRequiredInputFrame);
+	 m_wRequiredInputFrameLayout->setSpacing(0);
+	 m_wRequiredInputFrameLayout->setMargin(0);
+	 m_wRequiredInputFrameLayout->setContentsMargins(0, 0, 0, 0);
+	 m_wRequiredInputFrame->setVisible(false);
+	 mainLayout->insertRow(0, m_wRequiredInputFrame);
+
 	 m_wBlenderExecutablePathEdit = new QLineEdit(this);
 	 m_wBlenderExecutablePathEdit->setValidator(&m_dzValidatorFileExists);
 	 m_wBlenderExecutablePathButton = new DzBridgeBrowseButton(this);
+	 m_wBlenderExecutablePathLayout = new QHBoxLayout();
+	 m_wBlenderExecutablePathLayout->setSpacing(0);
 	 m_wBlenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathEdit);
 	 m_wBlenderExecutablePathLayout->addWidget(m_wBlenderExecutablePathButton);
-	 m_wBlenderExecutableRowLabel = new QLabel(tr("Blender Executable"));
 	 connect(m_wBlenderExecutablePathButton, SIGNAL(released()), this, SLOT(HandleSelectBlenderExecutablePathButton()));
 	 connect(m_wBlenderExecutablePathEdit, SIGNAL(textChanged(const QString&)), this, SLOT(HandleTextChanged(const QString&)));
-//	 mainLayout->addRow(m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+
+	 m_wBlenderExecutableRowLabel = new QLabel(tr("Blender Executable"));
 	 advancedLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
 	 m_aRowLabels.append(m_wBlenderExecutableRowLabel);
+
+	 // Blender_tools Group settings
+	 m_wBlenderToolsGroupbox = new QGroupBox(tr(".Blend File Options : "), this);
+	 QFormLayout* wBlenderToolsLayout = new QFormLayout();
+	 wBlenderToolsLayout->setContentsMargins(margin, margin, margin, margin);
+	 wBlenderToolsLayout->setSpacing(margin);
+	 m_wBlenderToolsGroupbox->setLayout(wBlenderToolsLayout);
+
+	 m_wBlenderOutputFilename = new QLineEdit();
+	 m_wBlenderOutputFilename->setReadOnly(true);
+	 wBlenderToolsLayout->addRow(m_wBlenderOutputFilename);
+	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Export Using Blender Tools"));
+	 m_wUseBlendToolsCheckBox->setChecked(true);
+	 wBlenderToolsLayout->addRow(m_wUseBlendToolsCheckBox);
+	 mainLayout->insertRow(1, "", m_wBlenderToolsGroupbox);
+	 m_wBlenderToolsGroupbox->setVisible(false);
 
 	 // Intermediate Folder
 	 QHBoxLayout* intermediateFolderLayout = new QHBoxLayout();
 	 intermediateFolderLayout->setSpacing(0);
 	 m_wIntermediateFolderEdit = new QLineEdit(this);
-	 //intermediateFolderButton = new QPushButton("...", this);
 	 m_wIntermediateFolderButton = new DzBridgeBrowseButton(this);
 	 intermediateFolderLayout->addWidget(m_wIntermediateFolderEdit);
 	 intermediateFolderLayout->addWidget(m_wIntermediateFolderButton);
@@ -130,8 +151,6 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 	 // Advanced Options
 #ifdef __LEGACY_PATHS__
 	 assetNameEdit->setValidator(new QRegExpValidator(QRegExp("*"), this));
-//	 intermediateFolderEdit->setVisible(false);
-//	 intermediateFolderButton->setVisible(false);
 #endif
 	 if (advancedLayout)
 	 {
@@ -143,7 +162,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent) :
 		 advancedLayout->addRow("", m_OpenIntermediateFolderButton);
 	 }
 
-	 QString sBlenderVersionString = tr("DazToBlender Bridge %1 v%2.%3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(revision).arg(PLUGIN_BUILD);
+	 QString sBlenderVersionString = tr("DazToBlender Bridge %1 v%2.%3.%4").arg(PLUGIN_MAJOR).arg(PLUGIN_MINOR).arg(PLUGIN_REV).arg(PLUGIN_BUILD);
 	 setBridgeVersionStringAndLabel(sBlenderVersionString);
 
 	 // Configure Target Plugin Installer
@@ -205,11 +224,6 @@ Recommend using the lowest version of Blender LTS that is compatible with your p
 
 	 // Load Settings
 	 loadSavedSettings();
-
-	 // GUI Update
-	 m_WelcomeLabel->hide();
-	 setWindowTitle(tr("Blender Export Options"));
-	 wHelpMenuButton->show();
 
 	 disableAcceptUntilAllRequirementsValid();
 
@@ -656,11 +670,13 @@ void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
 void DzBlenderDialog::updateBlenderExecutablePathEdit(bool isValid) {
 	if (!isValid && m_bBlenderRequired) {
 //		m_wBlenderExecutablePathEdit->setStyleSheet("color: red;");
-		m_wBlenderExecutableRowLabel->setStyleSheet("color: red;");
+//		m_wBlenderExecutableRowLabel->setStyleSheet("color: red;");
+		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
 	}
 	else {
 		m_wBlenderExecutablePathEdit->setStyleSheet("");
 		m_wBlenderExecutableRowLabel->setStyleSheet("");
+		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 0px; }");
 	}
 }
 
@@ -736,14 +752,59 @@ void DzBlenderDialog::requireBlenderExecutableWidget(bool bRequired)
 
 	if (bRequired) {
 		advancedLayout->removeItem(m_wBlenderExecutablePathLayout);
-		mainLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+//		mainLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
+
+		m_wRequiredInputFrame->setVisible(true);
+		m_wRequiredInputFrameLayout->addRow(m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
 	}
 	else {
-		mainLayout->removeItem(m_wBlenderExecutablePathLayout);
+		m_wRequiredInputFrame->setVisible(false);
+		m_wRequiredInputFrameLayout->removeItem(m_wBlenderExecutablePathLayout);
+		mainLayout->removeWidget(m_wRequiredInputFrame);
+
+//		mainLayout->removeItem(m_wBlenderExecutablePathLayout);
 		advancedLayout->insertRow(0, m_wBlenderExecutableRowLabel, m_wBlenderExecutablePathLayout);
 	}
 	updateBlenderExecutablePathEdit(isBlenderTextBoxValid());
 
+}
+
+bool DzBlenderDialog::showBlenderToolsOptions(const bool visible)
+{
+	if (m_wBlenderToolsGroupbox) {
+		m_wBlenderToolsGroupbox->setVisible(visible);
+		return true;
+	}
+	return false;
+}
+
+bool DzBlenderDialog::setOutputBlendFilepath(const QString& filename)
+{
+	if (m_wBlenderOutputFilename) {
+		m_wBlenderOutputFilename->setText(QString(filename).replace("\\", "/"));
+		m_wBlenderOutputFilename->setReadOnly(true);
+		return true;
+	}
+	return false;
+}
+
+int DzBlenderDialog::getUseBlenderToolsCheckbox(bool &returnState)
+{
+	if (m_wUseBlendToolsCheckBox) {
+		bool bValue = m_wUseBlendToolsCheckBox->isChecked();
+		returnState = bValue;
+		return bValue;
+	}
+	return -100;
+}
+
+int DzBlenderDialog::setUseBlenderToolsCheckbox(const bool state)
+{
+	if (m_wUseBlendToolsCheckBox) {
+		m_wUseBlendToolsCheckBox->setChecked(state);
+		return state;
+	}
+	return -100;
 }
 
 

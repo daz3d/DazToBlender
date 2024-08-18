@@ -108,13 +108,19 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	exportProgress.step(25);
 
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
-	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::ReducedPopup);
+	pBlenderAction->m_sOutputBlendFilepath = QString(filename).replace("\\", "/");
+	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
 	pBlenderAction->createUI();
 	DzBlenderDialog* pDialog = qobject_cast<DzBlenderDialog*>(pBlenderAction->getBridgeDialog());
 
 	// Move Blender Executable Widgets to Top of Dialog
 	pDialog->requireBlenderExecutableWidget(true);
+	pDialog->showBlenderToolsOptions(true);
+	pDialog->setOutputBlendFilepath(filename);
 	pBlenderAction->executeAction();
+	bool bUseBlenderTools;
+	pDialog->getUseBlenderToolsCheckbox(bUseBlenderTools);
+	pDialog->showBlenderToolsOptions(false);
 	pDialog->requireBlenderExecutableWidget(false);
 
 	if (pDialog->result() == QDialog::Rejected) {
@@ -163,18 +169,18 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
 	exportProgress.step(25);
-	if (result) 
-	{
-		bool replace = true;
-		QString sBlendIntermediateFile = QString(pBlenderAction->m_sDestinationFBX).replace(".fbx", ".blend", Qt::CaseInsensitive);
-		QFile srcFile(sBlendIntermediateFile);
-		bool copy_result = DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &QString(filename), replace);
-		srcFile.close();
-		if (copy_result == false) {
-			QMessageBox::critical(0, tr("Blender Exporter"), 
-				tr("Unable to copy Blend file to destination."), QMessageBox::Abort);
-		}
-	}
+	//if (result) 
+	//{
+	//	bool replace = true;
+	//	QString sBlendIntermediateFile = QString(pBlenderAction->m_sDestinationFBX).replace(".fbx", ".blend", Qt::CaseInsensitive);
+	//	QFile srcFile(sBlendIntermediateFile);
+	//	bool copy_result = DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &QString(filename), replace);
+	//	srcFile.close();
+	//	if (copy_result == false) {
+	//		QMessageBox::critical(0, tr("Blender Exporter"), 
+	//			tr("Unable to copy Blend file to destination."), QMessageBox::Abort);
+	//	}
+	//}
 
 	if (result)
 	{
@@ -428,7 +434,7 @@ void DzBlenderAction::executeAction()
 	}
 	else
 	{
-		if ( isInteractiveMode() )
+		if ( m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::FullInteractiveMode )
 		{
 			m_bridgeDialog->resetToDefaults();
 			m_bridgeDialog->loadSavedSettings();
@@ -548,6 +554,10 @@ void DzBlenderAction::writeConfiguration()
 
 	writeDTUHeader(writer);
 
+	// Plugin-specific items
+	writer.addMember("Use Blender Tools", m_bUseBlenderTools);
+	writer.addMember("Output Blend Filepath", m_sOutputBlendFilepath);
+
 	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	{
 		QTextStream *pCVSStream = nullptr;
@@ -563,11 +573,7 @@ void DzBlenderAction::writeConfiguration()
 		writeAllMorphs(writer);
 
 		writeMorphLinks(writer);
-		//writer.startMemberObject("MorphLinks");
-		//writer.finishObject();
 		writeMorphNames(writer);
-		//writer.startMemberArray("MorphNames");
-		//writer.finishArray();
 
 		DzBoneList aBoneList = getAllBones(m_pSelectedNode);
 
@@ -599,15 +605,18 @@ void DzBlenderAction::writeConfiguration()
 // Setup custom FBX export options
 void DzBlenderAction::setExportOptions(DzFileIOSettings& ExportOptions)
 {
-	//ExportOptions.setBoolValue("doEmbed", false);
-	//ExportOptions.setBoolValue("doDiffuseOpacity", false);
-	//ExportOptions.setBoolValue("doCopyTextures", false);
 	ExportOptions.setBoolValue("doFps", true);
 	ExportOptions.setBoolValue("doLocks", false);
 	ExportOptions.setBoolValue("doLimits", false);
 	ExportOptions.setBoolValue("doBaseFigurePoseOnly", false);
 	ExportOptions.setBoolValue("doHelperScriptScripts", false);
 	ExportOptions.setBoolValue("doMentalRayMaterials", false);
+
+	// Unable to use this option, since generated files are referenced only in FBX and unknown to DTU
+	ExportOptions.setBoolValue("doDiffuseOpacity", false);
+	// disable these options since we use Blender to generate a new FBX with embedded files
+	ExportOptions.setBoolValue("doEmbed", false);
+	ExportOptions.setBoolValue("doCopyTextures", false);
 }
 
 QString DzBlenderAction::readGuiRootFolder()
@@ -688,7 +697,17 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 	if (pBlenderDialog)
 	{
 		if (m_sBlenderExecutablePath == "" || isInteractiveMode() ) m_sBlenderExecutablePath = pBlenderDialog->m_wBlenderExecutablePathEdit->text().replace("\\", "/");
-
+		
+		// if dzexporter mode, then read blender tools options
+		if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
+		{
+			pBlenderDialog->getUseBlenderToolsCheckbox(m_bUseBlenderTools);
+		}
+		else
+		{
+			m_bUseBlenderTools = false;
+			m_sOutputBlendFilepath = "";
+		}
 	}
 	else
 	{

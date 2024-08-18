@@ -40,20 +40,24 @@ public:
 	DzBlenderAction();
 
 protected:
-
-	 void executeAction();
-	 Q_INVOKABLE bool createUI();
-	 Q_INVOKABLE void writeConfiguration();
-	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions);
-	 Q_INVOKABLE QString createBlenderFiles(bool replace = true);
+	 void executeAction() override;
+	 Q_INVOKABLE void writeConfiguration() override;
+	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;
 	 virtual QString readGuiRootFolder() override;
 	 Q_INVOKABLE virtual bool readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog*) override;
 
+	 Q_INVOKABLE QString createBlenderFiles(bool replace = true);
+
+	 Q_INVOKABLE bool createUI();
 	 Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
 
 	 int m_nPythonExceptionExitCode = 11;  // arbitrary exit code to check for blener python exceptions
 	 int m_nBlenderExitCode = 0;
 	 QString m_sBlenderExecutablePath = "";
+
+	 bool m_bUseBlenderTools = false;
+	 QString m_sOutputBlendFilepath = "";
+
 
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE
