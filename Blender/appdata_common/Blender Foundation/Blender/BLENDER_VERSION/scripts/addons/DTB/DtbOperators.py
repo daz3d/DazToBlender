@@ -353,7 +353,7 @@ class IMP_OT_FBX(bpy.types.Operator):
 
 
             # DB 2024-06-14: work-around for dForce hair
-            if dtu.dtu_dict["dForce"] is not None:
+            if "dForce" in dtu.dtu_dict and dtu.dtu_dict["dForce"] is not None:
                 dforce_data = dtu.dtu_dict["dForce"]
                 for dforce_obj in dforce_data:
                     if dforce_obj is not None:

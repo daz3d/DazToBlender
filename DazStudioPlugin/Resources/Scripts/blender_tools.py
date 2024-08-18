@@ -583,7 +583,7 @@ def process_material(mat, lowres_mode=None):
             # create normal map node
             node_normalmap = nodes.new("ShaderNodeNormalMap")
             node_normalmap.space = "TANGENT"
-            node_normalmap.inputs["Strength"].default_value = normal_strength*0.5
+            node_normalmap.inputs["Strength"].default_value = normal_strength
             links = data.node_tree.links
             link = links.new(node_tex.outputs["Color"], node_normalmap.inputs["Color"])
             link = links.new(node_normalmap.outputs["Normal"], bsdf_inputs["Normal"])
