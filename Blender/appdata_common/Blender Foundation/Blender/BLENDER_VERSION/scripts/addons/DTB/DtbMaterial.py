@@ -485,6 +485,19 @@ class DtbShaders:
                     out_node_cy.inputs["Displacement"],
                 )
                 mat.cycles.displacement_method = "BOTH"
+                # add principled BSDF node
+                pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
+                mat_links.new(shader_node.outputs["Base Color"], pbsdf.inputs["Base Color"])
+                mat_links.new(shader_node.outputs["Roughness"], pbsdf.inputs["Roughness"])
+                mat_links.new(shader_node.outputs["Normal"], pbsdf.inputs["Normal"])
+                mat_links.new(shader_node.outputs["IOR"], pbsdf.inputs["IOR"])
+                if bpy.app.version[0] >= 4:
+                    mat_links.new(shader_node.outputs["Specular"], pbsdf.inputs["Specular IOR Level"])
+                else:
+                    mat_links.new(shader_node.outputs["Specular"], pbsdf.inputs["Specular"])
+                # link pbsdf to outputs
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
             else:
                 mat.cycles.displacement_method = "BUMP"
 
