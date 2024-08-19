@@ -371,7 +371,9 @@ def find_roughness_node(material):
     if nodes.get('Principled BSDF') is not None:
         roughness_value = nodes['Principled BSDF'].inputs['Roughness'].default_value
         roughness_node.outputs['Color'].default_value = (roughness_value, roughness_value, roughness_value, 1.0)
+        print(f"DEBUG: find_roughness_node(): Place holder Roughness value: {roughness_value} used for material: {material.name}")
     else:
+        print(f"DEBUG: find_roughness_node(): Principled BSDF node not found for material: {material.name}")
         roughness_node.outputs['Color'].default_value = (0.5, 0.5, 0.5, 1.0)
     return roughness_node
 
@@ -387,7 +389,9 @@ def find_metallic_node(material):
     if nodes.get('Principled BSDF') is not None:
         metallic_value = nodes['Principled BSDF'].inputs['Metallic'].default_value
         metallic_node.outputs['Color'].default_value = (metallic_value, metallic_value, metallic_value, 1.0)
+        print(f"DEBUG: find_metallic_node(): Place holder Metallic value: {metallic_value} used for material: {material.name}")
     else:
+        print(f"DEBUG: find_metallic_node(): Principled BSDF node not found for material: {material.name}")
         metallic_node.outputs['Color'].default_value = (0.0, 0.0, 0.0, 1.0)
     return metallic_node
 
@@ -403,7 +407,9 @@ def find_alpha_node(material, no_placeholder=False):
     if nodes.get('Principled BSDF') is not None:
         alpha_value = nodes['Principled BSDF'].inputs['Alpha'].default_value
         alpha_node.outputs['Color'].default_value = (alpha_value, alpha_value, alpha_value, alpha_value)
+        print(f"DEBUG: find_alpha_node(): Place holder Alpha value: {alpha_value} used for material: {material.name}")
     else:
+        print(f"DEBUG: find_alpha_node(): Principled BSDF node not found for material: {material.name}")
         alpha_node.outputs['Color'].default_value = (0.0, 0.0, 0.0, 1.0)
     return alpha_node
 
@@ -493,19 +499,19 @@ def bake_normal_to_atlas(obj, atlas, bake_quality=4, clear_texture=False):
     return
 
 def bake_metallic_to_atlas(obj, atlas, bake_quality=4, clear_texture=False):
-    # check metallic is linked to principled bsdf
-    metallic_found = False
-    for mat_slot in obj.material_slots:
-        if mat_slot.material and mat_slot.material.use_nodes:
-            for node in mat_slot.material.node_tree.nodes:
-                if node.type == 'BSDF_PRINCIPLED':
-                    if "Metallic" in node.inputs and node.inputs["Metallic"].is_linked:
-                        metallic_found = True
-                        break
-            break    
-    if not metallic_found:
-        print("Warning: No metallic map found. Skipping metallic bake.")
-        return
+    # # check metallic is linked to principled bsdf
+    # metallic_found = False
+    # for mat_slot in obj.material_slots:
+    #     if mat_slot.material and mat_slot.material.use_nodes:
+    #         for node in mat_slot.material.node_tree.nodes:
+    #             if node.type == 'BSDF_PRINCIPLED':
+    #                 if "Metallic" in node.inputs and node.inputs["Metallic"].is_linked:
+    #                     metallic_found = True
+    #                     break
+    #         break    
+    # if not metallic_found:
+    #     print("Warning: No metallic map found. Skipping metallic bake.")
+    #     return
     
     bpy.ops.object.select_all(action='DESELECT')
     obj.select_set(True)
@@ -528,12 +534,20 @@ def bake_metallic_to_atlas(obj, atlas, bake_quality=4, clear_texture=False):
             material = mat_slot.material
             nodes = material.node_tree.nodes
             metallic_node = find_metallic_node(material)
+            output_type = ""
+            # loop through and find linked output
+            for output in metallic_node.outputs:
+                if output.is_linked:
+                    output_type = output.name
+                    break
+            if output_type == "" and type(metallic_node) == bpy.types.ShaderNodeRGB:
+                output_type = 'Color'
             # link image texture color to emission color of Principled BSDF node    
             if bpy.app.version >= (4, 0, 0):
-                material.node_tree.links.new(metallic_node.outputs['Color'], nodes['Principled BSDF'].inputs['Emission Color'])
+                material.node_tree.links.new(metallic_node.outputs[output_type], nodes['Principled BSDF'].inputs['Emission Color'])
                 nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 1.0
             else:
-                material.node_tree.links.new(metallic_node.outputs['Color'], nodes['Principled BSDF'].inputs['Emission'])   
+                material.node_tree.links.new(metallic_node.outputs[output_type], nodes['Principled BSDF'].inputs['Emission'])   
         else:
             print(f"Warning: Material slot has no material or doesn't use nodes: {mat_slot.name}")    
     if not bake_nodes:
@@ -633,12 +647,23 @@ def bake_diffuse_to_atlas(obj, atlas, bake_quality=4, clear_texture=False):
             material = mat_slot.material
             nodes = material.node_tree.nodes
             diffuse_node = find_diffuse_node(material)
+            output_type = ""
+            # loop through and find linked output
+            for output in diffuse_node.outputs:
+                if output.is_linked:
+                    # check what it is linked to
+                    for link in output.links:
+                        if link.to_node.type == 'BSDF_PRINCIPLED' and link.to_socket.name == 'Base Color':
+                            output_type = output.name
+                            break
+            if output_type == "" and type(diffuse_node) == bpy.types.ShaderNodeRGB:
+                output_type = 'Color'
             # link image texture color to emission color of Principled BSDF node    
             if bpy.app.version >= (4, 0, 0):
-                material.node_tree.links.new(diffuse_node.outputs['Color'], nodes['Principled BSDF'].inputs['Emission Color'])
+                material.node_tree.links.new(diffuse_node.outputs[output_type], nodes['Principled BSDF'].inputs['Emission Color'])
                 nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 1.0
             else:
-                material.node_tree.links.new(diffuse_node.outputs['Color'], nodes['Principled BSDF'].inputs['Emission'])
+                material.node_tree.links.new(diffuse_node.outputs[output_type], nodes['Principled BSDF'].inputs['Emission'])
         else:
             print(f"Warning: Material slot has no material or doesn't use nodes: {mat_slot.name}")    
     if not bake_nodes:
@@ -748,6 +773,78 @@ def remove_other_uvs(obj_or_list, new_uv_name):
             print("DEBUG: removing uv_layer: " + uv_layer_name)
             obj.data.uv_layers.remove(uv_layer)
 
+def obj_uses_alpha(obj_list):
+    if type(obj_list) != list:
+        obj_list = [obj_list]
+    for obj in obj_list:
+        for mat_slot in obj.material_slots:
+            if mat_slot.material and mat_slot.material.use_nodes:
+                for node in mat_slot.material.node_tree.nodes:
+                    if node.type == 'BSDF_PRINCIPLED':
+                        if "Alpha" in node.inputs and node.inputs["Alpha"].is_linked:
+                            return True
+                        elif "Alpha" in node.inputs and node.inputs["Alpha"].default_value != 1.0:
+                            print(f"DEBUG: obj_uses_alpha({obj.name}\':\'{mat_slot.name}): Alpha default value: " + str(node.inputs["Alpha"].default_value))
+                            return True
+    return False
+
+def obj_uses_diffuse(obj_list):
+    if type(obj_list) != list:
+        obj_list = [obj_list]
+    for obj in obj_list:
+        for mat_slot in obj.material_slots:
+            if mat_slot.material and mat_slot.material.use_nodes:
+                for node in mat_slot.material.node_tree.nodes:
+                    if node.type == 'BSDF_PRINCIPLED':
+                        if "Base Color" in node.inputs and node.inputs["Base Color"].is_linked:
+                            return True
+                        elif "Base Color" in node.inputs and node.inputs["Base Color"].default_value != (0.0, 0.0, 0.0, 1.0):
+                            print(f"DEBUG: obj_uses_diffuse({obj.name}\':\'{mat_slot.name}): Base Color default value: " + str(node.inputs["Base Color"].default_value))
+                            return True
+    return False
+
+def obj_uses_metallic(obj_list):
+    if type(obj_list) != list:
+        obj_list = [obj_list]
+    for obj in obj_list:
+        for mat_slot in obj.material_slots:
+            if mat_slot.material and mat_slot.material.use_nodes:
+                for node in mat_slot.material.node_tree.nodes:
+                    if node.type == 'BSDF_PRINCIPLED':
+                        if "Metallic" in node.inputs and node.inputs["Metallic"].is_linked:
+                            return True
+                        elif "Metallic" in node.inputs and node.inputs["Metallic"].default_value != 0.0:
+                            print(f"DEBUG: obj_uses_metallic({obj.name}\':\'{mat_slot.name}): Metallic default value: " + str(node.inputs["Metallic"].default_value))
+                            return True
+    return False
+
+def obj_uses_roughness(obj_list):
+    if type(obj_list) != list:
+        obj_list = [obj_list]
+    for obj in obj_list:
+        for mat_slot in obj.material_slots:
+            if mat_slot.material and mat_slot.material.use_nodes:
+                for node in mat_slot.material.node_tree.nodes:
+                    if node.type == 'BSDF_PRINCIPLED':
+                        if "Roughness" in node.inputs and node.inputs["Roughness"].is_linked:
+                            return True
+                        elif "Roughness" in node.inputs and node.inputs["Roughness"].default_value != 0.5:
+                            print(f"DEBUG: obj_uses_roughness({obj.name}\':\'{mat_slot.name}): Roughness default value: " + str(node.inputs["Roughness"].default_value))
+                            return True
+    return False
+
+def obj_uses_normal(obj_list):
+    if type(obj_list) != list:
+        obj_list = [obj_list]
+    for obj in obj_list:
+        for mat_slot in obj.material_slots:
+            if mat_slot.material and mat_slot.material.use_nodes:
+                for node in mat_slot.material.node_tree.nodes:
+                    if node.type == 'BSDF_PRINCIPLED':
+                        if "Normal" in node.inputs and node.inputs["Normal"].is_linked:
+                            return True
+    return False
+
 def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=4, make_uv=True):
     if type(obj_list) != list:
         obj_list = [obj_list]
@@ -755,6 +852,9 @@ def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=
     # compatibility checks
     # make sure Principled BSDF is materials
     for obj in obj_list:
+        if obj.visible_get() == False:
+            print(f"ERROR: Object {obj.name} is not visible")
+            return None, None, None
         for mat_slot in obj.material_slots:
             if mat_slot.material and mat_slot.material.use_nodes:
                 for node in mat_slot.material.node_tree.nodes:
@@ -762,17 +862,27 @@ def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=
                         break
                 else:
                     print(f"ERROR: No Principled BSDF node found in material: {mat_slot.material.name}")
-                    return
+                    return None, None, None
 
     obj_name = obj_list[0].name
 
     print(f"Starting atlas conversion for object list, using object name for atlas: {obj_name}")
 
+    uses_alpha = obj_uses_alpha(obj_list)
+    uses_diffuse = obj_uses_diffuse(obj_list)
+    uses_metallic = obj_uses_metallic(obj_list)
+    uses_roughness = obj_uses_roughness(obj_list)
+    uses_normal = obj_uses_normal(obj_list)
+
     diffuse_atlas, atlas_material = create_texture_atlas(obj_name, atlas_size)
-    alpha_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_A", width=atlas_size, height=atlas_size)
-    normal_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_N", width=atlas_size, height=atlas_size)
-    metallic_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_M", width=atlas_size, height=atlas_size)
-    roughness_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_R", width=atlas_size, height=atlas_size)
+    if uses_alpha:
+        alpha_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_A", width=atlas_size, height=atlas_size)
+    if uses_normal:
+        normal_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_N", width=atlas_size, height=atlas_size)
+    if uses_metallic:
+        metallic_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_M", width=atlas_size, height=atlas_size)
+    if uses_roughness:
+        roughness_atlas = bpy.data.images.new(name=f"{obj_name}_Atlas_R", width=atlas_size, height=atlas_size)
 
     if make_uv:
         new_uv_name = "AtlasUV"
@@ -781,64 +891,76 @@ def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=
         repack_uv(obj_list)
 
     for obj in obj_list:
-        bake_alpha_to_atlas(obj, alpha_atlas, bake_quality, False)
-        bake_diffuse_to_atlas(obj, diffuse_atlas, bake_quality, False)
-        bake_normal_to_atlas(obj, normal_atlas, bake_quality, False)
-        bake_metallic_to_atlas(obj, metallic_atlas, bake_quality, False)
-        bake_roughness_to_atlas(obj, roughness_atlas, bake_quality, False)
+        if uses_alpha:
+            bake_alpha_to_atlas(obj, alpha_atlas, bake_quality, False)
+        if uses_diffuse:
+            bake_diffuse_to_atlas(obj, diffuse_atlas, bake_quality, False)
+        if uses_normal:
+            bake_normal_to_atlas(obj, normal_atlas, bake_quality, False)
+        if uses_metallic:
+            bake_metallic_to_atlas(obj, metallic_atlas, bake_quality, False)
+        if uses_roughness:
+            bake_roughness_to_atlas(obj, roughness_atlas, bake_quality, False)
 
-    alpha_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_A.png"
-    print("DEBUG: saving: " + alpha_atlas_path)
-    # save atlas image to disk
-    alpha_atlas.filepath_raw = alpha_atlas_path
-    alpha_atlas.file_format = 'PNG'
-    alpha_atlas.save()
+    if uses_alpha:
+        alpha_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_A.png"
+        print("DEBUG: saving: " + alpha_atlas_path)
+        # save atlas image to disk
+        alpha_atlas.filepath_raw = alpha_atlas_path
+        alpha_atlas.file_format = 'PNG'
+        alpha_atlas.save()
+        copy_intensity_to_alpha(alpha_atlas, diffuse_atlas)
 
-    copy_intensity_to_alpha(alpha_atlas, diffuse_atlas)
+    if uses_diffuse or uses_alpha:
+        diffuse_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_D.png"
+        print("DEBUG: saving: " + diffuse_atlas_path)
+        # save atlas image to disk
+        diffuse_atlas.filepath_raw = diffuse_atlas_path
+        diffuse_atlas.file_format = 'PNG'
+        diffuse_atlas.save()
 
-    diffuse_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_D.png"
-    print("DEBUG: saving: " + diffuse_atlas_path)
-    # save atlas image to disk
-    diffuse_atlas.filepath_raw = diffuse_atlas_path
-    diffuse_atlas.file_format = 'PNG'
-    diffuse_atlas.save()
+    if uses_normal:
+        normal_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_N.jpg"
+        print("DEBUG: saving: " + normal_atlas_path)
+        normal_atlas.filepath_raw = normal_atlas_path
+        normal_atlas.file_format = 'JPEG'
+        normal_atlas.save()
 
-    normal_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_N.jpg"
-    print("DEBUG: saving: " + normal_atlas_path)
-    normal_atlas.filepath_raw = normal_atlas_path
-    normal_atlas.file_format = 'JPEG'
-    normal_atlas.save()
+    if uses_metallic:
+        metallic_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_M.jpg"
+        print("DEBUG: saving: " + metallic_atlas_path)
+        metallic_atlas.filepath_raw = metallic_atlas_path
+        metallic_atlas.file_format = 'JPEG'
+        metallic_atlas.save()
 
-    metallic_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_M.jpg"
-    print("DEBUG: saving: " + metallic_atlas_path)
-    metallic_atlas.filepath_raw = metallic_atlas_path
-    metallic_atlas.file_format = 'JPEG'
-    metallic_atlas.save()
-
-    roughness_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_R.jpg"
-    print("DEBUG: saving: " + roughness_atlas_path)
-    roughness_atlas.filepath_raw = roughness_atlas_path
-    roughness_atlas.file_format = 'JPEG'
-    roughness_atlas.save()
+    if uses_roughness:
+        roughness_atlas_path = image_output_path + "/" + f"{obj_name}_Atlas_R.jpg"
+        print("DEBUG: saving: " + roughness_atlas_path)
+        roughness_atlas.filepath_raw = roughness_atlas_path
+        roughness_atlas.file_format = 'JPEG'
+        roughness_atlas.save()
 
     nodes = atlas_material.node_tree.nodes
-    # link normal atlas to atlas material
-    normal_tex_node = nodes.new(type='ShaderNodeTexImage')
-    normal_tex_node.image = normal_atlas
-    normal_tex_node.image.colorspace_settings.name = 'Non-Color'
-    normal_node = nodes.new(type='ShaderNodeNormalMap')
-    atlas_material.node_tree.links.new(normal_tex_node.outputs['Color'], normal_node.inputs['Color'])
-    atlas_material.node_tree.links.new(normal_node.outputs['Normal'], nodes["Principled BSDF"].inputs['Normal'])
-    # link roughness atlas to atlas material
-    roughness_node = nodes.new(type='ShaderNodeTexImage')
-    roughness_node.image = roughness_atlas
-#    roughness_node.image.colorspace_settings.name = 'Non-Color'
-    atlas_material.node_tree.links.new(roughness_node.outputs['Color'], nodes["Principled BSDF"].inputs['Roughness'])
-    # link metallic atlas to atlas material
-    metallic_node = nodes.new(type='ShaderNodeTexImage')
-    metallic_node.image = metallic_atlas
-#    metallic_node.image.colorspace_settings.name = 'Non-Color'
-    atlas_material.node_tree.links.new(metallic_node.outputs['Color'], nodes["Principled BSDF"].inputs['Metallic'])
+    if uses_normal:
+        # link normal atlas to atlas material
+        normal_tex_node = nodes.new(type='ShaderNodeTexImage')
+        normal_tex_node.image = normal_atlas
+        normal_tex_node.image.colorspace_settings.name = 'Non-Color'
+        normal_node = nodes.new(type='ShaderNodeNormalMap')
+        atlas_material.node_tree.links.new(normal_tex_node.outputs['Color'], normal_node.inputs['Color'])
+        atlas_material.node_tree.links.new(normal_node.outputs['Normal'], nodes["Principled BSDF"].inputs['Normal'])
+    if uses_roughness:
+        # link roughness atlas to atlas material
+        roughness_node = nodes.new(type='ShaderNodeTexImage')
+        roughness_node.image = roughness_atlas
+    #    roughness_node.image.colorspace_settings.name = 'Non-Color'
+        atlas_material.node_tree.links.new(roughness_node.outputs['Color'], nodes["Principled BSDF"].inputs['Roughness'])
+    if uses_metallic:
+        # link metallic atlas to atlas material
+        metallic_node = nodes.new(type='ShaderNodeTexImage')
+        metallic_node.image = metallic_atlas
+    #    metallic_node.image.colorspace_settings.name = 'Non-Color'
+        atlas_material.node_tree.links.new(metallic_node.outputs['Color'], nodes["Principled BSDF"].inputs['Metallic'])
     NodeArrange.toNodeArrange(nodes)
 
     original_materials = assign_atlas_to_object(obj_list, atlas_material)
@@ -880,11 +1002,12 @@ def copy_intensity_to_alpha(source_image, target_image):
     
     # Convert source RGB to linear space
     # source_linear = srgb_to_linear(source_pixels[:, :3])
-    source_linear = source_pixels[:, :3]
     
     # Calculate intensity in linear space using correct coefficients
-    intensity = np.dot(source_linear, [0.2126, 0.7152, 0.0722])
-    
+    # intensity = np.dot(source_linear, [0.2126, 0.7152, 0.0722])
+    # intensity = np.dot(source_pixels[:, :3], [0.299, 0.587, 0.114])
+    intensity = np.mean(source_pixels[:, :3], axis=1)
+
     # Copy intensity to alpha channel of target image
     target_pixels[:, 3] = intensity
     
