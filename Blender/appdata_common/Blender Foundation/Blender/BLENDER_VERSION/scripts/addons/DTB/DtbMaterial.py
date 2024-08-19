@@ -498,6 +498,66 @@ class DtbShaders:
                 # link pbsdf to outputs
                 mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
                 mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
+            elif node_group == "IrayUber":
+                # add principled BSDF node
+                pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
+                mat_links.new(shader_node.outputs["Base Color"], pbsdf.inputs["Base Color"])
+                mat_links.new(shader_node.outputs["Metallic"], pbsdf.inputs["Metallic"])
+                if bpy.app.version[0] >= 4:
+                    mat_links.new(shader_node.outputs["Specular"], pbsdf.inputs["Specular IOR Level"])
+                else:
+                    mat_links.new(shader_node.outputs["Specular"], pbsdf.inputs["Specular"])
+                mat_links.new(shader_node.outputs["Roughness"], pbsdf.inputs["Roughness"])
+                mat_links.new(shader_node.outputs["Alpha"], pbsdf.inputs["Alpha"])
+                mat_links.new(shader_node.outputs["Normal"], pbsdf.inputs["Normal"])
+                # link pbsdf to outputs
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
+            elif node_group == "EyeWet":
+                pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
+                pbsdf.inputs["Metallic"].default_value = 1.0
+                pbsdf.inputs["Roughness"].default_value = 0.0
+                pbsdf.inputs["IOR"].default_value = 1.450
+                pbsdf.inputs["Alpha"].default_value = 0.5
+                if bpy.app.version[0] >= 4:
+                    pbsdf.inputs["Specular IOR Level"].default_value = 1.0
+                    pbsdf.inputs["Transmission Weight"].default_value = 1.0
+                else:
+                    pbsdf.inputs["Specular"].default_value = 1.0
+                    pbsdf.inputs["Transmission"].default_value = 1.0
+                # add fresnel node
+                fresnel = mat_nodes.new(type="ShaderNodeFresnel")
+                fresnel.inputs["IOR"].default_value = 1.450
+                # add transparent BSDF
+                transparent = mat_nodes.new(type="ShaderNodeBsdfTransparent")
+                # add mix shader
+                mix = mat_nodes.new(type="ShaderNodeMixShader")
+                # link nodes
+                mat_links.new(fresnel.outputs["Fac"], mix.inputs["Fac"])
+                mat_links.new(transparent.outputs["BSDF"], mix.inputs[1])
+                mat_links.new(pbsdf.outputs["BSDF"], mix.inputs[2])
+                mat_links.new(shader_node.outputs["Normal"], pbsdf.inputs["Normal"])
+                mat_links.new(mix.outputs["Shader"], out_node_cy.inputs["Surface"])
+                mat_links.new(mix.outputs["Shader"], out_node_ev.inputs["Surface"])
+            elif node_group == "EyeDry":
+                pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
+                pbsdf.inputs["Roughness"].default_value = 0.0
+                pbsdf.inputs["IOR"].default_value = 1.350
+                if bpy.app.version[0] >= 4:
+                    pbsdf.inputs["Specular IOR Level"].default_value = 0.0
+                else:
+                    pbsdf.inputs["Specular"].default_value = 0.0
+                mat_links.new(shader_node.outputs["Base Color"], pbsdf.inputs["Base Color"])
+                mat_links.new(shader_node.outputs["Normal"], pbsdf.inputs["Normal"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
+            elif node_group == "Eyelashes":
+                pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
+                mat_links.new(shader_node.outputs["Base Color"], pbsdf.inputs["Base Color"])
+                mat_links.new(shader_node.outputs["Normal"], pbsdf.inputs["Normal"])
+                mat_links.new(shader_node.outputs["Alpha"], pbsdf.inputs["Alpha"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
+                mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
             else:
                 mat.cycles.displacement_method = "BUMP"
 
