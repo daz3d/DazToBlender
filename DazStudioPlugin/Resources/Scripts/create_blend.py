@@ -12,6 +12,8 @@ EXAMPLE:
 
 """
 
+TEXTURE_ATLAS_SIZE_DEFAULT = 1024
+
 g_logfile = ""
 
 def _print_usage():
@@ -97,6 +99,7 @@ def _main(argv):
     use_blender_tools = False
     output_blend_filepath = ""
     texture_atlas_mode = ""
+    texture_atlas_size = 0
     export_rig_mode = ""
     try:
         with open(jsonPath, "r") as file:
@@ -104,9 +107,13 @@ def _main(argv):
         use_blender_tools = json_obj["Use Blender Tools"]
         output_blend_filepath = json_obj["Output Blend Filepath"]
         texture_atlas_mode = json_obj["Texture Atlas Mode"]
+        texture_atlas_size = json_obj["Texture Atlas Size"]
         export_rig_mode = json_obj["Export Rig Mode"]
     except:
-        pass
+        print("ERROR: error occured while reading json file: " + str(jsonPath))
+
+    if texture_atlas_size == 0:
+        texture_atlas_size = TEXTURE_ATLAS_SIZE_DEFAULT
 
     if output_blend_filepath != "":
         blenderFilePath = output_blend_filepath
@@ -148,20 +155,39 @@ def _main(argv):
     bpy.ops.wm.save_as_mainfile(filepath=debug_blend_file)
 
     if texture_atlas_mode == "per_mesh":
-        texture_size = 2048
         bake_quality = 1
         for obj in bpy.data.objects:
-            if obj.type == 'MESH':
-                atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_size, bake_quality)
+            if obj.type == 'MESH' and obj.visible_get():
+                atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_atlas_size, bake_quality)
     elif texture_atlas_mode == "single_atlas":
         texture_size = 2048
         bake_quality = 1
         # collect all meshes
         obj_list = []
         for obj in bpy.data.objects:
-            if obj.type == 'MESH':
+            if obj.type == 'MESH' and obj.visible_get():
                 obj_list.append(obj)
-        atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_size, bake_quality)
+        atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_atlas_size, bake_quality)
+
+    # remove missing or unused images
+    print("DEBUG: deleting missing or unused images...")
+    for image in bpy.data.images:
+        is_missing = False
+        if image.filepath:
+            imagePath = bpy.path.abspath(image.filepath)
+            if (not os.path.exists(imagePath)):
+                is_missing = True
+
+        is_unused = False
+        if image.users == 0:
+            is_unused = True
+
+        if is_missing or is_unused:
+            bpy.data.images.remove(image)
+
+    # cleanup all unused and unlinked data blocks
+    print("DEBUG: main(): cleaning up unused data blocks...")
+    bpy.ops.outliner.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
 
     # pack images
     bpy.ops.file.pack_all()

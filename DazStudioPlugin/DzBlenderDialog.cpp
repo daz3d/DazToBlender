@@ -136,20 +136,25 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Optimize for Game Engines"));
 	 m_wUseBlendToolsCheckBox->setChecked(true);
 	 wBlenderToolsLayout->addRow(m_wUseBlendToolsCheckBox);
+
+	 QHBoxLayout* m_wTextureAtlasLayout = new QHBoxLayout();
+	 m_wTextureAtlasLayout->setSpacing(margin);
+	 m_wTextureAtlasLayout->setContentsMargins(margin, margin, margin, margin);
+
 	 m_wBakeTextureAtlasCombobox = new QComboBox();
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Texture Atlas Options..."), "--");
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Do not Bake Texture Atlas"), "--");
-	 m_wBakeTextureAtlasCombobox->addItem(tr("Bake Single Texture Atlas"), "single_atlas");
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Bake Texture Atlas Per Mesh"), "per_mesh");
-	 wBlenderToolsLayout->addRow(m_wBakeTextureAtlasCombobox);
-
+	 m_wBakeTextureAtlasCombobox->addItem(tr("Bake Single Texture Atlas For All Meshes"), "single_atlas");
+	 m_wTextureAtlasLayout->addWidget(m_wBakeTextureAtlasCombobox);
 	 m_wAtlasSizeCombobox = new QComboBox();
-	 m_wAtlasSizeCombobox->addItem("Atlas Texture Size", "--");
+	 m_wAtlasSizeCombobox->addItem("Atlas Texture Size...", 0);
 	 m_wAtlasSizeCombobox->addItem("1K", 1024);
 	 m_wAtlasSizeCombobox->addItem("2K", 2048);
 	 m_wAtlasSizeCombobox->addItem("4K", 4096);
-	 m_wAtlasSizeCombobox->addItem("Custom Size...", "custom");
-	 wBlenderToolsLayout->addRow(m_wAtlasSizeCombobox);
+//	 m_wAtlasSizeCombobox->addItem("Custom Size...", "custom");
+	 m_wTextureAtlasLayout->addWidget(m_wAtlasSizeCombobox);
+	 wBlenderToolsLayout->addRow(m_wTextureAtlasLayout);
 
 	 m_wExportRigCombobox = new QComboBox();
 	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");

@@ -55,6 +55,7 @@ public:
 	Q_INVOKABLE int setUseBlenderToolsCheckbox(const bool state);
 	Q_INVOKABLE QString getTextureAtlasMode() { return m_wBakeTextureAtlasCombobox->itemData(m_wBakeTextureAtlasCombobox->currentIndex()).toString(); }
 	Q_INVOKABLE QString getExportRigMode() { return m_wExportRigCombobox->itemData(m_wExportRigCombobox->currentIndex()).toString(); }
+	Q_INVOKABLE int getTextureAtlasSize() { return m_wAtlasSizeCombobox->itemData(m_wAtlasSizeCombobox->currentIndex()).toInt(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }

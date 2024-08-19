@@ -60,6 +60,8 @@ protected:
 	 QString m_sTextureAtlasMode = "";
 	 QString m_sExportRigMode = "";
 
+	 int m_nTextureAtlasSize = 0;
+
 
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE

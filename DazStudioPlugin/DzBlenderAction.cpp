@@ -562,6 +562,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Use Blender Tools", m_bUseBlenderTools);
 	writer.addMember("Output Blend Filepath", m_sOutputBlendFilepath);
 	writer.addMember("Texture Atlas Mode", m_sTextureAtlasMode);
+	writer.addMember("Texture Atlas Size", m_nTextureAtlasSize);
 	writer.addMember("Export Rig Mode", m_sExportRigMode);
 
 	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
@@ -710,6 +711,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_bUseBlenderTools = pBlenderDialog->getUseBlenderToolsCheckbox();
 			m_sTextureAtlasMode = pBlenderDialog->getTextureAtlasMode();
 			m_sExportRigMode = pBlenderDialog->getExportRigMode();
+			m_nTextureAtlasSize = pBlenderDialog->getTextureAtlasSize();
 		}
 		else
 		{
@@ -717,6 +719,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_sOutputBlendFilepath = "";
 			m_sTextureAtlasMode = "";
 			m_sExportRigMode = "";
+			m_nTextureAtlasSize = 0;
 		}
 	}
 	else
