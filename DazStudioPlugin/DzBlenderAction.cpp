@@ -102,7 +102,8 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		dzApp->log(QString("DEBUG: DzBlenderExporter: Options[%1]=[%2]").arg(key).arg(val) );
 	}
 
-	DzProgress exportProgress(tr("Blender Exporter"), 100, true, true );
+	DzProgress exportProgress(tr("Blender Exporter starting..."), 100, false, true );
+	exportProgress.setInfo(QString("Exporting to:\n    \"%1\"\n").arg(filename));
 
 	exportProgress.setInfo("Generating intermediate file");
 	exportProgress.step(25);
@@ -118,8 +119,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	pDialog->showBlenderToolsOptions(true);
 	pDialog->setOutputBlendFilepath(filename);
 	pBlenderAction->executeAction();
-	bool bUseBlenderTools;
-	pDialog->getUseBlenderToolsCheckbox(bUseBlenderTools);
+//	bool bUseBlenderTools = pDialog->getUseBlenderToolsCheckbox();
 	pDialog->showBlenderToolsOptions(false);
 	pDialog->requireBlenderExecutableWidget(false);
 
@@ -135,11 +135,14 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	}
 
 	QString sIntermediatePath = QFileInfo(pBlenderAction->m_sDestinationFBX).dir().path().replace("\\", "/");
+	QString sIntermediateScriptsPath = sIntermediatePath + "/Scripts";
+	QDir().mkdir(sIntermediateScriptsPath);
 
 	QStringList aScriptFilelist = (QStringList() << 
 		"create_blend.py" <<
 		"blender_tools.py" <<
-		"NodeArrange.py"
+		"NodeArrange.py" <<
+		"game_readiness_tools.py"
 		);
 	// copy 
 	foreach(auto sScriptFilename, aScriptFilelist)
@@ -148,7 +151,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		QString sEmbeddedFolderPath = ":/DazBridgeBlender";
 		QString sEmbeddedFilepath = sEmbeddedFolderPath + "/" + sScriptFilename;
 		QFile srcFile(sEmbeddedFilepath);
-		QString tempFilepath = sIntermediatePath + "/" + sScriptFilename;
+		QString tempFilepath = sIntermediateScriptsPath + "/" + sScriptFilename;
 		DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &tempFilepath, replace);
 		srcFile.close();
 	}
@@ -157,7 +160,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	exportProgress.step(25);
 
 	QString sBlenderLogPath = sIntermediatePath + "/" + "create_blend.log";
-	QString sScriptPath = sIntermediatePath + "/" + "create_blend.py";
+	QString sScriptPath = sIntermediateScriptsPath + "/" + "create_blend.py";
 	QString sCommandArgs = QString("--background;--log-file;%1;--python-exit-code;%2;--python;%3;%4").arg(sBlenderLogPath).arg(pBlenderAction->m_nPythonExceptionExitCode).arg(sScriptPath).arg(pBlenderAction->m_sDestinationFBX);
 #if WIN32
 	QString batchFilePath = sIntermediatePath + "/" + "create_blend.bat";
@@ -184,6 +187,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 
 	if (result)
 	{
+		exportProgress.update(100);
 		QMessageBox::information(0, "Blender Exporter",
 			tr("Export from Daz Studio complete."), QMessageBox::Ok);
 
@@ -557,6 +561,8 @@ void DzBlenderAction::writeConfiguration()
 	// Plugin-specific items
 	writer.addMember("Use Blender Tools", m_bUseBlenderTools);
 	writer.addMember("Output Blend Filepath", m_sOutputBlendFilepath);
+	writer.addMember("Texture Atlas Mode", m_sTextureAtlasMode);
+	writer.addMember("Export Rig Mode", m_sExportRigMode);
 
 	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	{
@@ -701,12 +707,16 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 		// if dzexporter mode, then read blender tools options
 		if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
 		{
-			pBlenderDialog->getUseBlenderToolsCheckbox(m_bUseBlenderTools);
+			m_bUseBlenderTools = pBlenderDialog->getUseBlenderToolsCheckbox();
+			m_sTextureAtlasMode = pBlenderDialog->getTextureAtlasMode();
+			m_sExportRigMode = pBlenderDialog->getExportRigMode();
 		}
 		else
 		{
 			m_bUseBlenderTools = false;
 			m_sOutputBlendFilepath = "";
+			m_sTextureAtlasMode = "";
+			m_sExportRigMode = "";
 		}
 	}
 	else

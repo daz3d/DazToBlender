@@ -57,6 +57,8 @@ protected:
 
 	 bool m_bUseBlenderTools = false;
 	 QString m_sOutputBlendFilepath = "";
+	 QString m_sTextureAtlasMode = "";
+	 QString m_sExportRigMode = "";
 
 
 	 friend class DzBlenderExporter;

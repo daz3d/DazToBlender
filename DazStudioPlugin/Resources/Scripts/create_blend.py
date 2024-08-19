@@ -34,9 +34,11 @@ except:
 
 try:
     import blender_tools
+    import game_readiness_tools
 except:
     sys.path.append(script_dir)
     import blender_tools
+    import game_readiness_tools
 
 try:
     import DTB
@@ -94,11 +96,15 @@ def _main(argv):
 
     use_blender_tools = False
     output_blend_filepath = ""
+    texture_atlas_mode = ""
+    export_rig_mode = ""
     try:
         with open(jsonPath, "r") as file:
             json_obj = json.load(file)
         use_blender_tools = json_obj["Use Blender Tools"]
         output_blend_filepath = json_obj["Output Blend Filepath"]
+        texture_atlas_mode = json_obj["Texture Atlas Mode"]
+        export_rig_mode = json_obj["Export Rig Mode"]
     except:
         pass
 
@@ -137,6 +143,25 @@ def _main(argv):
         blender_tools.center_all_viewports()
         _add_to_log("DEBUG: main(): loading json file: " + str(jsonPath))
         dtu_dict = blender_tools.process_dtu(jsonPath)
+
+    debug_blend_file = fbxPath.replace(".fbx", "_debug.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=debug_blend_file)
+
+    if texture_atlas_mode == "per_mesh":
+        texture_size = 2048
+        bake_quality = 1
+        for obj in bpy.data.objects:
+            if obj.type == 'MESH':
+                atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_size, bake_quality)
+    elif texture_atlas_mode == "single_atlas":
+        texture_size = 2048
+        bake_quality = 1
+        # collect all meshes
+        obj_list = []
+        for obj in bpy.data.objects:
+            if obj.type == 'MESH':
+                obj_list.append(obj)
+        atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_size, bake_quality)
 
     # pack images
     bpy.ops.file.pack_all()

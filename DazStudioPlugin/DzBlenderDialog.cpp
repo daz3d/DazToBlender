@@ -131,10 +131,35 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 
 	 m_wBlenderOutputFilename = new QLineEdit();
 	 m_wBlenderOutputFilename->setReadOnly(true);
-	 wBlenderToolsLayout->addRow(m_wBlenderOutputFilename);
-	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Export Using Blender Tools"));
+	 m_wBlenderOutputFilename->setVisible(false);
+//	 wBlenderToolsLayout->addRow(m_wBlenderOutputFilename);
+	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Optimize for Game Engines"));
 	 m_wUseBlendToolsCheckBox->setChecked(true);
 	 wBlenderToolsLayout->addRow(m_wUseBlendToolsCheckBox);
+	 m_wBakeTextureAtlasCombobox = new QComboBox();
+	 m_wBakeTextureAtlasCombobox->addItem(tr("Texture Atlas Options..."), "--");
+	 m_wBakeTextureAtlasCombobox->addItem(tr("Do not Bake Texture Atlas"), "--");
+	 m_wBakeTextureAtlasCombobox->addItem(tr("Bake Single Texture Atlas"), "single_atlas");
+	 m_wBakeTextureAtlasCombobox->addItem(tr("Bake Texture Atlas Per Mesh"), "per_mesh");
+	 wBlenderToolsLayout->addRow(m_wBakeTextureAtlasCombobox);
+
+	 m_wAtlasSizeCombobox = new QComboBox();
+	 m_wAtlasSizeCombobox->addItem("Atlas Texture Size", "--");
+	 m_wAtlasSizeCombobox->addItem("1K", 1024);
+	 m_wAtlasSizeCombobox->addItem("2K", 2048);
+	 m_wAtlasSizeCombobox->addItem("4K", 4096);
+	 m_wAtlasSizeCombobox->addItem("Custom Size...", "custom");
+	 wBlenderToolsLayout->addRow(m_wAtlasSizeCombobox);
+
+	 m_wExportRigCombobox = new QComboBox();
+	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");
+	 m_wExportRigCombobox->addItem(tr("Export Unmodified Daz Rig"), "--");
+	 m_wExportRigCombobox->addItem(tr("Convert to Unreal Mannequin Rig"), "unreal");
+	 m_wExportRigCombobox->addItem(tr("Convert to Unity Humanoid Rig"), "unity");
+	 m_wExportRigCombobox->addItem(tr("Convert to Wonder Dynamics Rig"), "wonder_dynamics");
+	 m_wExportRigCombobox->addItem(tr("Convert to Mixamo Rig"), "mixamo");
+	 wBlenderToolsLayout->addRow(m_wExportRigCombobox);
+
 	 mainLayout->insertRow(1, "", m_wBlenderToolsGroupbox);
 	 m_wBlenderToolsGroupbox->setVisible(false);
 
@@ -786,16 +811,6 @@ bool DzBlenderDialog::setOutputBlendFilepath(const QString& filename)
 		return true;
 	}
 	return false;
-}
-
-int DzBlenderDialog::getUseBlenderToolsCheckbox(bool &returnState)
-{
-	if (m_wUseBlendToolsCheckBox) {
-		bool bValue = m_wUseBlendToolsCheckBox->isChecked();
-		returnState = bValue;
-		return bValue;
-	}
-	return -100;
 }
 
 int DzBlenderDialog::setUseBlenderToolsCheckbox(const bool state)

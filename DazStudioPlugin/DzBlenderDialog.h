@@ -1,6 +1,7 @@
 #pragma once
 #include "dzbasicdialog.h"
 #include <QtGui/qcombobox.h>
+#include <QtGui/qcheckbox.h>
 #include <QtCore/qsettings.h>
 #include <DzBridgeDialog.h>
 
@@ -50,8 +51,10 @@ public:
 
 	Q_INVOKABLE bool showBlenderToolsOptions(const bool visible);
 	Q_INVOKABLE bool setOutputBlendFilepath(const QString& filename);
-	Q_INVOKABLE int getUseBlenderToolsCheckbox(bool &returnState);
+	Q_INVOKABLE bool getUseBlenderToolsCheckbox() { return m_wUseBlendToolsCheckBox->isChecked(); }
 	Q_INVOKABLE int setUseBlenderToolsCheckbox(const bool state);
+	Q_INVOKABLE QString getTextureAtlasMode() { return m_wBakeTextureAtlasCombobox->itemData(m_wBakeTextureAtlasCombobox->currentIndex()).toString(); }
+	Q_INVOKABLE QString getExportRigMode() { return m_wExportRigCombobox->itemData(m_wExportRigCombobox->currentIndex()).toString(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -85,6 +88,9 @@ protected:
 	QGroupBox* m_wBlenderToolsGroupbox;
 	QLineEdit* m_wBlenderOutputFilename;
 	QCheckBox* m_wUseBlendToolsCheckBox;
+	QComboBox* m_wBakeTextureAtlasCombobox;
+	QComboBox* m_wAtlasSizeCombobox;
+	QComboBox* m_wExportRigCombobox;
 
 	virtual void refreshAsset();
 

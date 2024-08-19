@@ -7,5 +7,6 @@
         <file alias="create_blend.py">Scripts/create_blend.py</file>
         <file alias="blender_tools.py">Scripts/blender_tools.py</file>
         <file alias="NodeArrange.py">Scripts/NodeArrange.py</file>
+        <file alias="game_readiness_tools.py">Scripts/game_readiness_tools.py</file>
     </qresource>
 </RCC>
