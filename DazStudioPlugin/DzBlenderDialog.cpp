@@ -159,9 +159,10 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wExportRigCombobox = new QComboBox();
 	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");
 	 m_wExportRigCombobox->addItem(tr("Export Unmodified Daz Rig"), "--");
+	 m_wExportRigCombobox->addItem(tr("Convert to Metahuman Rig"), "metahuman");
 	 m_wExportRigCombobox->addItem(tr("Convert to Unreal Mannequin Rig"), "unreal");
 	 m_wExportRigCombobox->addItem(tr("Convert to Unity Humanoid Rig"), "unity");
-	 m_wExportRigCombobox->addItem(tr("Convert to Wonder Dynamics Rig"), "wonder_dynamics");
+//	 m_wExportRigCombobox->addItem(tr("Convert to Wonder Dynamics Rig"), "wonder_dynamics");
 	 m_wExportRigCombobox->addItem(tr("Convert to Mixamo Rig"), "mixamo");
 	 wBlenderToolsLayout->addRow(m_wExportRigCombobox);
 

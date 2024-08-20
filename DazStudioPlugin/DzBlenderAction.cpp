@@ -26,6 +26,7 @@
 #include "dzfacegroup.h"
 #include "dzprogress.h"
 #include "dzscript.h"
+#include "dzfigure.h"
 
 #include "DzBlenderAction.h"
 #include "DzBlenderDialog.h"
@@ -325,6 +326,97 @@ Do you want to Abort the operation now?");
 		}
 		return false;
 	}
+
+	return true;
+}
+
+bool DzBlenderAction::preProcessScene(DzNode* parentNode)
+{
+	DzBridgeAction::preProcessScene(parentNode);
+
+	DzProgress* blenderProgress = new DzProgress(tr("PreProcessing Scene"), 100, false, true);
+
+	if (m_sExportRigMode == "")
+		return true;
+
+	QString sBoneConverter = "bone_converter_aArgs.dsa";
+	QString sUnrealMannyRigFile = "g9_to_unreal_manny.json";
+	QString sMetahumanRigFile = "g9_to_metahuman.json";
+	QString sUnityRigFile = "g9_to_unity.json";
+	QString sMixamoRigFile = "g9_to_mixamo.json";
+
+	blenderProgress->setInfo(tr("Preparing Rig Converter files..."));
+	QStringList aScriptFilelist = (QStringList() <<
+		sBoneConverter <<
+		sUnrealMannyRigFile <<
+		sMetahumanRigFile <<
+		sUnityRigFile <<
+		sMixamoRigFile
+		);
+	// copy 
+	foreach(auto sScriptFilename, aScriptFilelist)
+	{
+		bool replace = true;
+		QString sEmbeddedFolderPath = ":/DazBridgeBlender";
+		QString sEmbeddedFilepath = sEmbeddedFolderPath + "/" + sScriptFilename;
+		QFile srcFile(sEmbeddedFilepath);
+		QString tempFilepath = dzApp->getTempPath() + "/" + sScriptFilename;
+		DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &tempFilepath, replace);
+		srcFile.close();
+	}
+
+	/// BONE CONVERSION OPERATION
+	blenderProgress->setInfo(tr("Converting Rig..."));
+	blenderProgress->step();
+	QString sScriptFilepath = dzApp->getTempPath() + "/" + sBoneConverter;
+
+	// Compile arguments
+	QVariantList aArgs;
+	if (m_sExportRigMode == "metahuman") {
+		aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMetahumanRigFile));
+	}
+	else if (m_sExportRigMode == "unreal") {
+		aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnrealMannyRigFile));
+	}
+	else if (m_sExportRigMode == "unity") {
+		aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnityRigFile));
+	}
+	else if (m_sExportRigMode == "mixamo") {
+		aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMixamoRigFile));
+	}
+
+	QScopedPointer<DzScript> Script(new DzScript());
+	// run bone conversion on main figure
+	dzScene->selectAllNodes(false);
+	dzScene->setPrimarySelection(parentNode);
+	Script.reset(new DzScript());
+	Script->loadFromFile(sScriptFilepath);
+	Script->execute(aArgs);
+	// run bone conversion each geograft and attached body part (aka, ALL FOLLOWERS)
+	QObjectList conversionList;
+	conversionList.append(parentNode->getNodeChildren(true));
+	foreach(QObject * listNode, conversionList)
+	{
+		DzFigure* figChild = qobject_cast<DzFigure*>(listNode);
+		if (figChild) {
+			QString sChildName = figChild->getName();
+			QString sChildLabel = figChild->getLabel();
+			dzApp->debug(QString("DzBlenderAction: DEBUG: converting skeleton for: %1 [%2]").arg(sChildLabel).arg(sChildName));
+			dzScene->selectAllNodes(false);
+			dzScene->setPrimarySelection(figChild);
+			Script.reset(new DzScript());
+			Script->loadFromFile(sScriptFilepath);
+			Script->execute(aArgs);
+			DzSkeleton* pFollowTarget = figChild->getFollowTarget();
+			figChild->setFollowTarget(NULL);
+			figChild->setFollowTarget(pFollowTarget);
+		}
+	}
+
+	dzScene->selectAllNodes(false);
+	dzScene->setPrimarySelection(parentNode);
+
+	blenderProgress->finish();
 
 	return true;
 }

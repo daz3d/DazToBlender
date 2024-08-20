@@ -1,0 +1,188 @@
+// DAZ Studio version 4.21.0.5 filetype DAZ Script
+
+// Script: bone_converter.dsa
+// Description: This script converts a Genesis 8 or 9 skeleton to be compatible with a custom rig.
+// It iterates through all bones within a selected figure hierarchy, renames them according to a mapping,
+// and deletes any unmapped bones.  Weights from deleted bones are redistributed to the parent bone by
+// Daz Studio.
+// Usage: Select a Genesis 8 or 9 figure in DAZ Studio before running this script.
+
+// TODO: de-hardcode json bone mappings, read from arguments passed to script
+
+(function( aArgs ){
+
+
+var aBoneMapFiles = [];
+
+var includeDir_oFILE = new DzFile( getScriptFileName() );
+var sIncludePath = includeDir_oFILE.path();   
+
+function processArguments() {
+    print("processArguments(): Sanity Checking...");
+//    print("DEBUG: aArgs= " + aArgs + ", aArgs.length= " + aArgs.length);
+    if (!aArgs || Array.isArray(aArgs) == false || aArgs.length == 0) {
+        App.log("bone_converter_aArgs.dsa, processArguments(): CRITCIAL ERROR: Arguments are not an array; continuing with default values.");
+        return false;
+    }
+    for( var i = 0, nArgs = aArgs.length; i < nArgs; i += 1 ){
+        // add each arg to bonemap files
+        aBoneMapFiles.push(aArgs[i]);
+    }
+    return true;
+}
+
+function recursiveTraverseNodes(node) {
+    var aBoneList = [];
+
+    var children = node.getNodeChildren();
+    for (var i = 0; i < children.length; i++) {
+        recursiveList = recursiveTraverseNodes(children[i]);
+        aBoneList = aBoneList.concat(recursiveList);
+    }
+    var dzObject = new DzObject();
+    dzObject = node;
+    if (dzObject && dzObject.inherits("DzBone")) {
+//    	print("DEBUG: adding bone to bonelist: " + dzObject.name)
+        aBoneList.push(dzObject);
+    }
+
+//	print("DEBUG: bonelist.length= " + aBoneList.length);
+    return aBoneList;
+}
+
+// Retrieves all bones of the selected figure.
+function getBones(figure) {
+    var aBoneList = recursiveTraverseNodes(figure);
+    print("DEBUG: bonelist.length= " + aBoneList.length);
+    return aBoneList;
+}
+
+// Renames bones in the selected figure according to the mapping.
+function renameBones(figure, mapping) {
+    var aBoneList = getBones(figure); // Assuming getBones() retrieves all bones of the figure
+
+    for (var i = 0; i < aBoneList.length; i++) {
+        var bone = aBoneList[i];
+        print("DEBUG: processing bone: " + bone.name);
+        var key = bone.name;
+        if (mapping.hasOwnProperty(key)) {
+        	print("DEBUG: renaming bone: " + key);
+            bone.setName(mapping[key]);
+            bone.setLabel(mapping[key])
+        }
+    }
+}
+
+function arrayContainsValue(array, value) {
+	for (var i=0; i < array.length; i++) {
+		if (array[i] == value) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function deleteBone(node) {
+    var dzobject = new DzObject();
+    dzobject = node;
+    if (dzobject.inherits("DzBone")) {
+        // select none
+        Scene.selectAllNodes(false);
+        // select node to delete
+        Scene.setPrimarySelection(node);
+        // double check that this is really DzBone node
+        dbl_check = Scene.getSelectedNode(0);
+        if (dbl_check == node)
+        {
+            print("deleting bone: " + node.name);
+            obj = DzJEDeleteBoneAction();
+            obj.executeAction();
+        }
+    }
+}
+
+// Deletes bones not present in the mapping from the selected figure.
+function deleteUnmappedBones(figure, mapping) {
+    var aSafeList = [];
+    for (var key in mapping) {
+        var val = mapping[key];
+        print("DEBUG: pushing safe bone: " + val)
+        aSafeList.push(val);
+    }
+
+    var bones = getBones(figure);
+    for (var i = bones.length - 1; i >= 0; i--) {
+        var bone = bones[i];
+        var key = bone.name;
+        if (!mapping.hasOwnProperty(key) && !arrayContainsValue(aSafeList, key)) {
+            var key = bone.name
+        	print("DEBUG: deleting bone: " + key);
+            // Assuming deleteBone() is the method to remove a bone from the figure
+            deleteBone(bone);
+        }
+    }
+}
+
+// Validates if the selected figure is a Genesis 8 or 9 figure.
+function isValidFigure(figure) {
+    // Implement validation logic here, possibly checking figure's type or name.
+    return true; // Placeholder for validation logic
+}
+
+// Main script execution function.
+function main() {
+    var selectedFigure = Scene.getPrimarySelection(); // Assuming getSelectedNode() retrieves the currently selected figure.
+    if (!selectedFigure || !isValidFigure(selectedFigure)) {
+//        MessageBox.information("Please select a valid Genesis 8 or 9 figure.", "Invalid selection", "OK");
+        return;
+    }
+
+    if (!processArguments()) {
+        App.log("bone_converter_aArgs.dsa: Failed to process arguments, aborting script, see Log for details.");
+        print("bone_converter_aArgs.dsa: Failed to process arguments, aborting script, see Log for details.");
+        return;
+    }
+
+    var mapping = {};
+    for (var i = 0; i < aBoneMapFiles.length; i++) {
+        mapping = loadMappingTable(aBoneMapFiles[i], mapping);
+    }
+    renameBones(selectedFigure, mapping);
+    deleteUnmappedBones(selectedFigure, mapping);
+
+	Scene.setPrimarySelection(selectedFigure);
+
+    //MessageBox.information("Bone renaming process completed successfully.", "Script complete", "OK");
+}
+
+// Loads the bone mapping table.
+function loadMappingTable(sMapFile, mapping) {
+    if (mapping != null) {
+        var boneMapping = mapping;
+    } else {
+        var boneMapping = {};
+    }
+    
+    var file = new DzFile(sMapFile);
+    if (file.open(DzFile.ReadOnly)) {
+        var jsonString = file.read();
+        file.close();
+        var fileMapping = JSON.parse(jsonString);
+
+        for (var key in fileMapping) {
+            if (fileMapping.hasOwnProperty(key)) {
+                boneMapping[key] = fileMapping[key];
+            }
+        }
+    }
+    else {
+        App.log("bone_converter_aArgs.dsa: loadMappingTable(): Failed to open file: " + sMapFile);
+    }
+
+    return boneMapping;
+}
+
+// Run the main function
+main();
+
+})( getArguments() );

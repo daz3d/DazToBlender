@@ -51,6 +51,8 @@ protected:
 	 Q_INVOKABLE bool createUI();
 	 Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
 
+	 virtual bool preProcessScene(DzNode* parentNode) override;
+
 	 int m_nPythonExceptionExitCode = 11;  // arbitrary exit code to check for blener python exceptions
 	 int m_nBlenderExitCode = 0;
 	 QString m_sBlenderExecutablePath = "";

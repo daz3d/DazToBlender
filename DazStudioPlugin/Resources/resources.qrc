@@ -8,5 +8,10 @@
         <file alias="blender_tools.py">Scripts/blender_tools.py</file>
         <file alias="NodeArrange.py">Scripts/NodeArrange.py</file>
         <file alias="game_readiness_tools.py">Scripts/game_readiness_tools.py</file>
+        <file alias="bone_converter_aArgs.dsa">Scripts/bone_converter_aArgs.dsa</file>
+        <file alias="g9_to_metahuman.json">Scripts/g9_to_metahuman.json</file>
+        <file alias="g9_to_unreal_manny.json">Scripts/g9_to_unreal_manny.json</file>
+        <file alias="g9_to_unity.json">Scripts/g9_to_unity.json</file>
+        <file alias="g9_to_mixamo.json">Scripts/g9_to_mixamo.json</file>
     </qresource>
 </RCC>
