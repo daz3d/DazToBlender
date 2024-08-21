@@ -1,9 +1,9 @@
 {
-    "pelvis": "pelvis",
+    "hip": "pelvis",
     "spine1": "spine_01",
     "spine2": "spine_02",
     "spine3": "spine_03",
-    "spine4": "spine_04",
+    "spine4": "spine_05",
     "neck1": "neck_01",
     "neck2": "neck_02",
     "head": "head",

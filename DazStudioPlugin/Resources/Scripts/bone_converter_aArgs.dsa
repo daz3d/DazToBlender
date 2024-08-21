@@ -7,15 +7,14 @@
 // Daz Studio.
 // Usage: Select a Genesis 8 or 9 figure in DAZ Studio before running this script.
 
-// TODO: de-hardcode json bone mappings, read from arguments passed to script
-
 (function( aArgs ){
 
-
 var aBoneMapFiles = [];
-
 var includeDir_oFILE = new DzFile( getScriptFileName() );
 var sIncludePath = includeDir_oFILE.path();   
+
+var aRenamedBones = [];
+var aBonesToDelete = [];
 
 function processArguments() {
     print("processArguments(): Sanity Checking...");
@@ -69,7 +68,12 @@ function renameBones(figure, mapping) {
         	print("DEBUG: renaming bone: " + key);
             bone.setName(mapping[key]);
             bone.setLabel(mapping[key])
+            aRenamedBones.push(bone);
+        } else {
+            print("DEBUG: marking bone for deletion: " + key);
+            aBonesToDelete.push(bone);
         }
+
     }
 }
 
@@ -102,22 +106,12 @@ function deleteBone(node) {
 }
 
 // Deletes bones not present in the mapping from the selected figure.
-function deleteUnmappedBones(figure, mapping) {
-    var aSafeList = [];
-    for (var key in mapping) {
-        var val = mapping[key];
-        print("DEBUG: pushing safe bone: " + val)
-        aSafeList.push(val);
-    }
-
-    var bones = getBones(figure);
-    for (var i = bones.length - 1; i >= 0; i--) {
-        var bone = bones[i];
-        var key = bone.name;
-        if (!mapping.hasOwnProperty(key) && !arrayContainsValue(aSafeList, key)) {
-            var key = bone.name
-        	print("DEBUG: deleting bone: " + key);
-            // Assuming deleteBone() is the method to remove a bone from the figure
+function deleteUnmappedBones() {
+    for (var i = 0; i < aBonesToDelete.length; i++) {
+        var bone = aBonesToDelete[i];
+        // final sanity check
+        if (!arrayContainsValue(aRenamedBones, bone)) {
+            print("DEBUG: deleting bone: " + bone.name);
             deleteBone(bone);
         }
     }
@@ -148,7 +142,7 @@ function main() {
         mapping = loadMappingTable(aBoneMapFiles[i], mapping);
     }
     renameBones(selectedFigure, mapping);
-    deleteUnmappedBones(selectedFigure, mapping);
+    deleteUnmappedBones();
 
 	Scene.setPrimarySelection(selectedFigure);
 
