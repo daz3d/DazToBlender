@@ -612,8 +612,8 @@ def process_material(mat, lowres_mode=None):
         if data.blend_method == "OPAQUE" or data.blend_method == "BLEND":
             data.blend_method = "HASHED"
         if bsdf_inputs["Alpha"].default_value > 0.75:
-            new_value = (1.0 - bsdf_inputs["Alpha"].default_value)
-            if new_value < 0.01:
+            new_value = (1.01 - bsdf_inputs["Alpha"].default_value)
+            if new_value <= 0.02:
                 new_value = new_value * 15 / refraction_weight
             else:
                 new_value = new_value / refraction_weight
