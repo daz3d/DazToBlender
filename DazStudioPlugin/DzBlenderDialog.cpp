@@ -133,9 +133,10 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wBlenderOutputFilename->setReadOnly(true);
 	 m_wBlenderOutputFilename->setVisible(false);
 //	 wBlenderToolsLayout->addRow(m_wBlenderOutputFilename);
-	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Optimize for Game Engines"));
+	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Optimize for Realtime and Game Engine Use"));
 	 m_wUseBlendToolsCheckBox->setChecked(true);
 	 wBlenderToolsLayout->addRow(m_wUseBlendToolsCheckBox);
+	 connect(m_wUseBlendToolsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(HandleUseBlenderToolsCheckbox(int)));
 
 	 QHBoxLayout* m_wTextureAtlasLayout = new QHBoxLayout();
 	 m_wTextureAtlasLayout->setSpacing(margin);
@@ -155,6 +156,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 //	 m_wAtlasSizeCombobox->addItem("Custom Size...", "custom");
 	 m_wTextureAtlasLayout->addWidget(m_wAtlasSizeCombobox);
 	 wBlenderToolsLayout->addRow(m_wTextureAtlasLayout);
+
+	 m_wEnableGpuBaking = new QCheckBox(tr("Enable GPU Baking"));
+	 wBlenderToolsLayout->addRow(m_wEnableGpuBaking);
+
+	 QCheckBox m_wEmbedImagesInBlend
 
 	 m_wExportRigCombobox = new QComboBox();
 	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");
@@ -708,6 +714,19 @@ void DzBlenderDialog::updateBlenderExecutablePathEdit(bool isValid) {
 		m_wBlenderExecutablePathEdit->setStyleSheet("");
 		m_wBlenderExecutableRowLabel->setStyleSheet("");
 		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 0px; }");
+	}
+}
+
+void DzBlenderDialog::HandleUseBlenderToolsCheckbox(int state)
+{
+	if (state == Qt::CheckState::Checked) {
+		// enable blend tools Only options
+		m_wExportRigCombobox->setDisabled(false);
+	}
+	else {
+		// disable blend tools Only options
+		m_wExportRigCombobox->setCurrentIndex(0);
+		m_wExportRigCombobox->setDisabled(true);
 	}
 }
 

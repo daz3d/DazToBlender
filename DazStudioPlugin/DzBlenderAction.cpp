@@ -393,10 +393,9 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 	Script->loadFromFile(sScriptFilepath);
 	Script->execute(aArgs);
 	// run bone conversion each geograft and attached body part (aka, ALL FOLLOWERS)
-	QObjectList conversionList;
-	conversionList.append(parentNode->getNodeChildren(true));
-	foreach(QObject * listNode, conversionList)
+	foreach(QObject * listNode, parentNode->getNodeChildren(true))
 	{
+		if (listNode == NULL) continue;
 		DzFigure* figChild = qobject_cast<DzFigure*>(listNode);
 		if (figChild) {
 			QString sChildName = figChild->getName();
@@ -656,6 +655,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Texture Atlas Mode", m_sTextureAtlasMode);
 	writer.addMember("Texture Atlas Size", m_nTextureAtlasSize);
 	writer.addMember("Export Rig Mode", m_sExportRigMode);
+	writer.addMember("Enable GPU Baking", m_bEnableGpuBaking);
 
 	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	{
@@ -804,6 +804,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_sTextureAtlasMode = pBlenderDialog->getTextureAtlasMode();
 			m_sExportRigMode = pBlenderDialog->getExportRigMode();
 			m_nTextureAtlasSize = pBlenderDialog->getTextureAtlasSize();
+			m_bEnableGpuBaking = pBlenderDialog->getUseGpuBaking();
 		}
 		else
 		{
@@ -812,6 +813,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_sTextureAtlasMode = "";
 			m_sExportRigMode = "";
 			m_nTextureAtlasSize = 0;
+			m_bEnableGpuBaking = false;
 		}
 	}
 	else

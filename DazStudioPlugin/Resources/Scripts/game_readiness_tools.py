@@ -845,7 +845,7 @@ def obj_uses_normal(obj_list):
                             return True
     return False
 
-def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=4, make_uv=True):
+def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=4, make_uv=True, enable_gpu=False):
     if type(obj_list) != list:
         obj_list = [obj_list]
 
@@ -889,6 +889,9 @@ def convert_to_atlas(obj_list, image_output_path, atlas_size=4096, bake_quality=
         new_uv = create_new_uv_layer(obj_list, new_uv_name)
         # unwrap_object(obj)
         repack_uv(obj_list)
+
+    if enable_gpu:
+        enable_gpu_acceleration()
 
     for obj in obj_list:
         if uses_alpha:
@@ -1772,3 +1775,22 @@ def adjust_decimation_to_target(obj, target_triangles, tolerance=0.01):
             low_ratio = current_ratio
 
     print(f"Final decimation ratio: {current_ratio:.4f}, Triangles: {current_triangles}")
+
+def enable_gpu_acceleration():
+    # Enable GPU acceleration if available
+    cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
+    cuda_devices = cycles_prefs.get_devices_for_type('CUDA')
+    optix_devices = cycles_prefs.get_devices_for_type('OPTIX')
+    hip_devices = cycles_prefs.get_devices_for_type('HIP')
+    
+    if cuda_devices or optix_devices or hip_devices:
+        print("GPU acceleration available. Enabling GPU rendering.")
+        cycles_prefs.compute_device_type = 'CUDA' if cuda_devices else 'OPTIX' if optix_devices else 'HIP'
+        bpy.context.scene.cycles.device = 'GPU'
+        
+        # Enable all available devices
+        for device in cuda_devices + optix_devices + hip_devices:
+            device.use = True
+    else:
+        print("No GPU acceleration available. Using CPU.")
+        bpy.context.scene.cycles.device = 'CPU'

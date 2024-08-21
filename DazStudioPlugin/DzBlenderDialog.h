@@ -56,6 +56,7 @@ public:
 	Q_INVOKABLE QString getTextureAtlasMode() { return m_wBakeTextureAtlasCombobox->itemData(m_wBakeTextureAtlasCombobox->currentIndex()).toString(); }
 	Q_INVOKABLE QString getExportRigMode() { return m_wExportRigCombobox->itemData(m_wExportRigCombobox->currentIndex()).toString(); }
 	Q_INVOKABLE int getTextureAtlasSize() { return m_wAtlasSizeCombobox->itemData(m_wAtlasSizeCombobox->currentIndex()).toInt(); }
+	Q_INVOKABLE bool getUseGpuBaking() { return m_wEnableGpuBaking->isChecked(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -74,6 +75,7 @@ protected slots:
 	void HandleTextChanged(const QString &text);
 	bool HandleAcceptButtonValidationFeedback();
 	void updateBlenderExecutablePathEdit(bool isValid);
+	void HandleUseBlenderToolsCheckbox(int state);
 
 protected:
 	QLineEdit* m_wIntermediateFolderEdit;
@@ -92,6 +94,8 @@ protected:
 	QComboBox* m_wBakeTextureAtlasCombobox;
 	QComboBox* m_wAtlasSizeCombobox;
 	QComboBox* m_wExportRigCombobox;
+
+	QCheckBox* m_wEnableGpuBaking;
 
 	virtual void refreshAsset();
 

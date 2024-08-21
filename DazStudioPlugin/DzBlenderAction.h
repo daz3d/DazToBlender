@@ -63,6 +63,7 @@ protected:
 	 QString m_sExportRigMode = "";
 
 	 int m_nTextureAtlasSize = 0;
+	 bool m_bEnableGpuBaking = false;
 
 
 	 friend class DzBlenderExporter;

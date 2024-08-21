@@ -109,6 +109,7 @@ def _main(argv):
         texture_atlas_mode = json_obj["Texture Atlas Mode"]
         texture_atlas_size = json_obj["Texture Atlas Size"]
         export_rig_mode = json_obj["Export Rig Mode"]
+        enable_gpu_baking = json_obj["Enable GPU Baking"]
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
@@ -154,11 +155,12 @@ def _main(argv):
     debug_blend_file = fbxPath.replace(".fbx", "_debug.blend")
     bpy.ops.wm.save_as_mainfile(filepath=debug_blend_file)
 
+    make_uv = True
     if texture_atlas_mode == "per_mesh":
         bake_quality = 1
         for obj in bpy.data.objects:
             if obj.type == 'MESH' and obj.visible_get():
-                atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_atlas_size, bake_quality)
+                atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_atlas_size, bake_quality, make_uv, enable_gpu_baking)
     elif texture_atlas_mode == "single_atlas":
         texture_size = 2048
         bake_quality = 1
@@ -167,7 +169,7 @@ def _main(argv):
         for obj in bpy.data.objects:
             if obj.type == 'MESH' and obj.visible_get():
                 obj_list.append(obj)
-        atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_atlas_size, bake_quality)
+        atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_atlas_size, bake_quality, make_uv, enable_gpu_baking)
 
     # remove missing or unused images
     print("DEBUG: deleting missing or unused images...")
