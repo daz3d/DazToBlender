@@ -334,10 +334,10 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 {
 	DzBridgeAction::preProcessScene(parentNode);
 
-	DzProgress* blenderProgress = new DzProgress(tr("PreProcessing Scene"), 100, false, true);
-
 	if (m_sExportRigMode == "")
 		return true;
+
+	DzProgress* blenderProgress = new DzProgress(tr("PreProcessing Scene"), 100, false, true);
 
 	QString sBoneConverter = "bone_converter_aArgs.dsa";
 	QString sUnrealMannyRigFile = "g9_to_unreal_manny.json";
