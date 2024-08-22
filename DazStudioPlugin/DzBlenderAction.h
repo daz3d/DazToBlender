@@ -64,6 +64,7 @@ protected:
 
 	 int m_nTextureAtlasSize = 0;
 	 bool m_bEnableGpuBaking = false;
+	 bool m_bEmbedTexturesInOutputFile = false;
 
 
 	 friend class DzBlenderExporter;

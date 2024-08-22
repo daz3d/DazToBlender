@@ -160,7 +160,8 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wEnableGpuBaking = new QCheckBox(tr("Enable GPU Baking"));
 	 wBlenderToolsLayout->addRow(m_wEnableGpuBaking);
 
-	 QCheckBox m_wEmbedImagesInBlend
+	 m_wEnableEmbedTexturesInOutputFile = new QCheckBox(tr("Embed Textures in Blend File"));
+	 wBlenderToolsLayout->addRow(m_wEnableEmbedTexturesInOutputFile);
 
 	 m_wExportRigCombobox = new QComboBox();
 	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");

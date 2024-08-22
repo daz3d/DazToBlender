@@ -662,6 +662,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Texture Atlas Size", m_nTextureAtlasSize);
 	writer.addMember("Export Rig Mode", m_sExportRigMode);
 	writer.addMember("Enable GPU Baking", m_bEnableGpuBaking);
+	writer.addMember("Embed Textures", m_bEmbedTexturesInOutputFile);
 
 	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	{
@@ -811,6 +812,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_sExportRigMode = pBlenderDialog->getExportRigMode();
 			m_nTextureAtlasSize = pBlenderDialog->getTextureAtlasSize();
 			m_bEnableGpuBaking = pBlenderDialog->getUseGpuBaking();
+			m_bEmbedTexturesInOutputFile = pBlenderDialog->getEnableEmbedTexturesInOutputFile();
 		}
 		else
 		{
@@ -820,6 +822,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_sExportRigMode = "";
 			m_nTextureAtlasSize = 0;
 			m_bEnableGpuBaking = false;
+			m_bEmbedTexturesInOutputFile = false;
 		}
 	}
 	else

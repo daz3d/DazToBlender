@@ -101,6 +101,8 @@ def _main(argv):
     texture_atlas_mode = ""
     texture_atlas_size = 0
     export_rig_mode = ""
+    enable_gpu_baking = False
+    enable_embed_textures = False
     try:
         with open(jsonPath, "r") as file:
             json_obj = json.load(file)
@@ -110,6 +112,7 @@ def _main(argv):
         texture_atlas_size = json_obj["Texture Atlas Size"]
         export_rig_mode = json_obj["Export Rig Mode"]
         enable_gpu_baking = json_obj["Enable GPU Baking"]
+        enable_embed_textures = json_obj["Embed Textures"]
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
@@ -192,7 +195,9 @@ def _main(argv):
     bpy.ops.outliner.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
 
     # pack images
-    bpy.ops.file.pack_all()
+    if enable_embed_textures:
+        print("DEBUG: packing images...")
+        bpy.ops.file.pack_all()
 
     bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath)
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))

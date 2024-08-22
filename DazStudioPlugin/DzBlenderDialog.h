@@ -57,6 +57,7 @@ public:
 	Q_INVOKABLE QString getExportRigMode() { return m_wExportRigCombobox->itemData(m_wExportRigCombobox->currentIndex()).toString(); }
 	Q_INVOKABLE int getTextureAtlasSize() { return m_wAtlasSizeCombobox->itemData(m_wAtlasSizeCombobox->currentIndex()).toInt(); }
 	Q_INVOKABLE bool getUseGpuBaking() { return m_wEnableGpuBaking->isChecked(); }
+	Q_INVOKABLE bool getEnableEmbedTexturesInOutputFile() { return m_wEnableEmbedTexturesInOutputFile->isChecked(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -96,6 +97,7 @@ protected:
 	QComboBox* m_wExportRigCombobox;
 
 	QCheckBox* m_wEnableGpuBaking;
+	QCheckBox* m_wEnableEmbedTexturesInOutputFile;
 
 	virtual void refreshAsset();
 
