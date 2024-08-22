@@ -836,4 +836,125 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 	return true;
 }
 
+#include "FbxTools.h"
+#include "OpenFBXInterface.h"
+
+void FixPrePostRotations(FbxNode* pNode)
+{
+	QString sNodeName = pNode->GetName();
+	for (int nChildIndex = 0; nChildIndex < pNode->GetChildCount(); nChildIndex++)
+	{
+		FbxNode* pChildBone = pNode->GetChild(nChildIndex);
+		FixPrePostRotations(pChildBone);
+	}
+	if (sNodeName.contains("twist", Qt::CaseInsensitive) == false)
+	{
+		pNode->SetPreRotation(FbxNode::EPivotSet::eSourcePivot, FbxVector4(0, 0, 0));
+		pNode->SetPostRotation(FbxNode::EPivotSet::eSourcePivot, FbxVector4(0, 0, 0));
+	}
+}
+bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
+{
+	bool result = DzBridgeAction::postProcessFbx(fbxFilePath);
+	//	if (!result) return false;
+
+	if (m_bPostProcessFbx == false)
+		return false;
+
+	OpenFBXInterface* openFBX = OpenFBXInterface::GetInterface();
+	FbxScene* pScene = openFBX->CreateScene("Base Mesh Scene");
+	if (openFBX->LoadScene(pScene, fbxFilePath.toLocal8Bit().data()) == false)
+	{
+		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, "Error",
+			"An error occurred while processing the Fbx file...", QMessageBox::Ok);
+		printf("\n\nAn error occurred while processing the Fbx file...");
+		return false;
+	}
+
+	m_bExperimental_FbxPostProcessing = (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
+	if (m_bExperimental_FbxPostProcessing)
+	{
+		// Find the root bone.  There should only be one bone off the scene root
+		FbxNode* RootNode = pScene->GetRootNode();
+		FbxNode* RootBone = nullptr;
+		QString RootBoneName("");
+		for (int ChildIndex = 0; ChildIndex < RootNode->GetChildCount(); ++ChildIndex)
+		{
+			FbxNode* ChildNode = RootNode->GetChild(ChildIndex);
+			FbxNodeAttribute* Attr = ChildNode->GetNodeAttribute();
+			if (Attr && Attr->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+			{
+				RootBone = ChildNode;
+				RootBoneName = RootBone->GetName();
+				RootBone->SetName("root");
+				Attr->SetName("root");
+				break;
+			}
+		}
+
+		//// Daz characters sometimes have additional skeletons inside the character for accesories
+		//if (AssetType == DazAssetType::SkeletalMesh)
+		//{
+		//	FDazToUnrealFbx::ParentAdditionalSkeletalMeshes(Scene);
+		//}
+		// Daz Studio puts the base bone rotations in a different place than Unreal expects them.
+		//if (CachedSettings->FixBoneRotationsOnImport && AssetType == DazAssetType::SkeletalMesh && RootBone)
+		//{
+		//	FDazToUnrealFbx::RemoveBindPoses(Scene);
+		//	FDazToUnrealFbx::FixClusterTranformLinks(Scene, RootBone);
+		//}
+		if (RootBone)
+		{
+//			FbxTools::RemovePrePostRotations(RootBone);
+			FbxTools::RemoveBindPoses(pScene);
+			FbxTools::FixClusterTranformLinks(pScene, RootBone);
+
+			FbxPose* pNewBindPose = FbxTools::SaveBindMatrixToPose(pScene, "NewBindPose", nullptr, true);
+			FbxTools::ApplyBindPose(pScene, pNewBindPose);
+//			FixPrePostRotations(RootBone);
+//			FbxTools::DetachGeometry(pScene);
+
+			QList<FbxNode*> nodeList;
+			FbxTools::GetAllMeshes(RootNode, nodeList);
+			foreach(FbxNode * pNode, nodeList) {
+				auto pMesh = pNode->GetMesh();
+				FbxAMatrix matrix = pNode->EvaluateGlobalTransform();
+				auto pVertexBuffer = pMesh->GetControlPoints();
+				FbxTools::BakePoseToVertexBuffer(pVertexBuffer, &matrix, pNewBindPose, pMesh);
+
+				pNode->SetPreRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+				pNode->SetPostRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+				pNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
+				pNode->LclRotation.Set(FbxDouble3(0, 0, 0));
+				pNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
+			}
+			RootBone->PreRotation.Set(FbxVector4(0, 0, 0));
+			RootBone->PostRotation.Set(FbxVector4(0, 0, 0));
+			RootBone->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
+			RootBone->LclRotation.Set(FbxDouble3(0, 0, 0));
+			RootBone->LclTranslation.Set(FbxDouble3(0, 0, 0));
+
+			RootNode->PreRotation.Set(FbxVector4(0, 0, 0));
+			RootNode->PostRotation.Set(FbxVector4(0, 0, 0));
+			RootNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
+			RootNode->LclRotation.Set(FbxDouble3(0, 0, 0));
+			RootNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
+
+		}
+
+	}
+
+	if (openFBX->SaveScene(pScene, fbxFilePath.toLocal8Bit().data()) == false)
+	{
+		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, "Error",
+			"An error occurred while processing the Fbx file...", QMessageBox::Ok);
+
+		printf("\n\nAn error occurred while processing the Fbx file...");
+		return false;
+	}
+
+	return true;
+}
+
+
 #include "moc_DzBlenderAction.cpp"
