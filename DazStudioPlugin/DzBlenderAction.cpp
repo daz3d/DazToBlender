@@ -392,24 +392,30 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 	Script.reset(new DzScript());
 	Script->loadFromFile(sScriptFilepath);
 	Script->execute(aArgs);
-	// run bone conversion each geograft and attached body part (aka, ALL FOLLOWERS)
-	foreach(QObject * listNode, parentNode->getNodeChildren(true))
+	// iterate through node children list before making changes to it, otherwise it gets invalidated during processing
+	QList<DzFigure*> figureList;
+	foreach(QObject* listNode, parentNode->getNodeChildren())
 	{
-		if (listNode == NULL) continue;
+		if (listNode->inherits("DzFigure") == false) continue;
 		DzFigure* figChild = qobject_cast<DzFigure*>(listNode);
 		if (figChild) {
-			QString sChildName = figChild->getName();
-			QString sChildLabel = figChild->getLabel();
-			dzApp->debug(QString("DzBlenderAction: DEBUG: converting skeleton for: %1 [%2]").arg(sChildLabel).arg(sChildName));
-			dzScene->selectAllNodes(false);
-			dzScene->setPrimarySelection(figChild);
-			Script.reset(new DzScript());
-			Script->loadFromFile(sScriptFilepath);
-			Script->execute(aArgs);
-			DzSkeleton* pFollowTarget = figChild->getFollowTarget();
-			figChild->setFollowTarget(NULL);
-			figChild->setFollowTarget(pFollowTarget);
+			figureList.append(figChild);
 		}
+	}
+	// run bone conversion each geograft and attached body part (aka, ALL FOLLOWERS)
+	foreach(DzFigure* figChild, figureList) {
+		if (figChild == NULL) continue;
+		QString sChildName = figChild->getName();
+		QString sChildLabel = figChild->getLabel();
+		dzApp->debug(QString("DzBlenderAction: DEBUG: converting skeleton for: %1 [%2]").arg(sChildLabel).arg(sChildName));
+		dzScene->selectAllNodes(false);
+		dzScene->setPrimarySelection(figChild);
+		Script.reset(new DzScript());
+		Script->loadFromFile(sScriptFilepath);
+		Script->execute(aArgs);
+		DzSkeleton* pFollowTarget = figChild->getFollowTarget();
+		figChild->setFollowTarget(NULL);
+		figChild->setFollowTarget(pFollowTarget);
 	}
 
 	dzScene->selectAllNodes(false);
