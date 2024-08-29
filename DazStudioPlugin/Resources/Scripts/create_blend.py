@@ -159,8 +159,10 @@ def _main(argv):
         _add_to_log("DEBUG: main(): loading json file: " + str(jsonPath))
         dtu_dict = blender_tools.process_dtu(jsonPath)
 
-    debug_blend_file = fbxPath.replace(".fbx", "_debug.blend")
-    bpy.ops.wm.save_as_mainfile(filepath=debug_blend_file)
+    debug_blend_file = False
+    if debug_blend_file:
+        debug_blend_file = fbxPath.replace(".fbx", "_debug.blend")
+        bpy.ops.wm.save_as_mainfile(filepath=debug_blend_file)
 
     make_uv = True
     if texture_atlas_mode == "per_mesh":
@@ -218,19 +220,40 @@ def _main(argv):
     bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath, )
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
 
-    fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
-    try:
-        bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
-                                 add_leaf_bones = add_leaf_bones,
-                                 path_mode = "COPY",
-                                 embed_textures = enable_embed_textures,
-                                 use_visible = True,
-                                 use_custom_props = True,
-                                 )
-        _add_to_log("DEBUG: save completed.")
-    except Exception as e:
-        _add_to_log("ERROR: unable to save Roblox FBX file: " + fbx_output_file_path)
-        _add_to_log("EXCEPTION: " + str(e))
+    output_final_glb = True
+    if output_final_glb:
+        glb_output_file_path = blenderFilePath.replace(".blend", ".glb")
+        try:
+            bpy.ops.export_scene.gltf(filepath=glb_output_file_path, export_format="GLB", 
+                                      use_visible=True, 
+                                      use_selection=False, 
+                                      export_animations = False,
+                                    #   export_animation_mode="ACTIONS", 
+                                      export_bake_animation=False
+                                    #   export_anim_single_armature=False, 
+                                    #   export_reset_pose_bones=True, 
+                                    #   export_optimize_animation_keep_anim_armature=True
+                                    )
+            _add_to_log("DEBUG: save completed.")
+        except Exception as e:
+            _add_to_log("ERROR: unable to save Final GLB file: " + glb_output_file_path)
+            _add_to_log("EXCEPTION: " + str(e))
+
+    output_final_fbx = False
+    if output_final_fbx:
+        fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
+        try:
+            bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
+                                    add_leaf_bones = add_leaf_bones,
+                                    path_mode = "COPY",
+                                    embed_textures = enable_embed_textures,
+                                    use_visible = True,
+                                    use_custom_props = True,
+                                    )
+            _add_to_log("DEBUG: save completed.")
+        except Exception as e:
+            _add_to_log("ERROR: unable to save Final FBX file: " + fbx_output_file_path)
+            _add_to_log("EXCEPTION: " + str(e))
 
     return
 
