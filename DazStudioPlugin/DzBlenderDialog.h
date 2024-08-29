@@ -83,7 +83,7 @@ protected:
 	QPushButton* m_wIntermediateFolderButton;
 
 	QLineEdit* m_wBlenderExecutablePathEdit;
-	QPushButton* m_wBlenderExecutablePathButton;
+	DzBridgeBrowseButton* m_wBlenderExecutablePathButton;
 	QLabel* m_wBlenderExecutableRowLabel;
 	QHBoxLayout* m_wBlenderExecutablePathLayout;
 	QGroupBox* m_wRequiredInputFrame;

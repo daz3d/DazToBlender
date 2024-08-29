@@ -100,7 +100,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 
 	 // Select Blender Executable Path GUI
 	 m_wRequiredInputFrame = new QGroupBox();
-	 m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
+//	 m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
 	 m_wRequiredInputFrameLayout = new QFormLayout(m_wRequiredInputFrame);
 	 m_wRequiredInputFrameLayout->setSpacing(0);
 	 m_wRequiredInputFrameLayout->setMargin(0);
@@ -705,16 +705,18 @@ void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
 	}
 }
 
+#include "dzstyle.h"
+#include "dzstyledbutton.h"
 void DzBlenderDialog::updateBlenderExecutablePathEdit(bool isValid) {
 	if (!isValid && m_bBlenderRequired) {
-//		m_wBlenderExecutablePathEdit->setStyleSheet("color: red;");
-//		m_wBlenderExecutableRowLabel->setStyleSheet("color: red;");
-		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
+//		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
+		m_wBlenderExecutablePathButton->setHighlightStyle(true);
 	}
 	else {
-		m_wBlenderExecutablePathEdit->setStyleSheet("");
-		m_wBlenderExecutableRowLabel->setStyleSheet("");
-		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 0px; }");
+//		m_wBlenderExecutablePathEdit->setStyleSheet("");
+//		m_wBlenderExecutableRowLabel->setStyleSheet("");
+//		m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 0px; }");
+		m_wBlenderExecutablePathButton->setHighlightStyle(false);
 	}
 }
 
