@@ -90,8 +90,8 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 // Disable Unsupported AssetType ComboBox Options
 	 QStandardItemModel* model = qobject_cast<QStandardItemModel*>(assetTypeCombo->model());
 	 QStandardItem* item = nullptr;
-	 item = model->findItems("Environment").first();
-	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
+//	 item = model->findItems("Environment").first();
+//	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
 	 item = model->findItems("Pose").first();
 	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
 

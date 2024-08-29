@@ -39,8 +39,74 @@
 
 #include "dzbridge.h"
 
-bool DzBlenderUtils::generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs)
+int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess)
 {
+	// fork or spawn child process
+	QStringList args = sCommandlineArguments.split(";");
+
+	float fTimeoutInSeconds = 2 * 60;
+	float fMilliSecondsPerTick = 200;
+	int numTotalTicks = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
+	DzProgress* progress = new DzProgress("Running Blender Script", numTotalTicks, false, true);
+	progress->enable(true);
+	QProcess* pToolProcess = new QProcess(thisProcess);
+	pToolProcess->setWorkingDirectory(sWorkingPath);
+	pToolProcess->start(sBlenderExecutablePath, args);
+	int currentTick = 0;
+	int timeoutTicks = numTotalTicks;
+	bool bUserInitiatedTermination = false;
+	while (pToolProcess->waitForFinished(fMilliSecondsPerTick) == false) {
+		// if timeout reached, then terminate process
+		if (currentTick++ > timeoutTicks) {
+			if (!bUserInitiatedTermination)
+			{
+				QString sTimeoutText = QObject::tr("\
+The current Blender operation is taking a long time.\n\
+Do you want to Ignore this time-out and wait a little longer, or \n\
+Do you want to Abort the operation now?");
+				int result = QMessageBox::critical(0,
+					QObject::tr("Daz To Blender: Blender Timout Error"),
+					sTimeoutText,
+					QMessageBox::Ignore,
+					QMessageBox::Abort);
+				if (result == QMessageBox::Ignore) {
+					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
+					timeoutTicks += snoozeTime;
+				}
+				else {
+					bUserInitiatedTermination = true;
+				}
+			}
+			else
+			{
+				if (currentTick - timeoutTicks < 5) {
+					pToolProcess->terminate();
+				}
+				else {
+					pToolProcess->kill();
+				}
+			}
+		}
+		if (pToolProcess->state() == QProcess::Running) {
+			progress->step();
+		}
+		else {
+			break;
+		}
+	}
+	progress->setCurrentInfo("Blender Script Completed.");
+	progress->finish();
+	delete progress;
+	int nBlenderExitCode = pToolProcess->exitCode();
+
+	return nBlenderExitCode;
+}
+
+bool DzBlenderUtils::GenerateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs)
+{
+	QString sBatchFileFolder = QFileInfo(batchFilePath).dir().path().replace("\\", "/");
+	QDir().mkdir(sBatchFileFolder);
+
 	// 4. Generate manual batch file to launch blender scripts
 	QString sBatchString = QString("\"%1\"").arg(sBlenderExecutablePath);
 	foreach(QString arg, sCommandArgs.split(";"))
@@ -62,7 +128,60 @@ bool DzBlenderUtils::generateBlenderBatchFile(QString batchFilePath, QString sBl
 		batchFileOut.close();
 	}
 	else {
-		dzApp->log("ERROR: DazToRoblox: generateBlenderBatchFile(): Unable to open batch filr for writing: " + batchFilePath);
+		dzApp->log("ERROR: GenerateBlenderBatchFile(): Unable to open batch file for writing: " + batchFilePath);
+	}
+
+	return true;
+}
+
+bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QString sBlenderExecutablePath, QProcess* thisProcess, int nPythonExceptionExitCode)
+{
+	QString sIntermediatePath = QFileInfo(sDestinationFbx).dir().path().replace("\\", "/");
+	QString sIntermediateScriptsPath = sIntermediatePath + "/Scripts";
+	QDir().mkdir(sIntermediateScriptsPath);
+
+	QStringList aScriptFilelist = (QStringList() << 
+		"create_blend.py" <<
+		"blender_tools.py" <<
+		"NodeArrange.py" <<
+		"game_readiness_tools.py"
+		);
+	// copy 
+	foreach(auto sScriptFilename, aScriptFilelist)
+	{
+		bool replace = true;
+		QString sEmbeddedFolderPath = ":/DazBridgeBlender";
+		QString sEmbeddedFilepath = sEmbeddedFolderPath + "/" + sScriptFilename;
+		QFile srcFile(sEmbeddedFilepath);
+		QString tempFilepath = sIntermediateScriptsPath + "/" + sScriptFilename;
+		DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &tempFilepath, replace);
+		srcFile.close();
+	}
+
+	QString sBlenderLogPath = sIntermediatePath + "/" + "create_blend.log";
+	QString sScriptPath = sIntermediateScriptsPath + "/" + "create_blend.py";
+	QString sCommandArgs = QString("--background;--log-file;%1;--python-exit-code;%2;--python;%3;%4").arg(sBlenderLogPath).arg(nPythonExceptionExitCode).arg(sScriptPath).arg(sDestinationFbx);
+#if WIN32
+	QString batchFilePath = sIntermediatePath + "/" + "create_blend.bat";
+#else
+	QString batchFilePath = sIntermediatePath + "/" + "create_blend.sh";
+#endif
+	DzBlenderUtils::GenerateBlenderBatchFile(batchFilePath, sBlenderExecutablePath, sCommandArgs);
+
+	int nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess);
+#ifdef __APPLE__
+	if (nBlenderExitCode != 0 && nBlenderExitCode != 120)
+#else
+	if (nBlenderExitCode != 0)
+#endif
+	{
+		if (nBlenderExitCode == nPythonExceptionExitCode) {
+			dzApp->log(QString("Daz To Blender: ERROR: Python error:.... %1").arg(nBlenderExitCode));
+		}
+		else {
+			dzApp->log(QString("Daz To Blender: ERROR: exit code = %1").arg(nBlenderExitCode));
+		}
+		return false;
 	}
 
 	return true;
@@ -168,7 +287,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 #else
 	QString batchFilePath = sIntermediatePath + "/" + "create_blend.sh";
 #endif
-	DzBlenderUtils::generateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+	DzBlenderUtils::GenerateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
 	bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
@@ -334,7 +453,7 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 {
 	DzBridgeAction::preProcessScene(parentNode);
 
-	if (m_sExportRigMode == "")
+	if (m_sExportRigMode == "" || m_sExportRigMode == "--")
 		return true;
 
 	DzProgress* blenderProgress = new DzProgress(tr("PreProcessing Scene"), 100, false, true);
@@ -485,6 +604,7 @@ bool DzBlenderAction::createUI()
 	return true;
 }
 
+#include "dzexportmgr.h"
 void DzBlenderAction::executeAction()
 {
 	// CreateUI() disabled for debugging -- 2022-Feb-25
@@ -519,14 +639,14 @@ void DzBlenderAction::executeAction()
 		{
 			dzScene->setPrimarySelection(rootNodes[0]);
 		}
-		else if (rootNodes.length() > 1)
-		{
-			if (m_nNonInteractiveMode == 0)
-			{
-				QMessageBox::warning(0, tr("Error"),
-					tr("Please select one Character or Prop to send."), QMessageBox::Ok);
-			}
-		}
+		//else if (rootNodes.length() > 1)
+		//{
+		//	if (m_nNonInteractiveMode == 0)
+		//	{
+		//		QMessageBox::warning(0, tr("Error"),
+		//			tr("Please select one Character or Prop to send."), QMessageBox::Ok);
+		//	}
+		//}
 	}
 
 	// Create the dialog
@@ -590,36 +710,50 @@ void DzBlenderAction::executeAction()
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
 
-//#if __LEGACY_PATHS__
-//		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
-//		if (m_sRootFolder == "") 
-//			m_sRootFolder = sDefaultRootFolder;
-//		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
-//		{
-//			m_sRootFolder = m_sRootFolder + "/Exports/FIG";
-//			m_sRootFolder = m_sRootFolder.replace("\\", "/");
-//			m_sExportSubfolder = "FIG0";
-//			m_sExportFbx = "B_FIG";
-//			m_sExportFilename = "FIG";
-//		}
-//		else
-//		{
-//			m_sRootFolder = m_sRootFolder + "/Exports/ENV";
-//			m_sRootFolder = m_sRootFolder.replace("\\", "/");
-//			m_sExportSubfolder = "ENV0";
-//			m_sExportFbx = "B_ENV";
-//			m_sExportFilename = "ENV";
-//		}
-//		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
-//		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
-//#endif
-
 		//Create Daz3D folder if it doesn't exist
 		QDir dir;
 		dir.mkpath(m_sRootFolder);
 		exportProgress->step();
 
-		exportHD(exportProgress);
+		if (m_sAssetType == "Environment") {
+			QDir().mkdir(m_sDestinationPath);
+			m_pSelectedNode = dzScene->getPrimarySelection();
+			m_bUseBlenderTools = true;
+
+			auto objectList = dzScene->getNodeList();
+			foreach(auto el, objectList) {
+				DzNode* pNode = qobject_cast<DzNode*>(el);
+				preProcessScene(pNode);
+			}
+			DzExportMgr* ExportManager = dzApp->getExportMgr();
+			DzExporter* Exporter = ExportManager->findExporterByClassName("DzFbxExporter");
+			DzFileIOSettings ExportOptions;
+			ExportOptions.setBoolValue("doSelected", false);
+			ExportOptions.setBoolValue("doVisible", true);
+			ExportOptions.setBoolValue("doFigures", true);
+			ExportOptions.setBoolValue("doProps", true);
+			ExportOptions.setBoolValue("doAnims", true);
+			ExportOptions.setIntValue("RunSilent", true);
+			ExportOptions.setBoolValue("doLights", false);
+			ExportOptions.setBoolValue("doCameras", false);
+			setExportOptions(ExportOptions);
+			// NOTE: be careful to use m_sExportFbx and NOT m_sExportFilename since FBX and DTU base name may differ
+			QString sEnvironmentFbx = m_sDestinationPath + m_sExportFbx + ".fbx";
+			Exporter->writeFile(sEnvironmentFbx, &ExportOptions);
+
+			writeConfiguration();
+
+			// ?? potential crash because assumes single preprocessscene event
+			undoPreProcessScene();
+
+			// if not in DzExporterMode, then run the blender script manually
+			if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
+				DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, &QProcess(this), m_nPythonExceptionExitCode);
+			}
+		}
+		else {
+			exportHD(exportProgress);
+		}
 
 		// DB 2021-10-11: Progress Bar
 		exportProgress->finish();
@@ -665,7 +799,8 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Enable GPU Baking", m_bEnableGpuBaking);
 	writer.addMember("Embed Textures", m_bEmbedTexturesInOutputFile);
 
-	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
+//	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
+	if (true)
 	{
 		QTextStream *pCVSStream = nullptr;
 		if (m_bExportMaterialPropertiesCSV)
@@ -676,7 +811,12 @@ void DzBlenderAction::writeConfiguration()
 			pCVSStream = new QTextStream(&file);
 			*pCVSStream << "Version, Object, Material, Type, Color, Opacity, File" << endl;
 		}
-		writeAllMaterials(m_pSelectedNode, writer, pCVSStream);
+		if (m_sAssetType == "Environment") {
+			writeSceneMaterials(writer, pCVSStream);
+		}
+		else {
+			writeAllMaterials(m_pSelectedNode, writer, pCVSStream);
+		}
 		writeAllMorphs(writer);
 
 		writeMorphLinks(writer);
@@ -694,15 +834,15 @@ void DzBlenderAction::writeConfiguration()
 		writeAllDforceInfo(m_pSelectedNode, writer);
 	}
 
-	if (m_sAssetType == "Pose")
-	{
-	   writeAllPoses(writer);
-	}
+	//if (m_sAssetType == "Pose")
+	//{
+	//   writeAllPoses(writer);
+	//}
 
-	if (m_sAssetType == "Environment")
-	{
-		writeEnvironment(writer);
-	}
+	//if (m_sAssetType == "Environment")
+	//{
+	//	writeEnvironment(writer);
+	//}
 
 	writer.finishObject();
 	DTUfile.close();

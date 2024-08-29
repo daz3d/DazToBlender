@@ -13,11 +13,13 @@ class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
 
-
+class QProcess;
 class DzBlenderUtils
 {
 public:
-	static bool generateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
+	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess);
+	static bool GenerateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
+	static bool PrepareAndRunBlenderProcessing(QString sDestinationFbx, QString sBlenderExecutablePath, QProcess* thisProcess, int nPythonExceptionExitCode);
 };
 
 class DzBlenderExporter : public DzExporter {
