@@ -60,7 +60,16 @@ function getBones(figure) {
 function renameBones(figure, mapping) {
     var aBoneList = getBones(figure); // Assuming getBones() retrieves all bones of the figure
 
-    for (var i = 0; i < aBoneList.length; i++) {
+    // only mark bones for deletion if they are not on either side of the mapping table
+    var aSafeList = [];
+    // for (var key in mapping) {
+    //     var val = mapping[key];
+    //     print("DEBUG: pushing safe bone: " + val)
+    //     aSafeList.push(val);
+    // }
+
+    for (var i = 0; i < aBoneList.length; i++) 
+    {
         var bone = aBoneList[i];
         print("DEBUG: processing bone: " + bone.name);
         var key = bone.name;
@@ -69,11 +78,11 @@ function renameBones(figure, mapping) {
             bone.setName(mapping[key]);
             bone.setLabel(mapping[key])
             aRenamedBones.push(bone);
-        } else {
+        }
+        else if (!arrayContainsValue(aSafeList, key)) {
             print("DEBUG: marking bone for deletion: " + key);
             aBonesToDelete.push(bone);
         }
-
     }
 }
 
@@ -141,12 +150,45 @@ function main() {
     for (var i = 0; i < aBoneMapFiles.length; i++) {
         mapping = loadMappingTable(aBoneMapFiles[i], mapping);
     }
+
+    // Sanity Check, make sure all bones exist and will not be deleted
+    var aBoneList = getBones(selectedFigure); // Assuming getBones() retrieves all bones of the figure
+    var numKeys = Object.keys(mapping).length;
+    var bonesMatchingKeys = 0;
+    var bonesMatchingVals = 0;
+    for (var key in mapping) {
+        for (var i = 0; i < aBoneList.length; i++) {
+            if (aBoneList[i].name == key) {
+                bonesMatchingKeys++;
+            }
+            if (aBoneList[i].name == mapping[key]) {
+                bonesMatchingVals++;
+            }
+        }
+    }
+    if ( bonesMatchingVals == numKeys) {
+        App.log("bone_converter_aArgs.dsa: ERROR: Bones appear to already be converted.");
+        print("bone_converter_aArgs.dsa: ERROR: Bones appear to already be converted.");
+        return;
+    }
+    if ( bonesMatchingKeys == 0) {
+        App.log("bone_converter_aArgs.dsa: CRITICAL ERROR: No bones were found in the figure.");
+        print("bone_converter_aArgs.dsa: CRITICAL ERROR: No bones were found in the figure.");
+        return;
+    }
+    if (bonesMatchingKeys < numKeys) {
+        App.log("bone_converter_aArgs.dsa: WARNING: Not all bones were found in the figure.");
+        print("bone_converter_aArgs.dsa: WARNING: Not all bones were found in the figure.");
+        return;
+    }
     renameBones(selectedFigure, mapping);
     deleteUnmappedBones();
 
 	Scene.setPrimarySelection(selectedFigure);
 
     //MessageBox.information("Bone renaming process completed successfully.", "Script complete", "OK");
+    App.log("bone_converter_aArgs.dsa: Bone renaming process completed successfully.");
+    print("bone_converter_aArgs.dsa: Bone renaming process completed successfully.");
 }
 
 // Loads the bone mapping table.

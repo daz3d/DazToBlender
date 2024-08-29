@@ -116,6 +116,10 @@ def _main(argv):
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
+    force_connect_bones = False
+    if export_rig_mode == "mixamo":
+        force_connect_bones = True
+
     if texture_atlas_size == 0:
         texture_atlas_size = TEXTURE_ATLAS_SIZE_DEFAULT
 
@@ -149,7 +153,7 @@ def _main(argv):
     else:
         # load FBX
         _add_to_log("DEBUG: main(): loading fbx file: " + str(fbxPath))
-        blender_tools.import_fbx(fbxPath)
+        blender_tools.import_fbx(fbxPath, force_connect_bones)
 
         blender_tools.center_all_viewports()
         _add_to_log("DEBUG: main(): loading json file: " + str(jsonPath))
@@ -199,8 +203,34 @@ def _main(argv):
         print("DEBUG: packing images...")
         bpy.ops.file.pack_all()
 
-    bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath)
+    add_leaf_bones = False
+    if export_rig_mode == "unreal" or export_rig_mode == "metahuman":
+        # apply all transformations on armature
+        for obj in bpy.data.objects:
+            bpy.ops.object.select_all(action='DESELECT')
+            if obj.type == 'ARMATURE':
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    if export_rig_mode == "mixamo":
+        add_leaf_bones = True
+
+    bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath, )
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
+
+    fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
+    try:
+        bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
+                                 add_leaf_bones = add_leaf_bones,
+                                 path_mode = "COPY",
+                                 embed_textures = enable_embed_textures,
+                                 use_visible = True,
+                                 use_custom_props = True,
+                                 )
+        _add_to_log("DEBUG: save completed.")
+    except Exception as e:
+        _add_to_log("ERROR: unable to save Roblox FBX file: " + fbx_output_file_path)
+        _add_to_log("EXCEPTION: " + str(e))
 
     return
 

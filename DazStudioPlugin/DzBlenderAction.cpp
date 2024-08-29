@@ -402,6 +402,7 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 			figureList.append(figChild);
 		}
 	}
+/*
 	// run bone conversion each geograft and attached body part (aka, ALL FOLLOWERS)
 	foreach(DzFigure* figChild, figureList) {
 		if (figChild == NULL) continue;
@@ -417,9 +418,9 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 		figChild->setFollowTarget(NULL);
 		figChild->setFollowTarget(pFollowTarget);
 	}
-
+*/
 	dzScene->selectAllNodes(false);
-	dzScene->setPrimarySelection(parentNode);
+//	dzScene->setPrimarySelection(parentNode);
 
 	blenderProgress->finish();
 
@@ -853,6 +854,45 @@ void FixPrePostRotations(FbxNode* pNode)
 		pNode->SetPostRotation(FbxNode::EPivotSet::eSourcePivot, FbxVector4(0, 0, 0));
 	}
 }
+
+FbxNode* GetBone(FbxNode* pNode) {
+	for (int i = 0; i < pNode->GetChildCount(); i++) {
+		FbxNode* pChild = pNode->GetChild(i);
+		auto attribute = pChild->GetNodeAttribute();
+		if (attribute && attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton) {
+			FbxSkeleton* pSkeleton = (FbxSkeleton*) attribute;
+			if (pSkeleton->GetSkeletonType() == FbxSkeleton::eLimbNode) {
+				return pChild;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+FbxNode* GetMeshRootBone(FbxMesh* meshNode) {
+	if (meshNode == nullptr) {
+		return nullptr;
+	}
+
+	// Iterate through the connected nodes
+	int connectionCount = meshNode->GetSrcObjectCount(FbxCriteria::ObjectType(FbxNode::ClassId));
+	for (int i = 0; i < connectionCount; ++i) {
+		FbxNode* connectedNode = (FbxNode*)meshNode->GetSrcObject(FbxCriteria::ObjectType(FbxNode::ClassId), i);
+
+		// Check if this node has a FbxSkeleton attribute
+		if (connectedNode && connectedNode->GetNodeAttribute()) {
+			FbxNodeAttribute* attribute = connectedNode->GetNodeAttribute();
+			if (attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton) {
+//				FbxSkeleton* skeleton = (FbxSkeleton*)attribute;
+				return GetBone(connectedNode);
+			}
+		}
+	}
+
+	return nullptr;  // No eLimbNode found
+}
+
 bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 {
 	bool result = DzBridgeAction::postProcessFbx(fbxFilePath);
@@ -886,8 +926,14 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 			{
 				RootBone = ChildNode;
 				RootBoneName = RootBone->GetName();
-				RootBone->SetName("root");
-				Attr->SetName("root");
+				if (m_sExportRigMode == "unreal" || m_sExportRigMode == "metahuman") {
+					RootBone->SetName("root");
+					Attr->SetName("root");
+				}
+				else if (m_sExportRigMode == "mixamo") {
+					RootBone->SetName("Armature");
+					Attr->SetName("Armature");
+				}
 				break;
 			}
 		}
@@ -902,43 +948,39 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		//{
 		//	FDazToUnrealFbx::RemoveBindPoses(Scene);
 		//	FDazToUnrealFbx::FixClusterTranformLinks(Scene, RootBone);
-		//}
+		//}		
 		if (RootBone)
 		{
-//			FbxTools::RemovePrePostRotations(RootBone);
-			FbxTools::RemoveBindPoses(pScene);
-			FbxTools::FixClusterTranformLinks(pScene, RootBone);
 
-			FbxPose* pNewBindPose = FbxTools::SaveBindMatrixToPose(pScene, "NewBindPose", nullptr, true);
-			FbxTools::ApplyBindPose(pScene, pNewBindPose);
-//			FixPrePostRotations(RootBone);
-//			FbxTools::DetachGeometry(pScene);
+			if (m_sExportRigMode == "unreal" || m_sExportRigMode == "metahuman") {
+				FbxTools::RemoveBindPoses(pScene);
+				FbxTools::FixClusterTranformLinks(pScene, RootBone);
 
-			QList<FbxNode*> nodeList;
-			FbxTools::GetAllMeshes(RootNode, nodeList);
-			foreach(FbxNode * pNode, nodeList) {
-				auto pMesh = pNode->GetMesh();
-				FbxAMatrix matrix = pNode->EvaluateGlobalTransform();
-				auto pVertexBuffer = pMesh->GetControlPoints();
-				FbxTools::BakePoseToVertexBuffer(pVertexBuffer, &matrix, pNewBindPose, pMesh);
+				FbxTools::AddIkNodes(pScene, RootBone, "foot_l", "foot_r", "hand_l", "hand_r");
 
-				pNode->SetPreRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
-				pNode->SetPostRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
-				pNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
-				pNode->LclRotation.Set(FbxDouble3(0, 0, 0));
-				pNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
+				FbxPose* pNewBindPose = FbxTools::SaveBindMatrixToPose(pScene, "NewBindPose", nullptr, true);
+				FbxTools::ApplyBindPose(pScene, pNewBindPose);
+//				FbxTools::DetachGeometry(pScene);
+
+				QList<FbxNode*> nodeList;
+				FbxTools::GetAllMeshes(RootNode, nodeList);
+				foreach(FbxNode * pNode, nodeList) {
+					QString debugName(pNode->GetName());
+					FbxMesh* pMesh = pNode->GetMesh();
+					FbxAMatrix matrix = pNode->EvaluateGlobalTransform();
+					FbxVector4* pVertexBuffer = pMesh->GetControlPoints();
+					if (pVertexBuffer == NULL) continue;
+					FbxTools::BakePoseToVertexBuffer(pVertexBuffer, &matrix, pNewBindPose, pMesh);
+
+					pNode->SetPreRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+					pNode->SetPostRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+					pNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
+					pNode->LclRotation.Set(FbxDouble3(0, 0, 0));
+					pNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
+				}
+
 			}
-			RootBone->PreRotation.Set(FbxVector4(0, 0, 0));
-			RootBone->PostRotation.Set(FbxVector4(0, 0, 0));
-			RootBone->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
-			RootBone->LclRotation.Set(FbxDouble3(0, 0, 0));
-			RootBone->LclTranslation.Set(FbxDouble3(0, 0, 0));
 
-			RootNode->PreRotation.Set(FbxVector4(0, 0, 0));
-			RootNode->PostRotation.Set(FbxVector4(0, 0, 0));
-			RootNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
-			RootNode->LclRotation.Set(FbxDouble3(0, 0, 0));
-			RootNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
 
 		}
 

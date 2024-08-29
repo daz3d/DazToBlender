@@ -738,9 +738,11 @@ def process_dtu(jsonPath, lowres_mode=None):
     _add_to_log("DEBUG: process_dtu(): done processing DTU: " + jsonPath)
     return jsonObj
 
-def import_fbx(fbxPath):
+def import_fbx(fbxPath, force_connect_bones=False):
     _add_to_log("DEBUG: import_fbx(): fbx file = " + fbxPath)
-    bpy.ops.import_scene.fbx(filepath=fbxPath, use_prepost_rot=1)
+    bpy.ops.import_scene.fbx(filepath=fbxPath,
+                             force_connect_children=force_connect_bones,
+                             use_prepost_rot=True)
 
 def delete_all_items():
 #    bpy.ops.object.mode_set(mode="OBJECT");
