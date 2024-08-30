@@ -649,7 +649,7 @@ def process_material(mat, lowres_mode=None):
     NodeArrange.toNodeArrange(data.node_tree.nodes)
     _add_to_log("DEBUG: process_dtu(): done processing material: " + matName)
 
-def process_dtu(jsonPath, lowres_mode=None):
+def load_dtu(jsonPath):
     _add_to_log("DEBUG: process_dtu(): json file = " + jsonPath)
     jsonObj = {}
     dtuVersion = -1
@@ -662,6 +662,25 @@ def process_dtu(jsonPath, lowres_mode=None):
         dtuVersion = jsonObj["DTU Version"]
         assetName = jsonObj["Asset Name"]
         materialsList = jsonObj["Materials"]
+    except:
+        _add_to_log("ERROR: process_dtu(): unable to parse DTU: " + jsonPath)
+        return None
+    return jsonObj
+
+
+def process_dtu(jsonPath, lowres_mode=None):
+    _add_to_log("DEBUG: process_dtu(): json file = " + jsonPath)
+    jsonObj = {}
+    dtuVersion = -1
+    assetName = ""
+    materialsList = []
+    with open(jsonPath, "r") as file:
+        jsonObj = json.load(file)
+    # parse DTU
+    try:
+        dtuVersion = jsonObj["DTU Version"]
+        assetName = jsonObj["Asset Name"]
+        # materialsList = jsonObj["Materials"]
     except:
         _add_to_log("ERROR: process_dtu(): unable to parse DTU: " + jsonPath)
         return
@@ -714,6 +733,57 @@ def process_dtu(jsonPath, lowres_mode=None):
             print("DEBUG: process_dtu(): renaming object: " + obj.name + " to " + studio_label)
             obj.name = studio_label
 
+#     # delete all nodes from materials so that we can rebuild them
+#     for mat in materialsList:
+#         matName = mat["Material Name"]
+#         if matName not in bpy.data.materials:
+#             continue
+#         data = bpy.data.materials[matName]
+#         nodes = data.node_tree.nodes
+#         for node in nodes:
+# #            _add_to_log("DEBUG: process_dtu(): removing node: " + node.name)
+#             nodes.remove(node)
+
+#     # find and process each DTU material node
+#     for mat in materialsList:
+#         try:
+#             process_material(mat, lowres_mode)
+#         except Exception as e:
+#             _add_to_log("ERROR: exception caught while processing material: " + mat["Material Name"] + ", " + str(e))
+#             if "moisture" not in mat["Material Name"].lower():
+# #                raise e
+#                 pass
+    apply_dtu_materials(jsonObj, lowres_mode)
+
+    _add_to_log("DEBUG: process_dtu(): done processing DTU: " + jsonPath)
+    return jsonObj
+
+def clear_all_materials():
+    for mat in bpy.data.materials:
+        nodes = mat.node_tree.nodes
+        for node in nodes:
+#            _add_to_log("DEBUG: process_dtu(): removing node: " + node.name)
+            nodes.remove(node)
+
+def force_mixamo_compatible_materials():
+    for mat in bpy.data.materials:
+        if mat.node_tree is None:
+            continue
+        nodes = mat.node_tree.nodes
+        if "Principled BSDF" in nodes:
+            bsdf_node = mat.node_tree.nodes["Principled BSDF"]
+            # loop through all inputs and unlink them except for Base Color, Normal, Alpha
+            for input in bsdf_node.inputs:
+                # skip base color
+                if input.name == "Base Color" or input.name == "Normal" or input.name == "Alpha":
+                    continue
+                if input.is_linked:
+                    for link in input.links:
+                        mat.node_tree.links.remove(link)
+
+def apply_dtu_materials(jsonObj, lowres_mode=None):
+    materialsList = jsonObj["Materials"]
+
     # delete all nodes from materials so that we can rebuild them
     for mat in materialsList:
         matName = mat["Material Name"]
@@ -734,9 +804,6 @@ def process_dtu(jsonPath, lowres_mode=None):
             if "moisture" not in mat["Material Name"].lower():
 #                raise e
                 pass
-
-    _add_to_log("DEBUG: process_dtu(): done processing DTU: " + jsonPath)
-    return jsonObj
 
 def import_fbx(fbxPath, force_connect_bones=False):
     _add_to_log("DEBUG: import_fbx(): fbx file = " + fbxPath)

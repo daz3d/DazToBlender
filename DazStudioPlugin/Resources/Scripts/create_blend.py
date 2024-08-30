@@ -122,8 +122,6 @@ def _main(argv):
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
     force_connect_bones = False
-    if export_rig_mode == "mixamo":
-        force_connect_bones = True
 
     if texture_atlas_size == 0:
         texture_atlas_size = TEXTURE_ATLAS_SIZE_DEFAULT
@@ -210,7 +208,6 @@ def _main(argv):
         print("DEBUG: packing images...")
         bpy.ops.file.pack_all()
 
-    add_leaf_bones = False
     if export_rig_mode == "unreal" or export_rig_mode == "metahuman":
         # apply all transformations on armature
         for obj in bpy.data.objects:
@@ -219,8 +216,10 @@ def _main(argv):
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
     if export_rig_mode == "mixamo":
-        add_leaf_bones = True
+        # modify blend file to be mixamo compatible for more convenient export to fbx
+        blender_tools.force_mixamo_compatible_materials()
 
     bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath, )
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
@@ -243,6 +242,10 @@ def _main(argv):
             _add_to_log("EXCEPTION: " + str(e))
 
     if generate_final_fbx:
+        add_leaf_bones = False
+        if export_rig_mode == "mixamo":
+            add_leaf_bones = True
+            # blender_tools.force_mixamo_compatible_materials()
         fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
         try:
             bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 

@@ -1096,10 +1096,10 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 					RootBone->SetName("root");
 					Attr->SetName("root");
 				}
-				else if (m_sExportRigMode == "mixamo") {
-					RootBone->SetName("Armature");
-					Attr->SetName("Armature");
-				}
+				//else if (m_sExportRigMode == "mixamo") {
+				//	RootBone->SetName("Armature");
+				//	Attr->SetName("Armature");
+				//}
 				break;
 			}
 		}
