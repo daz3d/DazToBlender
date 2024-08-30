@@ -516,11 +516,20 @@ def process_material(mat, lowres_mode=None):
         else:
             bsdf_inputs["Specular"].default_value = reflectivity_value
     elif (dual_lobe_specular_weight != 0.0):
-        bsdf_inputs["Specular"].default_value = dual_lobe_specular_weight
+        if bpy.app.version[0] >= 4:
+            bsdf_inputs["Specular IOR Level"].default_value = dual_lobe_specular_weight
+        else:
+            bsdf_inputs["Specular"].default_value = dual_lobe_specular_weight
     elif (glossy_weight != 0.0):
-        bsdf_inputs["Specular"].default_value = glossy_weight
+        if bpy.app.version[0] >= 4:
+            bsdf_inputs["Specular IOR Level"].default_value = glossy_weight
+        else:
+            bsdf_inputs["Specular"].default_value = glossy_weight
     else:
-        bsdf_inputs["Specular"].default_value = 0.0
+        if bpy.app.version[0] >= 4:
+            bsdf_inputs["Specular IOR Level"].default_value = 0.0
+        else:
+            bsdf_inputs["Specular"].default_value = 0.0
 
     if (roughnessMap != ""):
         if (not os.path.exists(roughnessMap)):
