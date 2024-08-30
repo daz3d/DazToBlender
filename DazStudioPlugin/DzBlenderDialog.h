@@ -58,6 +58,8 @@ public:
 	Q_INVOKABLE int getTextureAtlasSize() { return m_wAtlasSizeCombobox->itemData(m_wAtlasSizeCombobox->currentIndex()).toInt(); }
 	Q_INVOKABLE bool getUseGpuBaking() { return m_wEnableGpuBaking->isChecked(); }
 	Q_INVOKABLE bool getEnableEmbedTexturesInOutputFile() { return m_wEnableEmbedTexturesInOutputFile->isChecked(); }
+	Q_INVOKABLE bool getGenerateFbx() { return m_wGenerateFbxCheckBox->isChecked(); }
+	Q_INVOKABLE bool getGenerateGlb() { return m_wGenerateGlbCheckBox->isChecked(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -98,6 +100,9 @@ protected:
 
 	QCheckBox* m_wEnableGpuBaking;
 	QCheckBox* m_wEnableEmbedTexturesInOutputFile;
+
+	QCheckBox* m_wGenerateFbxCheckBox;
+	QCheckBox* m_wGenerateGlbCheckBox;
 
 	virtual void refreshAsset();
 

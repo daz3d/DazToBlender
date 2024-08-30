@@ -103,6 +103,8 @@ def _main(argv):
     export_rig_mode = ""
     enable_gpu_baking = False
     enable_embed_textures = False
+    generate_final_fbx = False
+    generate_final_glb = False
     try:
         with open(jsonPath, "r") as file:
             json_obj = json.load(file)
@@ -111,8 +113,11 @@ def _main(argv):
         texture_atlas_mode = json_obj["Texture Atlas Mode"]
         texture_atlas_size = json_obj["Texture Atlas Size"]
         export_rig_mode = json_obj["Export Rig Mode"]
-        enable_gpu_baking = json_obj["Enable GPU Baking"]
+        enable_gpu_baking = json_obj["Enable Gpu Baking"]
         enable_embed_textures = json_obj["Embed Textures"]
+        generate_final_fbx = json_obj["Generate Final Fbx"]
+        generate_final_glb = json_obj["Generate Final Glb"]
+        asset_type = json_obj["Asset Type"]
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
@@ -220,35 +225,31 @@ def _main(argv):
     bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath, )
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
 
-    output_final_glb = True
-    if output_final_glb:
+    if generate_final_glb:
         glb_output_file_path = blenderFilePath.replace(".blend", ".glb")
         try:
             bpy.ops.export_scene.gltf(filepath=glb_output_file_path, export_format="GLB", 
-                                      use_visible=True, 
+                                      use_visible=True,
+                                    #   use_renderable=True,
                                       use_selection=False, 
-                                      export_animations = False,
-                                    #   export_animation_mode="ACTIONS", 
-                                      export_bake_animation=False
-                                    #   export_anim_single_armature=False, 
-                                    #   export_reset_pose_bones=True, 
-                                    #   export_optimize_animation_keep_anim_armature=True
+                                      export_animations=True,
+                                      export_bake_animation=True,
+                                    #   export_normals=False,
+                                      export_morph=True
                                     )
             _add_to_log("DEBUG: save completed.")
         except Exception as e:
             _add_to_log("ERROR: unable to save Final GLB file: " + glb_output_file_path)
             _add_to_log("EXCEPTION: " + str(e))
 
-    output_final_fbx = False
-    if output_final_fbx:
+    if generate_final_fbx:
         fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
         try:
             bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
                                     add_leaf_bones = add_leaf_bones,
                                     path_mode = "COPY",
                                     embed_textures = enable_embed_textures,
-                                    use_visible = True,
-                                    use_custom_props = True,
+                                    use_visible = True
                                     )
             _add_to_log("DEBUG: save completed.")
         except Exception as e:

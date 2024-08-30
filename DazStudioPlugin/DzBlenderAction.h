@@ -17,7 +17,7 @@ class QProcess;
 class DzBlenderUtils
 {
 public:
-	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess);
+	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, float fTimeoutInSeconds=120);
 	static bool GenerateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
 	static bool PrepareAndRunBlenderProcessing(QString sDestinationFbx, QString sBlenderExecutablePath, QProcess* thisProcess, int nPythonExceptionExitCode);
 };
@@ -68,6 +68,9 @@ protected:
 	 int m_nTextureAtlasSize = 0;
 	 bool m_bEnableGpuBaking = false;
 	 bool m_bEmbedTexturesInOutputFile = false;
+
+	 bool m_bGenerateFinalFbx = false;
+	 bool m_bGenerateFinalGlb = false;
 
 
 	 friend class DzBlenderExporter;

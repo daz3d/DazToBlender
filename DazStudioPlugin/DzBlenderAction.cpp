@@ -39,12 +39,12 @@
 
 #include "dzbridge.h"
 
-int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess)
+int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, float fTimeoutInSeconds)
 {
 	// fork or spawn child process
 	QStringList args = sCommandlineArguments.split(";");
 
-	float fTimeoutInSeconds = 2 * 60;
+//	float fTimeoutInSeconds = 2 * 60;
 	float fMilliSecondsPerTick = 200;
 	int numTotalTicks = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
 	DzProgress* progress = new DzProgress("Running Blender Script", numTotalTicks, false, true);
@@ -168,7 +168,7 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 #endif
 	DzBlenderUtils::GenerateBlenderBatchFile(batchFilePath, sBlenderExecutablePath, sCommandArgs);
 
-	int nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess);
+	int nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, 240);
 #ifdef __APPLE__
 	if (nBlenderExitCode != 0 && nBlenderExitCode != 120)
 #else
@@ -289,7 +289,27 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 #endif
 	DzBlenderUtils::GenerateBlenderBatchFile(batchFilePath, pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 
-	bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+	//bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
+	bool result = false;
+	pBlenderAction->m_nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs, sIntermediatePath, &QProcess(this), 240);
+#ifdef __APPLE__
+	if (pBlenderAction->m_nBlenderExitCode != 0 && pBlenderAction->m_nBlenderExitCode != 120)
+#else
+	if (pBlenderAction->m_nBlenderExitCode != 0)
+#endif
+	{
+		if (pBlenderAction->m_nBlenderExitCode == pBlenderAction->m_nPythonExceptionExitCode) {
+			dzApp->log(QString("Daz To Blender: ERROR: Python error:.... %1").arg(pBlenderAction->m_nBlenderExitCode));
+		}
+		else {
+			dzApp->log(QString("Daz To Blender: ERROR: exit code = %1").arg(pBlenderAction->m_nBlenderExitCode));
+		}
+		result = false;
+	}
+	else {
+		result = true;
+	}
+
 
 	exportProgress.step(25);
 	//if (result) 
@@ -796,8 +816,10 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Texture Atlas Mode", m_sTextureAtlasMode);
 	writer.addMember("Texture Atlas Size", m_nTextureAtlasSize);
 	writer.addMember("Export Rig Mode", m_sExportRigMode);
-	writer.addMember("Enable GPU Baking", m_bEnableGpuBaking);
+	writer.addMember("Enable Gpu Baking", m_bEnableGpuBaking);
 	writer.addMember("Embed Textures", m_bEmbedTexturesInOutputFile);
+	writer.addMember("Generate Final Fbx", m_bGenerateFinalFbx);
+	writer.addMember("Generate Final Glb", m_bGenerateFinalGlb);
 
 //	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	if (true)
@@ -954,6 +976,8 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_nTextureAtlasSize = pBlenderDialog->getTextureAtlasSize();
 			m_bEnableGpuBaking = pBlenderDialog->getUseGpuBaking();
 			m_bEmbedTexturesInOutputFile = pBlenderDialog->getEnableEmbedTexturesInOutputFile();
+			m_bGenerateFinalFbx = pBlenderDialog->getGenerateFbx();
+			m_bGenerateFinalGlb = pBlenderDialog->getGenerateGlb();
 		}
 		else
 		{
@@ -964,6 +988,8 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_nTextureAtlasSize = 0;
 			m_bEnableGpuBaking = false;
 			m_bEmbedTexturesInOutputFile = false;
+			m_bGenerateFinalFbx = false;
+			m_bGenerateFinalGlb = false;
 		}
 	}
 	else

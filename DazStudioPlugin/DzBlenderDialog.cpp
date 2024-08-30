@@ -142,6 +142,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wTextureAtlasLayout->setSpacing(margin);
 	 m_wTextureAtlasLayout->setContentsMargins(margin, margin, margin, margin);
 
+	 m_wGenerateFbxCheckBox = new QCheckBox(tr("Generate FBX output"));
+	 wBlenderToolsLayout->addRow(m_wGenerateFbxCheckBox);
+	 m_wGenerateGlbCheckBox = new QCheckBox(tr("Generate GLB output"));
+	 wBlenderToolsLayout->addRow(m_wGenerateGlbCheckBox);
+
 	 m_wBakeTextureAtlasCombobox = new QComboBox();
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Texture Atlas Options..."), "--");
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Do not Bake Texture Atlas"), "--");
