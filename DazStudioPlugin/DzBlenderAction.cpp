@@ -748,14 +748,14 @@ void DzBlenderAction::executeAction()
 			DzExportMgr* ExportManager = dzApp->getExportMgr();
 			DzExporter* Exporter = ExportManager->findExporterByClassName("DzFbxExporter");
 			DzFileIOSettings ExportOptions;
-			ExportOptions.setBoolValue("doSelected", false);
-			ExportOptions.setBoolValue("doVisible", true);
-			ExportOptions.setBoolValue("doFigures", true);
-			ExportOptions.setBoolValue("doProps", true);
-			ExportOptions.setBoolValue("doAnims", true);
+			ExportOptions.setBoolValue("IncludeSelectedOnly", false);
+			ExportOptions.setBoolValue("IncludeVisibleOnly", true);
+			ExportOptions.setBoolValue("IncludeFigures", true);
+			ExportOptions.setBoolValue("IncludeProps", true);
+			ExportOptions.setBoolValue("IncludeAnimations", true);
 			ExportOptions.setIntValue("RunSilent", true);
-			ExportOptions.setBoolValue("doLights", false);
-			ExportOptions.setBoolValue("doCameras", false);
+			ExportOptions.setBoolValue("IncludeLights", false);
+			ExportOptions.setBoolValue("IncludeCameras", false);
 			setExportOptions(ExportOptions);
 			// NOTE: be careful to use m_sExportFbx and NOT m_sExportFilename since FBX and DTU base name may differ
 			QString sEnvironmentFbx = m_sDestinationPath + m_sExportFbx + ".fbx";
@@ -874,18 +874,22 @@ void DzBlenderAction::writeConfiguration()
 // Setup custom FBX export options
 void DzBlenderAction::setExportOptions(DzFileIOSettings& ExportOptions)
 {
-	ExportOptions.setBoolValue("doFps", true);
-	ExportOptions.setBoolValue("doLocks", false);
-	ExportOptions.setBoolValue("doLimits", false);
-	ExportOptions.setBoolValue("doBaseFigurePoseOnly", false);
-	ExportOptions.setBoolValue("doHelperScriptScripts", false);
-	ExportOptions.setBoolValue("doMentalRayMaterials", false);
+//	ExportOptions.setBoolValue("IncludeFaceGroupsAsPolygonSets", false);
+//	ExportOptions.setBoolValue("IncludeFaceGroupsAsPolygonGroups", false);
+
+	ExportOptions.setBoolValue("IncludeFPS", true);
+	ExportOptions.setBoolValue("IncludeRotationLocks", false);
+	ExportOptions.setBoolValue("IncludeRotationLimits", false);
+
+	ExportOptions.setBoolValue("BasePoseOnly", false);
+	ExportOptions.setBoolValue("GenerateMayaHelperScript", false);
+	ExportOptions.setBoolValue("MentalRayMaterials", false);
 
 	// Unable to use this option, since generated files are referenced only in FBX and unknown to DTU
-	ExportOptions.setBoolValue("doDiffuseOpacity", false);
+	ExportOptions.setBoolValue("MergeDiffuseOpacity", false);
 	// disable these options since we use Blender to generate a new FBX with embedded files
-	ExportOptions.setBoolValue("doEmbed", false);
-	ExportOptions.setBoolValue("doCopyTextures", false);
+	ExportOptions.setBoolValue("EmbedTextures", false);
+	ExportOptions.setBoolValue("CollectTextures", false);
 }
 
 QString DzBlenderAction::readGuiRootFolder()
