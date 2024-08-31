@@ -291,7 +291,8 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 
 	//bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 	bool result = false;
-	pBlenderAction->m_nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs, sIntermediatePath, &QProcess(this), 240);
+    QProcess *thisProcess = new QProcess(this);
+	pBlenderAction->m_nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, 240);
 #ifdef __APPLE__
 	if (pBlenderAction->m_nBlenderExitCode != 0 && pBlenderAction->m_nBlenderExitCode != 120)
 #else
@@ -309,6 +310,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	else {
 		result = true;
 	}
+    thisProcess->deleteLater();
 
 
 	exportProgress.step(25);
@@ -766,11 +768,12 @@ void DzBlenderAction::executeAction()
 			}
 
 			writeConfiguration();
-
+            QProcess* thisProcess = new QProcess(this);
 			// if not in DzExporterMode, then run the blender script manually
 			if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
-				DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, &QProcess(this), m_nPythonExceptionExitCode);
+				DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, thisProcess, m_nPythonExceptionExitCode);
 			}
+            thisProcess->deleteLater();
 
 			undoPreProcessScene();
 

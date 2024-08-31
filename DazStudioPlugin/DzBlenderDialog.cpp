@@ -653,7 +653,7 @@ void DzBlenderDialog::HandlePdfButton()
 {
 	QString sDazAppDir = dzApp->getHomePath().replace("\\", "/");
 	QString sPdfPath = sDazAppDir + "/docs/Plugins" + "/Daz to Blender/Daz to Blender.pdf";
-	QDesktopServices::openUrl(QUrl(sPdfPath));
+	QDesktopServices::openUrl(QUrl("file:///" + sPdfPath));
 }
 
 void DzBlenderDialog::HandleYoutubeButton()
