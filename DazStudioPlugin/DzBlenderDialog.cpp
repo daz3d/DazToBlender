@@ -679,7 +679,14 @@ void DzBlenderDialog::HandleSelectBlenderExecutablePathButton()
 			sBlenderExePath = settings->value("BlenderExecutablePath").toString();
 			directoryName = QFileInfo(sBlenderExePath).dir().path();
 		}
-	}
+        if (directoryName == "." || directoryName == "") {
+#ifdef WIN32
+            directoryName = "C:/Program Files/";
+#elif defined (__APPLE__)
+            directoryName = "/Applications/";
+#endif
+        }
+    }
 #ifdef WIN32
 	QString sExeFilter = tr("Executable Files (*.exe)");
 #elif defined(__APPLE__)
