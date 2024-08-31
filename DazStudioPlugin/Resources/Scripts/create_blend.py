@@ -221,7 +221,7 @@ def _main(argv):
         # modify blend file to be mixamo compatible for more convenient export to fbx
         blender_tools.force_mixamo_compatible_materials()
 
-    bpy.ops.wm.save_as_mainfile(filepath=blenderFilePath, )
+    bpy.ops.wm.save_mainfile(filepath=blenderFilePath)
     _add_to_log("DEBUG: main(): blend file saved: " + str(blenderFilePath))
 
     if generate_final_glb:

@@ -752,24 +752,28 @@ void DzBlenderAction::executeAction()
 			ExportOptions.setBoolValue("IncludeVisibleOnly", true);
 			ExportOptions.setBoolValue("IncludeFigures", true);
 			ExportOptions.setBoolValue("IncludeProps", true);
-			ExportOptions.setBoolValue("IncludeAnimations", true);
-			ExportOptions.setIntValue("RunSilent", true);
 			ExportOptions.setBoolValue("IncludeLights", false);
 			ExportOptions.setBoolValue("IncludeCameras", false);
+			ExportOptions.setBoolValue("IncludeAnimations", true);
+			ExportOptions.setIntValue("RunSilent", !m_bShowFbxOptions);
 			setExportOptions(ExportOptions);
 			// NOTE: be careful to use m_sExportFbx and NOT m_sExportFilename since FBX and DTU base name may differ
 			QString sEnvironmentFbx = m_sDestinationPath + m_sExportFbx + ".fbx";
-			Exporter->writeFile(sEnvironmentFbx, &ExportOptions);
+			DzError result = Exporter->writeFile(sEnvironmentFbx, &ExportOptions);
+			if (result != DZ_NO_ERROR) {
+				undoPreProcessScene();
+				return;
+			}
 
 			writeConfiguration();
-
-			// ?? potential crash because assumes single preprocessscene event
-			undoPreProcessScene();
 
 			// if not in DzExporterMode, then run the blender script manually
 			if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
 				DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, &QProcess(this), m_nPythonExceptionExitCode);
 			}
+
+			undoPreProcessScene();
+
 		}
 		else {
 			exportHD(exportProgress);
@@ -890,6 +894,14 @@ void DzBlenderAction::setExportOptions(DzFileIOSettings& ExportOptions)
 	// disable these options since we use Blender to generate a new FBX with embedded files
 	ExportOptions.setBoolValue("EmbedTextures", false);
 	ExportOptions.setBoolValue("CollectTextures", false);
+
+	// Custom Properties
+	ExportOptions.setBoolValue("IncludeNodeNamesLabels", true);
+	ExportOptions.setBoolValue("IncludeNodePresentation", true);
+	ExportOptions.setBoolValue("IncludeNodeSelectionMap", true);
+	ExportOptions.setBoolValue("IncludeSceneIDs", true);
+	ExportOptions.setBoolValue("IncludeFollowTargets", true);
+
 }
 
 QString DzBlenderAction::readGuiRootFolder()
