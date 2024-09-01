@@ -768,12 +768,12 @@ void DzBlenderAction::executeAction()
 			}
 
 			writeConfiguration();
-            QProcess* thisProcess = new QProcess(this);
-			// if not in DzExporterMode, then run the blender script manually
-			if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
-				DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, thisProcess, m_nPythonExceptionExitCode);
-			}
-            thisProcess->deleteLater();
+   //         QProcess* thisProcess = new QProcess(this);
+			//// if not in DzExporterMode, then run the blender script manually
+			//if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
+			//	DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, thisProcess, m_nPythonExceptionExitCode);
+			//}
+   //         thisProcess->deleteLater();
 
 			undoPreProcessScene();
 
