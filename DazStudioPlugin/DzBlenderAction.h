@@ -51,6 +51,8 @@ protected:
 	 Q_INVOKABLE QString createBlenderFiles(bool replace = true);
 
 	 Q_INVOKABLE bool createUI();
+
+	 // DB 2024-09-01: Refactored convenience function accessible from Daz Script, C++ users should use DzBlenderUtils::ExecuteBlenderScripts() directly
 	 Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
 
 	 virtual bool preProcessScene(DzNode* parentNode) override;

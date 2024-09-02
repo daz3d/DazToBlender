@@ -689,7 +689,7 @@ def process_dtu(jsonPath, lowres_mode=None):
     try:
         dtuVersion = jsonObj["DTU Version"]
         assetName = jsonObj["Asset Name"]
-        # materialsList = jsonObj["Materials"]
+        materialsList = jsonObj["Materials"]
     except:
         _add_to_log("ERROR: process_dtu(): unable to parse DTU: " + jsonPath)
         return
@@ -710,8 +710,8 @@ def process_dtu(jsonPath, lowres_mode=None):
 
     # process objects, mapping to DTU data
     for obj in bpy.data.objects:
-        if obj.type != "MESH":
-            continue
+        # if obj.type != "MESH":
+        #     continue
         obj_data = None
         studio_label = None
         studio_name = None
@@ -722,7 +722,7 @@ def process_dtu(jsonPath, lowres_mode=None):
             studio_name = obj["StudioNodeName"]
             has_custom_properties = True
         except:
-            print("ERROR: process_dtu(): unable to retrieve StudioNodeLabel/StudioNodeName Custom Proeprties for object: " + obj.name)
+            print("ERROR: process_dtu(): unable to retrieve StudioNodeLabel/StudioNodeName Custom Properties for object: " + obj.name)
             studio_name = obj.name.replace(".Shape", "")            
         if studio_name in obj_data_dict:
             obj_data = obj_data_dict[studio_name]
@@ -741,27 +741,11 @@ def process_dtu(jsonPath, lowres_mode=None):
                 continue
             print("DEBUG: process_dtu(): renaming object: " + obj.name + " to " + studio_label)
             obj.name = studio_label
+            if obj.type == "MESH":
+                obj.name = studio_label + ".Shape"
+            elif obj.type == "EMPTY":
+                obj.name = studio_label + ".Node"
 
-#     # delete all nodes from materials so that we can rebuild them
-#     for mat in materialsList:
-#         matName = mat["Material Name"]
-#         if matName not in bpy.data.materials:
-#             continue
-#         data = bpy.data.materials[matName]
-#         nodes = data.node_tree.nodes
-#         for node in nodes:
-# #            _add_to_log("DEBUG: process_dtu(): removing node: " + node.name)
-#             nodes.remove(node)
-
-#     # find and process each DTU material node
-#     for mat in materialsList:
-#         try:
-#             process_material(mat, lowres_mode)
-#         except Exception as e:
-#             _add_to_log("ERROR: exception caught while processing material: " + mat["Material Name"] + ", " + str(e))
-#             if "moisture" not in mat["Material Name"].lower():
-# #                raise e
-#                 pass
     apply_dtu_materials(jsonObj, lowres_mode)
 
     _add_to_log("DEBUG: process_dtu(): done processing DTU: " + jsonPath)

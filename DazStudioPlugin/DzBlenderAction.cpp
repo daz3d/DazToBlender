@@ -70,7 +70,7 @@ Do you want to Abort the operation now?");
 					QMessageBox::Ignore,
 					QMessageBox::Abort);
 				if (result == QMessageBox::Ignore) {
-					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
+					int snoozeTime = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
 					timeoutTicks += snoozeTime;
 				}
 				else {
@@ -189,6 +189,7 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
+	bool bDefaultToEnvironment = false;
 	if (dzScene->getNumSelectedNodes() != 1)
 	{
 		DzNodeList rootNodes = DZ_BRIDGE_NAMESPACE::DzBridgeAction::BuildRootNodeList();
@@ -198,17 +199,12 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		}
 		else if (rootNodes.length() > 1)
 		{
-			QMessageBox::critical(0, tr("Error: No Selection"),
-					tr("Please select one Character or Prop in the scene to export."), QMessageBox::Abort);
-			return DZ_OPERATION_FAILED_ERROR;
+			// Switch to default Environment mode
+			DzNode* pSelection = DZ_BRIDGE_NAMESPACE::DzBridgeAction::FindBestRootNode(rootNodes);
+			dzScene->setPrimarySelection(pSelection);
+			bDefaultToEnvironment = true;
 		}
 	}
-
-	//if (dzScene->getPrimarySelection() == NULL)
-	//{
-	//	QMessageBox::critical(0, tr("Blender Exporter: No Selection"), tr("Please select an object in the scene to export."), QMessageBox::Abort);
-	//	return DZ_OPERATION_FAILED_ERROR;
-	//}
 
 	QString sBlenderOutputPath = QFileInfo(filename).dir().path().replace("\\", "/");
 
@@ -238,6 +234,10 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	pDialog->requireBlenderExecutableWidget(true);
 	pDialog->showBlenderToolsOptions(true);
 	pDialog->setOutputBlendFilepath(filename);
+	if (bDefaultToEnvironment) {
+		int nEnvIndex = pDialog->getAssetTypeCombo()->findText("Environment");
+		pDialog->getAssetTypeCombo()->setCurrentIndex(nEnvIndex);
+	}
 	pBlenderAction->executeAction();
 //	bool bUseBlenderTools = pDialog->getUseBlenderToolsCheckbox();
 	pDialog->showBlenderToolsOptions(false);
@@ -312,20 +312,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	}
     thisProcess->deleteLater();
 
-
 	exportProgress.step(25);
-	//if (result) 
-	//{
-	//	bool replace = true;
-	//	QString sBlendIntermediateFile = QString(pBlenderAction->m_sDestinationFBX).replace(".fbx", ".blend", Qt::CaseInsensitive);
-	//	QFile srcFile(sBlendIntermediateFile);
-	//	bool copy_result = DZ_BRIDGE_NAMESPACE::DzBridgeAction::copyFile(&srcFile, &QString(filename), replace);
-	//	srcFile.close();
-	//	if (copy_result == false) {
-	//		QMessageBox::critical(0, tr("Blender Exporter"), 
-	//			tr("Unable to copy Blend file to destination."), QMessageBox::Abort);
-	//	}
-	//}
 
 	if (result)
 	{
@@ -335,13 +322,6 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 
 #ifdef WIN32
 		ShellExecuteA(NULL, "open", sBlenderOutputPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
-		//// The above line does the equivalent as following lines, but has advantage of only opening 1 explorer window
-		//// with multiple clicks.
-		//
-		//	QStringList args;
-		//	args << "/select," << QDir::toNativeSeparators(sIntermediateFolderPath);
-		//	QProcess::startDetached("explorer", args);
-		//
 #elif defined(__APPLE__)
 		QStringList args;
 		args << "-e";
@@ -654,21 +634,43 @@ void DzBlenderAction::executeAction()
 	// Create and show the dialog. If the user cancels, exit early,
 	// otherwise continue on and do the thing that required modal
 	// input from the user.
-	if (dzScene->getNumSelectedNodes() != 1)
+	bool bDefaultToEnvironment = false;
+	if (dzScene->getNumSelectedNodes() > 1)
+	{
+		DzNodeList rootNodes;
+		QObjectList objectList = dzScene->getSelectedNodeList();
+		foreach(auto el, objectList) {
+			DzNode* pNode = qobject_cast<DzNode*>(el);
+			if (pNode) {
+				rootNodes.append(pNode);
+			}
+		}
+		dzScene->selectAllNodes(false);
+		// Sanity Check
+		if (rootNodes.length() == 0) {
+			DzNode* pSelection = qobject_cast<DzNode*>(objectList[0]);
+			pSelection->select(true);
+			dzScene->setPrimarySelection(pSelection);
+		}
+		else {
+			DzNode* pSelection = FindBestRootNode(rootNodes);
+			pSelection->select(true);
+			dzScene->setPrimarySelection(pSelection);
+		}
+	}
+	else if (dzScene->getNumSelectedNodes() == 0)
 	{
 		DzNodeList rootNodes = BuildRootNodeList();
 		if (rootNodes.length() == 1)
 		{
 			dzScene->setPrimarySelection(rootNodes[0]);
 		}
-		//else if (rootNodes.length() > 1)
-		//{
-		//	if (m_nNonInteractiveMode == 0)
-		//	{
-		//		QMessageBox::warning(0, tr("Error"),
-		//			tr("Please select one Character or Prop to send."), QMessageBox::Ok);
-		//	}
-		//}
+		else if (rootNodes.length() > 1)
+		{
+			DzNode* pSelection = FindBestRootNode(rootNodes);
+			dzScene->setPrimarySelection(pSelection);
+			bDefaultToEnvironment = true;
+		}
 	}
 
 	// Create the dialog
@@ -715,6 +717,12 @@ void DzBlenderAction::executeAction()
 
 	}
 
+	if (bDefaultToEnvironment) {
+		int nEnvIndex = m_bridgeDialog->getAssetTypeCombo()->findText("Environment");
+		m_bridgeDialog->getAssetTypeCombo()->setCurrentIndex(nEnvIndex);
+	}
+
+
 	// If the Accept button was pressed, start the export
 	int dlgResult = -1;
 	if ( isInteractiveMode() )
@@ -738,13 +746,18 @@ void DzBlenderAction::executeAction()
 		exportProgress->step();
 
 		if (m_sAssetType == "Environment") {
+			// Sanity Check if zero nodes
+			if (dzScene->getNumNodes() == 0) {
+				dzApp->log("DazToBlender: CRITICAL ERROR: executeAction() Environment Export with zero nodes. Aborting.");
+				return;
+			}
+
 			QDir().mkdir(m_sDestinationPath);
-			m_pSelectedNode = dzScene->getPrimarySelection();
 			m_bUseBlenderTools = true;
 
-			auto objectList = dzScene->getNodeList();
-			foreach(auto el, objectList) {
-				DzNode* pNode = qobject_cast<DzNode*>(el);
+			DzNodeList rootNodeList = BuildRootNodeList();
+			m_pSelectedNode = rootNodeList[0];
+			foreach(DzNode* pNode, rootNodeList) {
 				preProcessScene(pNode);
 			}
 			DzExportMgr* ExportManager = dzApp->getExportMgr();

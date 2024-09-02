@@ -340,37 +340,14 @@ void DzBlenderDialog::saveSettings()
 
 void DzBlenderDialog::resetToDefaults()
 {
-	m_bDontSaveSettings = true;
 	DzBridgeDialog::resetToDefaults();
+
+	m_bDontSaveSettings = true;
 
 //	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
 	m_wIntermediateFolderEdit->setText(DefaultPath);
 
-	DzNode* Selection = dzScene->getPrimarySelection();
-#ifdef __LEGACY_PATHS__
-	if (Selection != nullptr)
-		assetNameEdit->setText(Selection->getLabel());
-#else
-	if (dzScene->getFilename().length() > 0)
-	{
-		QFileInfo fileInfo = QFileInfo(dzScene->getFilename());
-		assetNameEdit->setText(fileInfo.baseName().remove(QRegExp("[^A-Za-z0-9_]")));
-	}
-	else if (dzScene->getPrimarySelection())
-	{
-		assetNameEdit->setText(Selection->getLabel().remove(QRegExp("[^A-Za-z0-9_]")));
-	}
-#endif
-
-	if (qobject_cast<DzSkeleton*>(Selection))
-	{
-		assetTypeCombo->setCurrentIndex(0);
-	}
-	else
-	{
-		assetTypeCombo->setCurrentIndex(1);
-	}
 	m_bDontSaveSettings = false;
 }
 
@@ -637,13 +614,20 @@ void DzBlenderDialog::refreshAsset()
 {
 	DzBridgeDialog::refreshAsset();
 
-#if __LEGACY_PATHS__
-	DzNode* Selection = dzScene->getPrimarySelection();
-	if (Selection != nullptr)
+	DzNode* pSelection = dzScene->getPrimarySelection();
+	if (pSelection)
 	{
-		assetNameEdit->setText(Selection->getLabel());
-	}
+#if __LEGACY_PATHS__
+		assetNameEdit->setText(pSelection->getLabel());
 #endif
+
+		if (pSelection->inherits("DzGroupNode") || 
+			pSelection->inherits("DzCamera")) {
+			int nEnvironmentIndex = assetTypeCombo->findText("Environment");
+			assetTypeCombo->setCurrentIndex(nEnvironmentIndex);
+		}
+
+	}
 
 }
 

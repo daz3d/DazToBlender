@@ -63,13 +63,15 @@ public:
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
+	virtual void refreshAsset() override;
 
 protected slots:
 	void HandleSelectIntermediateFolderButton();
-	void HandleAssetTypeComboChange(int state);
-	void HandleTargetPluginInstallerButton();
+	void HandleAssetTypeComboChange(int state) override;
+	void HandleTargetPluginInstallerButton() override;
 	virtual void HandleDisabledChooseSubdivisionsButton();
-	virtual void HandleOpenIntermediateFolderButton(QString sFolderPath="");
+	virtual void HandleOpenIntermediateFolderButton(QString sFolderPath="") override;
+
 	void HandlePdfButton() override;
 	void HandleYoutubeButton() override;
 	void HandleSupportButton() override;
@@ -103,8 +105,6 @@ protected:
 
 	QCheckBox* m_wGenerateFbxCheckBox;
 	QCheckBox* m_wGenerateGlbCheckBox;
-
-	virtual void refreshAsset();
 
 	bool m_bBlenderRequired = false;
 
