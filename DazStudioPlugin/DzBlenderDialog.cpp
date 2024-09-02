@@ -94,6 +94,7 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 //	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
 	 item = model->findItems("Pose").first();
 	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
+	 
 
 	 // Connect new asset type handler
 	 connect(assetTypeCombo, SIGNAL(activated(int)), this, SLOT(HandleAssetTypeComboChange(int)));
@@ -142,10 +143,23 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wTextureAtlasLayout->setSpacing(margin);
 	 m_wTextureAtlasLayout->setContentsMargins(margin, margin, margin, margin);
 
-	 m_wGenerateFbxCheckBox = new QCheckBox(tr("Generate FBX output"));
+	 m_wExportRigCombobox = new QComboBox();
+	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");
+	 m_wExportRigCombobox->addItem(tr("Unmodified Daz Rig"), "--");
+	 m_wExportRigCombobox->addItem(tr("Metahuman Rig"), "metahuman");
+	 m_wExportRigCombobox->addItem(tr("Unreal Mannequin Rig"), "unreal");
+	 m_wExportRigCombobox->addItem(tr("Unity Humanoid Rig"), "unity");
+//	 m_wExportRigCombobox->addItem(tr("Wonder Dynamics Rig"), "wonder_dynamics");
+	 m_wExportRigCombobox->addItem(tr("Mixamo Rig"), "mixamo");
+	 wBlenderToolsLayout->addRow(m_wExportRigCombobox);
+
+	 m_wGenerateFbxCheckBox = new QCheckBox(tr("Generate FBX file"));
 	 wBlenderToolsLayout->addRow(m_wGenerateFbxCheckBox);
-	 m_wGenerateGlbCheckBox = new QCheckBox(tr("Generate GLB output"));
+	 m_wGenerateGlbCheckBox = new QCheckBox(tr("Generate GLB file"));
 	 wBlenderToolsLayout->addRow(m_wGenerateGlbCheckBox);
+
+	 m_wEnableEmbedTexturesInOutputFile = new QCheckBox(tr("Embed Textures in Blend File"));
+	 wBlenderToolsLayout->addRow(m_wEnableEmbedTexturesInOutputFile);
 
 	 m_wBakeTextureAtlasCombobox = new QComboBox();
 	 m_wBakeTextureAtlasCombobox->addItem(tr("Texture Atlas Options..."), "--");
@@ -162,23 +176,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wTextureAtlasLayout->addWidget(m_wAtlasSizeCombobox);
 	 wBlenderToolsLayout->addRow(m_wTextureAtlasLayout);
 
-	 m_wEnableGpuBaking = new QCheckBox(tr("Enable GPU Baking"));
+	 m_wEnableGpuBaking = new QCheckBox(tr("Enable GPU for Texture Atlas Baking"));
 	 wBlenderToolsLayout->addRow(m_wEnableGpuBaking);
 
-	 m_wEnableEmbedTexturesInOutputFile = new QCheckBox(tr("Embed Textures in Blend File"));
-	 wBlenderToolsLayout->addRow(m_wEnableEmbedTexturesInOutputFile);
-
-	 m_wExportRigCombobox = new QComboBox();
-	 m_wExportRigCombobox->addItem(tr("Rig Conversion Options..."), "--");
-	 m_wExportRigCombobox->addItem(tr("Export Unmodified Daz Rig"), "--");
-	 m_wExportRigCombobox->addItem(tr("Metahuman Rig"), "metahuman");
-	 m_wExportRigCombobox->addItem(tr("Unreal Mannequin Rig"), "unreal");
-	 m_wExportRigCombobox->addItem(tr("Unity Humanoid Rig"), "unity");
-//	 m_wExportRigCombobox->addItem(tr("Wonder Dynamics Rig"), "wonder_dynamics");
-	 m_wExportRigCombobox->addItem(tr("Mixamo Rig"), "mixamo");
-	 wBlenderToolsLayout->addRow(m_wExportRigCombobox);
-
-	 mainLayout->insertRow(1, "", m_wBlenderToolsGroupbox);
+//	 mainLayout->insertRow(1, "", m_wBlenderToolsGroupbox);
+	 mainLayout->addRow("", m_wBlenderToolsGroupbox);
 	 m_wBlenderToolsGroupbox->setVisible(false);
 
 	 // Intermediate Folder
