@@ -215,13 +215,7 @@ def _main(argv):
             if obj.type == 'ARMATURE':
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        for obj in bpy.data.objects:
-            bpy.ops.object.select_all(action='DESELECT')
-            if obj.type == 'MESH':
-                obj.select_set(True)
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)       
+                bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
 
     if export_rig_mode == "mixamo":
         # modify blend file to be mixamo compatible for more convenient export to fbx
