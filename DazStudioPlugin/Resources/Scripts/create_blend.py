@@ -216,6 +216,12 @@ def _main(argv):
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        for obj in bpy.data.objects:
+            bpy.ops.object.select_all(action='DESELECT')
+            if obj.type == 'MESH':
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)       
 
     if export_rig_mode == "mixamo":
         # modify blend file to be mixamo compatible for more convenient export to fbx
@@ -243,16 +249,20 @@ def _main(argv):
 
     if generate_final_fbx:
         add_leaf_bones = False
+        smooth_type = "OFF"
         if export_rig_mode == "mixamo":
             add_leaf_bones = True
             # blender_tools.force_mixamo_compatible_materials()
+        if export_rig_mode == "unreal" or export_rig_mode == "metahuman":
+            smooth_type = True
         fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
         try:
             bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
                                     add_leaf_bones = add_leaf_bones,
                                     path_mode = "COPY",
                                     embed_textures = enable_embed_textures,
-                                    use_visible = True
+                                    use_visible = True,
+                                    mesh_smooth_type = smooth_type
                                     )
             _add_to_log("DEBUG: save completed.")
         except Exception as e:
