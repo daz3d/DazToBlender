@@ -254,7 +254,7 @@ def _main(argv):
             add_leaf_bones = True
             # blender_tools.force_mixamo_compatible_materials()
         if export_rig_mode == "unreal" or export_rig_mode == "metahuman":
-            smooth_type = True
+            smooth_type = "FACE"
         fbx_output_file_path = blenderFilePath.replace(".blend", ".fbx")
         try:
             bpy.ops.export_scene.fbx(filepath=fbx_output_file_path, 
