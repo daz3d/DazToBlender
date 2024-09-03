@@ -455,21 +455,28 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 {
 	DzProgress* blenderProgress = new DzProgress(tr("PreProcessing Scene"), 100, false, true);
 
-	if (m_sExportRigMode != "" && m_sExportRigMode != "--")
+	if (parentNode && m_sExportRigMode != "" && m_sExportRigMode != "--")
 	{
+		QString sGeneration = parentNode->getName();
+		bool bIsG9 = (sGeneration == "Genesis9");
+
 		QString sBoneConverter = "bone_converter_aArgs.dsa";
 		QString sUnrealMannyRigFile = "g9_to_unreal_manny.json";
+		QString sG8UnrealRigFile = "g8_to_unreal.json";
 		QString sMetahumanRigFile = "g9_to_metahuman.json";
+		QString sG8MetahumanRigFile = "g8_to_metahuman.json";
 		QString sUnityRigFile = "g9_to_unity.json";
+		QString sG8UnityRigFile = "g8_to_unity.json";
 		QString sMixamoRigFile = "g9_to_mixamo.json";
+		QString sG8MixamoRigFile = "g8_to_mixamo.json";
 
 		blenderProgress->setInfo(tr("Preparing Rig Converter files..."));
 		QStringList aScriptFilelist = (QStringList() <<
 			sBoneConverter <<
-			sUnrealMannyRigFile <<
-			sMetahumanRigFile <<
+			sUnrealMannyRigFile << sG8UnrealRigFile <<
+			sMetahumanRigFile << sG8MetahumanRigFile <<
 			sUnityRigFile <<
-			sMixamoRigFile
+			sMixamoRigFile << sG8MixamoRigFile
 			);
 		// copy 
 		foreach(auto sScriptFilename, aScriptFilelist)
@@ -491,16 +498,35 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 		// Compile arguments
 		QVariantList aArgs;
 		if (m_sExportRigMode == "metahuman") {
-			aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMetahumanRigFile));
+			if (bIsG9) {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMetahumanRigFile));
+			} else {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sG8MetahumanRigFile));
+			}
 		}
 		else if (m_sExportRigMode == "unreal") {
-			aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnrealMannyRigFile));
+			if (bIsG9) {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnrealMannyRigFile));
+			}
+			else {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sG8UnrealRigFile));
+			}
 		}
 		else if (m_sExportRigMode == "unity") {
-			aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnityRigFile));
+			if (bIsG9) {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sUnityRigFile));
+			}
+			else {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sG8UnityRigFile));
+			}
 		}
 		else if (m_sExportRigMode == "mixamo") {
-			aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMixamoRigFile));
+			if (bIsG9) {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sMixamoRigFile));
+			}
+			else {
+				aArgs.append(QVariant(dzApp->getTempPath() + "/" + sG8MixamoRigFile));
+			}
 		}
 		else {
 			// UNHANDLED ABORT

@@ -9,6 +9,9 @@ Requirements:
     - Python 3+
     - Blender 3.6+
 
+Version: 1.26
+Date: 2024-09-02
+
 """
 from pathlib import Path
 script_dir = str(Path( __file__ ).parent.absolute())
@@ -837,3 +840,93 @@ def center_all_viewports():
                     override = {'area': area, 'region': region}
                     bpy.ops.view3d.view_all(override, center=False)
 
+
+# insert new bone after parent bone
+def insert_bone(arm, parent_name, new_bone_name):
+    new_bone = None
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action='DESELECT')
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.armature.select_all(action='DESELECT')
+    parent_bone = arm.data.edit_bones.get(parent_name)
+    if parent_bone is not None:
+        new_bone = arm.data.edit_bones.new(name=new_bone_name)
+        if new_bone is not None:
+            new_bone.head = parent_bone.head
+            new_bone.tail = parent_bone.tail
+            new_bone.roll = parent_bone.roll
+            new_bone.use_connect = False
+            # move all children from parent to new bone
+            for child in parent_bone.children:
+                child.parent = new_bone
+            new_bone.parent = parent_bone
+        else:
+            _add_to_log("ERROR: insert_bone(): unable to create new bone: " + new_bone_name)
+    else:
+        _add_to_log("ERROR: insert_bone(): parent bone not found: " + parent_name)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return new_bone
+
+def remove_from_inline(arm, bone_name):
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action='DESELECT')
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.armature.select_all(action='DESELECT')
+    bone_to_remove = arm.data.edit_bones.get(bone_name)
+    if bone_to_remove is None:
+        _add_to_log("ERROR: remove_from_inline(): bone not found: " + bone_name)
+        return
+    parent_bone = bone_to_remove.parent
+    if parent_bone is not None:
+        # move all children from bone_to_remove to parent_bone
+        for child in bone_to_remove.children:
+            child.parent = parent_bone
+    else:
+        _add_to_log("ERROR: remove_from_inline(): parent bone not found: " + bone_name)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    return
+
+# add missing Unreal Bones to unreal rig
+def fix_unreal_rig():
+    arm = None
+    for obj in bpy.data.objects:
+        if obj.type == 'ARMATURE':
+            arm = obj
+            break
+    if arm is None:
+        return
+
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action='DESELECT')
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.armature.select_all(action='DESELECT')
+
+    # duplicate spin_03
+    spine_04 = insert_bone(arm, "spine_03", "spine_04")
+
+    # # reparent pectorals to spine_05
+    # spine_05 = arm.data.edit_bones.get("spine_05")
+    # if spine_05 is not None:
+    #     pec_l = arm.data.edit_bones.get("clavicle_pec_l")
+    #     if pec_l is not None:
+    #         pec_l.parent = spine_05
+    #     pec_r = arm.data.edit_bones.get("clavicle_pec_r")
+    #     if pec_r is not None:
+    #         pec_r.parent = spine_05
+
+    # remove twist bones from inline
+    remove_from_inline(arm, "thigh_twist_01_l")
+    remove_from_inline(arm, "thigh_twist_01_r")
+    remove_from_inline(arm, "upperarm_twist_01_l")
+    remove_from_inline(arm, "upperarm_twist_01_r")
+    remove_from_inline(arm, "lowerarm_twist_01_l")
+    remove_from_inline(arm, "lowerarm_twist_01_r")
+
+    print("DEBUG: fix_unreal_rig() done.")
+    return

@@ -13,5 +13,9 @@
         <file alias="g9_to_unreal_manny.json">Scripts/g9_to_unreal_manny.json</file>
         <file alias="g9_to_unity.json">Scripts/g9_to_unity.json</file>
         <file alias="g9_to_mixamo.json">Scripts/g9_to_mixamo.json</file>
+        <file alias="g8_to_metahuman.json">Scripts/g8_to_metahuman.json</file>
+        <file alias="g8_to_unreal.json">Scripts/g8_to_unreal.json</file>
+        <file alias="g8_to_mixamo.json">Scripts/g8_to_mixamo.json</file>
+        <file alias="g8_to_unity.json">Scripts/g8_to_unity.json</file>
     </qresource>
 </RCC>

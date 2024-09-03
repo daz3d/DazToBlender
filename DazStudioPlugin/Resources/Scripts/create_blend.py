@@ -10,6 +10,9 @@ EXAMPLE:
 
     blender.exe --background --python create_blend.py "C:/Users/username/Documents/DAZ 3D/DazToBlender/Export/Genesis8Female.fbx"
 
+Version: 1.26
+Date: 2024-09-02
+
 """
 
 TEXTURE_ATLAS_SIZE_DEFAULT = 1024
@@ -216,6 +219,7 @@ def _main(argv):
                 obj.select_set(True)
                 bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+        blender_tools.fix_unreal_rig()
 
     if export_rig_mode == "mixamo":
         # modify blend file to be mixamo compatible for more convenient export to fbx

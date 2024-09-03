@@ -77,6 +77,6 @@
     "l_metatarsal": "metatarsal_l",
     "l_thightwist1": "thigh_twist_01_l",
     "l_thightwist2": "thigh_twist_02_l",
-    "l_pectoral": "clavicle_pec_l",
-    "r_pectoral": "clavicle_pec_r"
+    "l_pectoral": "pectoral_l",
+    "r_pectoral": "pectoral_r"
 }
