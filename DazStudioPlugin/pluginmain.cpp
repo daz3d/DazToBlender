@@ -28,7 +28,7 @@ Documentation and source code are available on <a href = \"https://github.com/da
 DZ_PLUGIN_CLASS_GUID(DzBlenderAction, 8bbeb9ab-1108-4364-acd6-82569ccc4f13);
 NEW_PLUGIN_CUSTOM_CLASS_GUID(DzBlenderDialog, 692e00cb-5650-4b69-ae08-0201b8f75390);
 
-#ifdef UNITTEST_DZBRIDGE
+#if defined(UNITTEST_DZBRIDGE) && defined(WIN32)
 
 #include "UnitTest_DzBlenderAction.h"
 #include "UnitTest_DzBlenderDialog.h"
