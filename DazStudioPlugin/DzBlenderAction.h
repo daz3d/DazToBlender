@@ -62,7 +62,7 @@ protected:
 	 int m_nBlenderExitCode = 0;
 	 QString m_sBlenderExecutablePath = "";
 
-	 bool m_bUseBlenderTools = false;
+	 bool m_bUseLegacyAddon = false;
 	 QString m_sOutputBlendFilepath = "";
 	 QString m_sTextureAtlasMode = "";
 	 QString m_sExportRigMode = "";
@@ -73,6 +73,8 @@ protected:
 
 	 bool m_bGenerateFinalFbx = false;
 	 bool m_bGenerateFinalGlb = false;
+	 bool m_bGenerateFinalUsd = false;
+	 bool m_bUseMaterialX = false;
 
 
 	 friend class DzBlenderExporter;

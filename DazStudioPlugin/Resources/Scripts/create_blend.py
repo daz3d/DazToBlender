@@ -48,10 +48,10 @@ except:
 try:
     import DTB
     from DTB import *
-    g_daz_addon_loaded = True
+    G_DAZ_ADDON_LOADED = True
 except:
     print("DEBUG: DazToBlender addon not detected, continuing in fallback mode.")
-    g_daz_addon_loaded = False
+    G_DAZ_ADDON_LOADED = False
 
 
 def _add_to_log(message):
@@ -99,7 +99,8 @@ def _main(argv):
     else:
         jsonPath = fbxPath.replace(".fbx", ".dtu")
 
-    use_blender_tools = False
+    use_blender_tools = True
+    use_legacy_addon = False
     output_blend_filepath = ""
     texture_atlas_mode = ""
     texture_atlas_size = 0
@@ -108,19 +109,24 @@ def _main(argv):
     enable_embed_textures = False
     generate_final_fbx = False
     generate_final_glb = False
+    generate_final_usd = False
+    use_material_x = False
     try:
         with open(jsonPath, "r") as file:
             json_obj = json.load(file)
-        use_blender_tools = json_obj["Use Blender Tools"]
+        # use_blender_tools = json_obj["Use Blender Tools"]
+        asset_type = json_obj["Asset Type"]
         output_blend_filepath = json_obj["Output Blend Filepath"]
+        enable_embed_textures = json_obj["Embed Textures"]
+        generate_final_fbx = json_obj["Generate Final Fbx"]
+        generate_final_glb = json_obj["Generate Final Glb"]
+        generate_final_usd = json_obj["Generate Final Usd"]
+        use_material_x = json_obj["Use MaterialX"]
+        use_legacy_addon = json_obj["Use Legacy Addon"]
         texture_atlas_mode = json_obj["Texture Atlas Mode"]
         texture_atlas_size = json_obj["Texture Atlas Size"]
         export_rig_mode = json_obj["Export Rig Mode"]
         enable_gpu_baking = json_obj["Enable Gpu Baking"]
-        enable_embed_textures = json_obj["Embed Textures"]
-        generate_final_fbx = json_obj["Generate Final Fbx"]
-        generate_final_glb = json_obj["Generate Final Glb"]
-        asset_type = json_obj["Asset Type"]
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
@@ -132,12 +138,25 @@ def _main(argv):
     if output_blend_filepath != "":
         blenderFilePath = output_blend_filepath
 
-    if g_daz_addon_loaded and not use_blender_tools:
+    if use_legacy_addon and G_DAZ_ADDON_LOADED:
+        if "DTB" not in bpy.context.preferences.addons:
+            G_DAZ_ADDON_ENABLED = False
+            # load DazToBlender addon
+            _add_to_log("INFO: Legacy Addon Chosen by User, but Addon not enabled! Attempting to enable DazToBlender Addon...")
+            try:
+                bpy.ops.preferences.addon_enable(module="DTB")
+                _add_to_log("DazToBlender Addon enabled.")
+                G_DAZ_ADDON_ENABLED = True
+            except Exception as e:
+                _add_to_log("ERROR: Unable to enable DazToBlender Addon, reverting to modern pathway.")
+                _add_to_log("EXCEPTION: " + str(e))
+                # raise e
+        else:
+            G_DAZ_ADDON_ENABLED = True
 
-        # load DazToBlender addon
-        _add_to_log("DEBUG: main(): loading DazToBlender addon")
+    if use_legacy_addon and G_DAZ_ADDON_LOADED and G_DAZ_ADDON_ENABLED:
         DTB.Global.bNonInteractiveMode = 1
-        DTB.Global.nSceneScaleOverride = float(bpy.context.window_manager.scene_scale)
+        DTB.Global.nSceneScaleOverride = 0.01
 
         sDtuFolderPath = os.path.dirname(jsonPath)
         oDtu = DTB.DataBase.DtuLoader()
@@ -244,6 +263,7 @@ def _main(argv):
         except Exception as e:
             _add_to_log("ERROR: unable to save Final GLB file: " + glb_output_file_path)
             _add_to_log("EXCEPTION: " + str(e))
+            raise e
 
     if generate_final_fbx:
         add_leaf_bones = False
@@ -266,6 +286,44 @@ def _main(argv):
         except Exception as e:
             _add_to_log("ERROR: unable to save Final FBX file: " + fbx_output_file_path)
             _add_to_log("EXCEPTION: " + str(e))
+            raise e
+
+    if generate_final_usd:
+        usd_output_file_path = blenderFilePath.replace(".blend", ".usdz")
+        # if blender < 4, don't use extra options
+        if bpy.app.version < (4, 2, 0):
+            try:
+                _add_to_log("DEBUG: Using older version of USD Exporter for Blender: " + str(bpy.app.version))
+                bpy.ops.wm.usd_export(filepath=usd_output_file_path,
+                                        export_textures = True,
+                                        export_animation = True,
+                                        export_armatures = True,
+                                        convert_orientation = True,
+                                        )
+                _add_to_log("DEBUG: save completed.")
+            except Exception as e:
+                _add_to_log("ERROR: unable to save Final USD file: " + usd_output_file_path)
+                _add_to_log("EXCEPTION: " + str(e))
+                raise e
+        else:
+            try:
+                _add_to_log("DEBUG: Using USD Exporter for Blender >= 4.2.0")
+                bpy.ops.wm.usd_export(filepath=usd_output_file_path, 
+                                        export_textures = True,
+                                        export_animation = True,
+                                        export_armatures = True,
+                                        export_shapekeys = True,
+                                        generate_materialx_network = use_material_x,
+                                        export_custom_properties = True,
+                                        export_cameras = True,
+                                        export_lights = True,
+                                        convert_orientation = True,
+                                        )
+                _add_to_log("DEBUG: save completed.")
+            except Exception as e:
+                _add_to_log("ERROR: unable to save Final USD file: " + usd_output_file_path)
+                _add_to_log("EXCEPTION: " + str(e))
+                raise e
 
     return
 

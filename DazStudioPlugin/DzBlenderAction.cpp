@@ -239,7 +239,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		pDialog->getAssetTypeCombo()->setCurrentIndex(nEnvIndex);
 	}
 	pBlenderAction->executeAction();
-//	bool bUseBlenderTools = pDialog->getUseBlenderToolsCheckbox();
+//	bool bUseBlenderTools = pDialog->getUseLegacyAddonCheckbox();
 	pDialog->showBlenderToolsOptions(false);
 	pDialog->requireBlenderExecutableWidget(false);
 
@@ -771,7 +771,7 @@ void DzBlenderAction::executeAction()
 			}
 
 			QDir().mkdir(m_sDestinationPath);
-			m_bUseBlenderTools = true;
+			m_bUseLegacyAddon = true;
 
 			DzNodeList rootNodeList = BuildRootNodeList();
 			m_pSelectedNode = rootNodeList[0];
@@ -849,7 +849,7 @@ void DzBlenderAction::writeConfiguration()
 	writeDTUHeader(writer);
 
 	// Plugin-specific items
-	writer.addMember("Use Blender Tools", m_bUseBlenderTools);
+	writer.addMember("Use Legacy Addon", m_bUseLegacyAddon);
 	writer.addMember("Output Blend Filepath", m_sOutputBlendFilepath);
 	writer.addMember("Texture Atlas Mode", m_sTextureAtlasMode);
 	writer.addMember("Texture Atlas Size", m_nTextureAtlasSize);
@@ -858,6 +858,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Embed Textures", m_bEmbedTexturesInOutputFile);
 	writer.addMember("Generate Final Fbx", m_bGenerateFinalFbx);
 	writer.addMember("Generate Final Glb", m_bGenerateFinalGlb);
+	writer.addMember("Generate Final Usd", m_bGenerateFinalUsd);
 
 //	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	if (true)
@@ -1020,7 +1021,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 		// if dzexporter mode, then read blender tools options
 		if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
 		{
-			m_bUseBlenderTools = pBlenderDialog->getUseBlenderToolsCheckbox();
+			m_bUseLegacyAddon = pBlenderDialog->getUseLegacyAddonCheckbox();
 			m_sTextureAtlasMode = pBlenderDialog->getTextureAtlasMode();
 			m_sExportRigMode = pBlenderDialog->getExportRigMode();
 			m_nTextureAtlasSize = pBlenderDialog->getTextureAtlasSize();
@@ -1028,10 +1029,12 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_bEmbedTexturesInOutputFile = pBlenderDialog->getEnableEmbedTexturesInOutputFile();
 			m_bGenerateFinalFbx = pBlenderDialog->getGenerateFbx();
 			m_bGenerateFinalGlb = pBlenderDialog->getGenerateGlb();
+			m_bGenerateFinalUsd = pBlenderDialog->getGenerateUsd();
+			m_bUseMaterialX = pBlenderDialog->getUseMaterialX();
 		}
 		else
 		{
-			m_bUseBlenderTools = false;
+			m_bUseLegacyAddon = false;
 			m_sOutputBlendFilepath = "";
 			m_sTextureAtlasMode = "";
 			m_sExportRigMode = "";
@@ -1040,6 +1043,8 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_bEmbedTexturesInOutputFile = false;
 			m_bGenerateFinalFbx = false;
 			m_bGenerateFinalGlb = false;
+			m_bGenerateFinalUsd = false;
+			m_bUseMaterialX = false;
 		}
 	}
 	else

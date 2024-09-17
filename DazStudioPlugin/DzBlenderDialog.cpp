@@ -134,10 +134,14 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 m_wBlenderOutputFilename->setReadOnly(true);
 	 m_wBlenderOutputFilename->setVisible(false);
 //	 wBlenderToolsLayout->addRow(m_wBlenderOutputFilename);
-	 m_wUseBlendToolsCheckBox = new QCheckBox(tr("Optimize for Realtime and Game Engine Use"));
-	 m_wUseBlendToolsCheckBox->setChecked(true);
-	 wBlenderToolsLayout->addRow(m_wUseBlendToolsCheckBox);
-	 connect(m_wUseBlendToolsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(HandleUseBlenderToolsCheckbox(int)));
+	 m_wUseLegacyAddonCheckBox = new QCheckBox(tr("Use Legacy Add-On"));
+	 m_wUseLegacyAddonCheckBox->setChecked(false);
+	 wBlenderToolsLayout->addRow(m_wUseLegacyAddonCheckBox);
+	 connect(m_wUseLegacyAddonCheckBox, SIGNAL(stateChanged(int)), this, SLOT(HandleUseLegacyAddonCheckbox(int)));
+
+	 QString sUseLegacyAddonHelp = tr("WARNING: You must have the DazToBlender Add-On enabled inside Blender for this option to work.");
+	 m_wUseLegacyAddonCheckBox->setWhatsThis(sUseLegacyAddonHelp);
+	 m_wUseLegacyAddonCheckBox->setToolTip(sUseLegacyAddonHelp);
 
 	 QHBoxLayout* m_wTextureAtlasLayout = new QHBoxLayout();
 	 m_wTextureAtlasLayout->setSpacing(margin);
@@ -157,6 +161,16 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 wBlenderToolsLayout->addRow(m_wGenerateFbxCheckBox);
 	 m_wGenerateGlbCheckBox = new QCheckBox(tr("Generate GLB file"));
 	 wBlenderToolsLayout->addRow(m_wGenerateGlbCheckBox);
+	 m_wGenerateUsdCheckBox = new QCheckBox(tr("Generate USDZ file"));
+	 wBlenderToolsLayout->addRow(m_wGenerateUsdCheckBox);
+	 m_wUseMaterialXCheckBox = new QCheckBox(tr("USDZ file: Use Material X"));
+	 wBlenderToolsLayout->addRow(m_wUseMaterialXCheckBox);
+
+	 QString sGenerateUsdHelp = tr("NOTE: USD file export requires Blender 4.2 LTS or later for the best feature support.");
+	 m_wGenerateUsdCheckBox->setToolTip(sGenerateUsdHelp);
+	 m_wGenerateUsdCheckBox->setWhatsThis(sGenerateUsdHelp);
+	 m_wUseMaterialXCheckBox->setToolTip(sGenerateUsdHelp);
+	 m_wUseMaterialXCheckBox->setWhatsThis(sGenerateUsdHelp);
 
 	 m_wEnableEmbedTexturesInOutputFile = new QCheckBox(tr("Embed Textures in Blend File"));
 	 wBlenderToolsLayout->addRow(m_wEnableEmbedTexturesInOutputFile);
@@ -718,9 +732,9 @@ void DzBlenderDialog::updateBlenderExecutablePathEdit(bool isValid) {
 	}
 }
 
-void DzBlenderDialog::HandleUseBlenderToolsCheckbox(int state)
+void DzBlenderDialog::HandleUseLegacyAddonCheckbox(int state)
 {
-	if (state == Qt::CheckState::Checked) {
+	if (state == Qt::CheckState::Unchecked) {
 		// enable blend tools Only options
 		m_wExportRigCombobox->setDisabled(false);
 	}
@@ -841,8 +855,8 @@ bool DzBlenderDialog::setOutputBlendFilepath(const QString& filename)
 
 int DzBlenderDialog::setUseBlenderToolsCheckbox(const bool state)
 {
-	if (m_wUseBlendToolsCheckBox) {
-		m_wUseBlendToolsCheckBox->setChecked(state);
+	if (m_wUseLegacyAddonCheckBox) {
+		m_wUseLegacyAddonCheckBox->setChecked(state);
 		return state;
 	}
 	return -100;

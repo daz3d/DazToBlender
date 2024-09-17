@@ -51,7 +51,7 @@ public:
 
 	Q_INVOKABLE bool showBlenderToolsOptions(const bool visible);
 	Q_INVOKABLE bool setOutputBlendFilepath(const QString& filename);
-	Q_INVOKABLE bool getUseBlenderToolsCheckbox() { return m_wUseBlendToolsCheckBox->isChecked(); }
+	Q_INVOKABLE bool getUseLegacyAddonCheckbox() { return m_wUseLegacyAddonCheckBox->isChecked(); }
 	Q_INVOKABLE int setUseBlenderToolsCheckbox(const bool state);
 	Q_INVOKABLE QString getTextureAtlasMode() { return m_wBakeTextureAtlasCombobox->itemData(m_wBakeTextureAtlasCombobox->currentIndex()).toString(); }
 	Q_INVOKABLE QString getExportRigMode() { return m_wExportRigCombobox->itemData(m_wExportRigCombobox->currentIndex()).toString(); }
@@ -60,6 +60,8 @@ public:
 	Q_INVOKABLE bool getEnableEmbedTexturesInOutputFile() { return m_wEnableEmbedTexturesInOutputFile->isChecked(); }
 	Q_INVOKABLE bool getGenerateFbx() { return m_wGenerateFbxCheckBox->isChecked(); }
 	Q_INVOKABLE bool getGenerateGlb() { return m_wGenerateGlbCheckBox->isChecked(); }
+	Q_INVOKABLE bool getGenerateUsd() { return m_wGenerateUsdCheckBox->isChecked(); }
+	Q_INVOKABLE bool getUseMaterialX() { return m_wUseMaterialXCheckBox->isChecked(); }
 
 protected:
 	virtual void showEvent(QShowEvent* event) override { disableAcceptUntilAllRequirementsValid(); DzBridgeDialog::showEvent(event); }
@@ -80,7 +82,7 @@ protected slots:
 	void HandleTextChanged(const QString &text);
 	bool HandleAcceptButtonValidationFeedback();
 	void updateBlenderExecutablePathEdit(bool isValid);
-	void HandleUseBlenderToolsCheckbox(int state);
+	void HandleUseLegacyAddonCheckbox(int state);
 
 protected:
 	QLineEdit* m_wIntermediateFolderEdit;
@@ -95,7 +97,7 @@ protected:
 
 	QGroupBox* m_wBlenderToolsGroupbox;
 	QLineEdit* m_wBlenderOutputFilename;
-	QCheckBox* m_wUseBlendToolsCheckBox;
+	QCheckBox* m_wUseLegacyAddonCheckBox;
 	QComboBox* m_wBakeTextureAtlasCombobox;
 	QComboBox* m_wAtlasSizeCombobox;
 	QComboBox* m_wExportRigCombobox;
@@ -105,6 +107,8 @@ protected:
 
 	QCheckBox* m_wGenerateFbxCheckBox;
 	QCheckBox* m_wGenerateGlbCheckBox;
+	QCheckBox* m_wGenerateUsdCheckBox;
+	QCheckBox* m_wUseMaterialXCheckBox;
 
 	bool m_bBlenderRequired = false;
 
