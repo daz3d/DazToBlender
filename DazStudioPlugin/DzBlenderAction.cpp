@@ -370,10 +370,12 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		args << "end tell";
 		QProcess::startDetached("osascript", args);
 #endif
+
+		exportProgress.cancel();
+		return DZ_OPERATION_FAILED_ERROR;
 	}
 
 	exportProgress.finish();
-
 	return DZ_NO_ERROR;
 };
 
