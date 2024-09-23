@@ -445,6 +445,7 @@ def process_material(mat, lowres_mode=None):
         links.new(shader_node.outputs["BSDF"], output_node.inputs["Surface"])
 
     bsdf_inputs = nodes["Principled BSDF"].inputs
+    color_node = None
 
     if (colorMap != ""):
         if (not os.path.exists(colorMap)):
@@ -457,7 +458,8 @@ def process_material(mat, lowres_mode=None):
             # bsdf_inputs["Base Color"].default_value = color_value
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Base Color"])
-            load_cached_image_to_material(matName, "Base Color", "Color", colorMap, color_value)
+            link = load_cached_image_to_material(matName, "Base Color", "Color", colorMap, color_value)
+            color_node = link.from_node
     else:
         bsdf_inputs["Base Color"].default_value = color_value
 
@@ -616,7 +618,13 @@ def process_material(mat, lowres_mode=None):
     if (cutoutMap != ""):
         if data.blend_method == "OPAQUE" or data.blend_method == "BLEND":
             data.blend_method = "HASHED"
-        load_cached_image_to_material(matName, "Alpha", "Color", cutoutMap, opacity_strength, "Non-Color")
+        # DB 2024-09-23: bugfix cutout baked into diffuse
+        if (cutoutMap == colorMap and color_node is not None):
+            bsdf_inputs["Alpha"].default_value = opacity_strength
+            links = data.node_tree.links
+            link = links.new(color_node.outputs["Alpha"], bsdf_inputs["Alpha"])
+        else:
+            load_cached_image_to_material(matName, "Alpha", "Color", cutoutMap, opacity_strength, "Non-Color")
     else:
         bsdf_inputs["Alpha"].default_value = opacity_strength
 
