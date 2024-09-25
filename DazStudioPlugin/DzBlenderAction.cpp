@@ -190,20 +190,8 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
 	bool bDefaultToEnvironment = false;
-	if (dzScene->getNumSelectedNodes() != 1)
-	{
-		DzNodeList rootNodes = DZ_BRIDGE_NAMESPACE::DzBridgeAction::BuildRootNodeList();
-		if (rootNodes.length() == 1)
-		{
-			dzScene->setPrimarySelection(rootNodes[0]);
-		}
-		else if (rootNodes.length() > 1)
-		{
-			// Switch to default Environment mode
-			DzNode* pSelection = DZ_BRIDGE_NAMESPACE::DzBridgeAction::FindBestRootNode(rootNodes);
-			dzScene->setPrimarySelection(pSelection);
-			bDefaultToEnvironment = true;
-		}
+	if (DZ_BRIDGE_NAMESPACE::DzBridgeAction::SelectBestRootNodeForTransfer() == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+		bDefaultToEnvironment = true;
 	}
 
 	QString sBlenderOutputPath = QFileInfo(filename).dir().path().replace("\\", "/");
@@ -653,42 +641,8 @@ void DzBlenderAction::executeAction()
 	// otherwise continue on and do the thing that required modal
 	// input from the user.
 	bool bDefaultToEnvironment = false;
-	if (dzScene->getNumSelectedNodes() > 1)
-	{
-		DzNodeList rootNodes;
-		QObjectList objectList = dzScene->getSelectedNodeList();
-		foreach(auto el, objectList) {
-			DzNode* pNode = qobject_cast<DzNode*>(el);
-			if (pNode) {
-				rootNodes.append(pNode);
-			}
-		}
-		dzScene->selectAllNodes(false);
-		// Sanity Check
-		if (rootNodes.length() == 0) {
-			DzNode* pSelection = qobject_cast<DzNode*>(objectList[0]);
-			pSelection->select(true);
-			dzScene->setPrimarySelection(pSelection);
-		}
-		else {
-			DzNode* pSelection = FindBestRootNode(rootNodes);
-			pSelection->select(true);
-			dzScene->setPrimarySelection(pSelection);
-		}
-	}
-	else if (dzScene->getNumSelectedNodes() == 0)
-	{
-		DzNodeList rootNodes = BuildRootNodeList();
-		if (rootNodes.length() == 1)
-		{
-			dzScene->setPrimarySelection(rootNodes[0]);
-		}
-		else if (rootNodes.length() > 1)
-		{
-			DzNode* pSelection = FindBestRootNode(rootNodes);
-			dzScene->setPrimarySelection(pSelection);
-			bDefaultToEnvironment = true;
-		}
+	if (SelectBestRootNodeForTransfer() == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+		bDefaultToEnvironment = true;
 	}
 
 	// Create the dialog
