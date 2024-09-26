@@ -557,6 +557,8 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 DzBlenderAction::DzBlenderAction() :
 	DzBridgeAction(tr("Send to &Blender..."), tr("Send the selected node to Blender."))
 {
+	this->setObjectName("DzBridge_DazToBlender_Action");
+
 	m_nNonInteractiveMode = 0;
 	m_sAssetType = QString("SkeletalMesh");
 	//Setup Icon

@@ -25,7 +25,7 @@ public:
 class DzBlenderExporter : public DzExporter {
 	Q_OBJECT
 public:
-	DzBlenderExporter() : DzExporter(QString("blend")) {};
+	DzBlenderExporter() : DzExporter(QString("blend")) { this->setObjectName("DzBridge_DazToBlender_Exporter"); };
 
 public slots:
 	virtual void getDefaultOptions(DzFileIOSettings* options) const {};

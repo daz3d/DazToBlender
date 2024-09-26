@@ -51,6 +51,8 @@ QValidator::State DzFileValidator::validate(QString& input, int& pos) const {
 DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 DzBridgeDialog(parent, DAZ_BRIDGE_PLUGIN_NAME)
 {
+	this->setObjectName("DzBridge_DazToBlender_Dialog");
+
 	 m_wIntermediateFolderEdit = nullptr;
 	 m_wIntermediateFolderButton = nullptr;
 
