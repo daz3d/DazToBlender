@@ -40,9 +40,12 @@ class DzBlenderAction : public DZ_BRIDGE_NAMESPACE::DzBridgeAction {
 	 Q_OBJECT
 public:
 	DzBlenderAction();
+	DzError getExecutActionResult() { return m_nExecuteActionResult; }
 
 protected:
-	 void executeAction() override;
+	DzError m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
+	
+	void executeAction() override;
 	 Q_INVOKABLE void writeConfiguration() override;
 	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;
 	 virtual QString readGuiRootFolder() override;

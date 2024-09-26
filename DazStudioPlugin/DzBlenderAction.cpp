@@ -227,11 +227,13 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		pDialog->getAssetTypeCombo()->setCurrentIndex(nEnvIndex);
 	}
 	pBlenderAction->executeAction();
+	DzError nExecuteActionResult = pBlenderAction->getExecutActionResult();
+
 //	bool bUseBlenderTools = pDialog->getUseLegacyAddonCheckbox();
 	pDialog->showBlenderToolsOptions(false);
 	pDialog->requireBlenderExecutableWidget(false);
 
-	if (pDialog->result() == QDialog::Rejected) {
+	if (pDialog->result() == QDialog::Rejected || nExecuteActionResult != DZ_NO_ERROR) {
 		exportProgress.cancel();
 		return DZ_USER_CANCELLED_OPERATION;
 	}
@@ -617,6 +619,8 @@ bool DzBlenderAction::createUI()
 #include "dzexportmgr.h"
 void DzBlenderAction::executeAction()
 {
+	m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
+
 	// CreateUI() disabled for debugging -- 2022-Feb-25
 	/*
 		 // Create and show the dialog. If the user cancels, exit early,
@@ -708,6 +712,7 @@ void DzBlenderAction::executeAction()
 		// Read Common GUI values
 		if (readGui(m_bridgeDialog) == false)
 		{
+			m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
 			return;
 		}
 
@@ -723,8 +728,51 @@ void DzBlenderAction::executeAction()
 			// Sanity Check if zero nodes
 			if (dzScene->getNumNodes() == 0) {
 				dzApp->log("DazToBlender: CRITICAL ERROR: executeAction() Environment Export with zero nodes. Aborting.");
+				exportProgress->finish();
+				exportProgress->cancel();
+				m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
 				return;
 			}
+
+			if (isInteractiveMode())
+			{
+				QString sMessageBoth = tr("\
+The current scene contains instances and custom pivot points which must be replaced and baked out. \
+These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
+\n\
+Do you want to proceed with these changes now?");
+				QString sMessageInstances = tr("\
+The current scene contains instances which must be replaced with their original objects. \
+These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+\n\
+Do you want to proceed with these changes now?");
+				QString sMessageCustomPivots = tr("\
+The current scene contains custom pivot points which must be baked out. \
+These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+\n\
+Do you want to proceed with these changes now?");
+				bool bInstancesDetected = DetectInstancesInScene();
+				bool bCustomPivotsDetected = DetectCustomPivotsInScene();
+				if (bInstancesDetected || bCustomPivotsDetected)
+				{
+					QString sEnvironmentMessagePrompt;
+					if (bInstancesDetected && bCustomPivotsDetected) sEnvironmentMessagePrompt = sMessageBoth;
+					else if (bInstancesDetected) sEnvironmentMessagePrompt = sMessageInstances;
+					else sEnvironmentMessagePrompt = sMessageCustomPivots;
+					int userChoice = QMessageBox::information(0,
+						QObject::tr("Environment Export"),
+						sEnvironmentMessagePrompt,
+						QMessageBox::Yes,
+						QMessageBox::Abort);
+					if (userChoice == QMessageBox::Abort) {
+						exportProgress->cancel();
+						exportProgress->finish();
+						m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
+						return;
+					}
+				}
+			}
+			BakePivotsAndInstances();
 
 			QDir().mkdir(m_sDestinationPath);
 			m_bUseLegacyAddon = true;
@@ -751,6 +799,7 @@ void DzBlenderAction::executeAction()
 			DzError result = Exporter->writeFile(sEnvironmentFbx, &ExportOptions);
 			if (result != DZ_NO_ERROR) {
 				undoPreProcessScene();
+				m_nExecuteActionResult = result;
 				return;
 			}
 
@@ -780,6 +829,8 @@ void DzBlenderAction::executeAction()
 		}
 
 	}
+
+	m_nExecuteActionResult = DZ_NO_ERROR;
 }
 
 QString DzBlenderAction::createBlenderFiles(bool replace)

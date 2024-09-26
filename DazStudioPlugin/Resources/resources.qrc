@@ -17,5 +17,6 @@
         <file alias="g8_to_unreal.json">Scripts/g8_to_unreal.json</file>
         <file alias="g8_to_mixamo.json">Scripts/g8_to_mixamo.json</file>
         <file alias="g8_to_unity.json">Scripts/g8_to_unity.json</file>
+        <file alias="bake_pivots_and_instances_nogui.dsa">Scripts/bake_pivots_and_instances_nogui.dsa</file>
     </qresource>
 </RCC>

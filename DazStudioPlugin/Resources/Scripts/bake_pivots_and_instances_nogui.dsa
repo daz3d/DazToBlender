@@ -1,0 +1,261 @@
+// DAZ Studio version 4.22.0.16 filetype DAZ Script
+
+(function(){
+	
+	var actionMgr = MainWindow.getActionMgr();
+	var circularChecker = [];
+	var doneList = [];
+	
+	function triggerAction( nm ){
+	    action = actionMgr.findAction( nm );
+	    action.trigger()
+	}
+		
+	// function to replace node a with full branch of node b
+	function replaceAwithB( a, b, recursive )
+	{
+	    // get num nodes
+	    var numNodes = Scene.getNumNodes();
+	
+	    Scene.selectAllNodes( false );
+	    b.select( true );
+	    if (recursive)
+	    {
+	        print("ERROR!!!!!: Attempting Duplicating node hierarchy: " + b.getLabel());
+	        // Duplicate target node
+	//        triggerAction("DzDuplicateNodeHierarchyAction");
+	        triggerAction("DzDuplicateNodeAction");
+	    }
+	    else
+	    {
+	        // Duplicate target node
+	        triggerAction("DzDuplicateNodeAction");
+	    }
+	    b.select( false );
+	    
+	    // select new node or node hierarchy
+	    var newNode = Scene.getNode( numNodes );
+	    newNode.select( true );
+	
+	    // Copy the properties and transforms
+	//    newNode.copyFrom(a);
+	    newNode.setWSPos(a.getWSPos());
+	    newNode.setWSRot(a.getWSRot());
+	    newNode.setWSScale(a.getWSScale());
+	    newNode.setLabel(a.getLabel());
+	    
+	    // parent to the same parent
+	    var parent = a.getNodeParent();
+	    parent.addNodeChild(newNode);
+	    parent.removeNodeChild(a);
+	
+	    // Remove the old node
+	    Scene.removeNode(a);
+	    doneList.push(a);
+	    
+	}
+	
+	
+	function replaceInstanceWithTarget( instance )
+	{
+	    if (instance == null)
+	    {
+	        return;
+	    }
+	    if (doneList.indexOf(instance) != -1)
+	    {
+	            return;
+	    }
+	    doneList.push(instance);
+	    // check if in circular reference
+	    if (circularChecker.indexOf(instance) != -1)
+	    {
+	        return;
+	    }
+	    circularChecker.push(instance);
+	
+	    // recurse through children of instance
+	    var numChildren = instance.getNumNodeChildren();
+	    for (var i = 0; i < numChildren; i++)
+	    {
+	        var child = instance.getNodeChild(i);
+	        replaceInstanceWithTarget(child);
+	    }
+	
+	    if (instance.inherits("DzInstanceNode") == false)
+	    {
+	        circularChecker.pop();
+	        return;
+	    }
+	    var target = instance.getTarget();
+	    if( target )
+	    {
+	//        replaceInstanceWithTarget(target);
+	
+	        // check if target is a circular reference
+	        var bTargetIsCircular = circularChecker.indexOf(target) != -1;
+	        var sInstanceMode = instance.getCopyModeControl().getStringValue();
+	        var bRecursive = false;
+	        if (sInstanceMode.indexOf("Children") != -1)
+	        {
+	            if (!bTargetIsCircular) bRecursive = true;
+	            else print("ERROR!!!!!: Circular reference detected: " + target.getLabel());
+	        }
+	        replaceAwithB( instance, target, bRecursive );
+	    }
+	    circularChecker.pop();
+	
+	}
+	
+	// Function to replace instances with full copies of their target nodes
+	function replaceInstancesWithCopies() {
+	    // Get all nodes in the scene
+	    var allNodes = Scene.getNodeList();
+	    var numNodes = allNodes.length;
+	
+	    print("DEBUG: Number of nodes in the scene: " + numNodes);
+	
+	    var numInstances = 0;
+	    for (var i=0; i<numNodes; i++) {
+	        var node = allNodes[i];
+	        if (node.inherits("DzInstanceNode")) {
+	            numInstances++;
+	        }
+	    }
+	    print("DEBUG: Number of instances in the scene: " + numInstances);
+	
+	    // Iterate through all nodes in reverse order
+	    for (var i = numNodes - 1; i >= 0; i--) {
+	        var node = allNodes[i];
+	        // check if already processed
+	        if (doneList.indexOf(node) != -1)
+	        {
+	            continue;
+	        }
+	
+	        // Check if the node is an instance
+	        if (node.inherits("DzInstanceNode")) {
+	            // Get the target node
+	            var targetNode = node.getTarget();
+	
+	            if (targetNode) {
+	                // recursively look for instances in all descendents of node
+	                replaceInstanceWithTarget(node);
+	            }
+	        }
+	    }
+	
+	    // remove processed instances
+	    for (var i = doneList.length; i > 0; i--)
+	    {
+	        var node = doneList[i];
+	        Scene.removeNode(node);
+	    }
+	}
+		
+	function bakePivot(node) {
+		// // recursively bake pivot for descendents first
+		// var children = node.getNodeChildren();
+		// for (var i = 0; i < children.length; i++) {
+		//     var child = children[i];
+		//     if (child.getObject() && child.getObject().getCurrentShape()) {
+		//         bakePivot(child);
+		//     }
+		// }
+	
+		var object = node.getObject();
+	
+		var pivotPoint = node.getOrigin(false);
+		var inversePivot = pivotPoint.multiply(DzVec3(-1, -1, -1));
+	
+		if (pivotPoint.x != 0 || pivotPoint.y != 0 || pivotPoint.z != 0) {
+	
+			// print pivotPoint
+			print("Baking pivot for " + object.getName());
+			// print("Pivot Point: " + pivotPoint);
+			// print("Inverse Pivot: " + inversePivot);
+	
+			// bake pivotPoint into vertex positions
+			var geometry = object.getCurrentShape().getGeometry();
+			if (geometry) {
+				geometry.beginEdit();
+				geometry.translate(inversePivot);
+				geometry.finishEdit();
+	
+				updateAllLinkedNodes(geometry, pivotPoint);
+			}
+		}
+	}
+	
+	function updateAllLinkedNodes(geo, pivotPoint) {
+		if (!geo) {
+			return;
+		}
+		allNodes = Scene.getNodeList();
+		for (var i = 0; i < allNodes.length; i++) {
+			var node = allNodes[i];
+			if (node.getObject() && 
+				node.getObject().getCurrentShape() && 
+				node.getObject().getCurrentShape().getGeometry() == geo) 
+			{
+				var thisPivot = node.getOrigin(false);
+				if (thisPivot.x == 0 && thisPivot.y == 0 && thisPivot.z == 0) {
+					continue;
+				}
+				var parent = node.getNodeParent();
+				if (parent) {
+					parent.removeNodeChild(node, true);
+				}
+	
+				var children = node.getNodeChildren();
+				for (var j = 0; j < children.length; j++) {
+					var child = children[j];
+					node.removeNodeChild(child, true);
+				}
+	
+				node.setOrigin(DzVec3(0, 0, 0), false);
+				var translation = node.getWSPos();
+				translation = translation.add(pivotPoint);
+				node.setWSPos(translation);
+	
+				for (var j = 0; j < children.length; j++) {
+					var child = children[j];
+					node.addNodeChild(child, true);
+				}
+	
+				if (parent) {
+					parent.addNodeChild(node, true);
+				}
+			}
+		}
+	}
+	
+	function bakeAllPivots() {
+		var allNodes = Scene.getNodeList();
+		for (var i = 0; i < allNodes.length; i++) {
+			var node = allNodes[i];
+			if (node.getObject() && node.getObject().getCurrentShape() && node.inherits("DzSkeleton") == false) {
+				bakePivot(node);
+			}
+		}
+	
+	}
+
+	function main() {
+		// Run the function to replace instances with full copies
+		replaceInstancesWithCopies();
+		
+		// var selection = Scene.getPrimarySelection();
+		// bakePivot(selection);
+		
+		bakeAllPivots();
+		
+		// Print completion message
+		print("Bake for full scene export script done.");
+	//	MessageBox.information("Bake for full scene export done.", "Script done", "OK");
+
+	}	
+	
+	main();	
+
+})();
