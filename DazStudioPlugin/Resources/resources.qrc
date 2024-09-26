@@ -1,5 +1,8 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
+    <qresource prefix="/DazBridge">
+        <file alias="bake_pivots_and_instances_nogui.dsa">Scripts/bake_pivots_and_instances_nogui.dsa</file>
+    </qresource>
     <qresource prefix="/DazBridgeBlender">
         <file alias="blenderaddon.zip">blenderaddon.zip</file>
         <file alias="icon">Images/Daz to Blender.png</file>
@@ -17,6 +20,5 @@
         <file alias="g8_to_unreal.json">Scripts/g8_to_unreal.json</file>
         <file alias="g8_to_mixamo.json">Scripts/g8_to_mixamo.json</file>
         <file alias="g8_to_unity.json">Scripts/g8_to_unity.json</file>
-        <file alias="bake_pivots_and_instances_nogui.dsa">Scripts/bake_pivots_and_instances_nogui.dsa</file>
     </qresource>
 </RCC>
