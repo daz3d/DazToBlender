@@ -716,140 +716,17 @@ void DzBlenderAction::executeAction()
 			return;
 		}
 
-		bool bInstancesDetected = DetectInstancesInScene();
-		bool bCustomPivotsDetected = DetectCustomPivotsInScene();
-		bool bRigidFollowNodesDetected = DetectRigidFollowNodes();
-
-		if (m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
-
-		}
-		if (m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
-
-		}
-		if (m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
-
-		}
-
-		int userChoice = QMessageBox::Yes;
-		if (isInteractiveMode())
-		{
-			bool bDoPrompt = false;
-			QString sDetected = "";
-
-			if (bInstancesDetected && m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask)
-			{
-				bDoPrompt = true;
-				if (sDetected != "") sDetected += ", ";
-				sDetected += "instances";
-
-			}
-			if (bCustomPivotsDetected && m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask)
-			{
-				bDoPrompt = true;
-				if (sDetected != "") sDetected += ", ";
-				sDetected += "custom pivot points";
-			}
-			if (bRigidFollowNodesDetected && m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask)
-			{
-				bDoPrompt = true;
-				if (sDetected != "") sDetected += ", ";
-				sDetected += "rigid follow nodes";
-			}
-			int offset = sDetected.indexOf(", ");
-			while (sDetected.indexOf(", ", offset+1) != -1) 
-			{
-				offset = sDetected.indexOf(", ", offset+1);
-			}
-			if (offset != -1) {
-				sDetected.replace(offset, strlen(", "), " and ");
-			}
-
-			if (bDoPrompt)
-			{
-				QString sMessageCustom = tr("\
-The current scene contains %1 which should be replaced and baked out to avoid conversion errors. \
-These changes can not be undone. Make sure you Abort and save your scene \
-if needed.\n\
-\n\
-Do you want to proceed with these changes?\n\
-Or do you want to Ignore and continue the transfer without making changes?\n\
-You may also Abort the transfer operation.").arg(sDetected);
-//				QString sMessageAll = tr("\
-//The current scene contains instances, custom pivot points and/or rigid follow nodes which must be \
-//replaced and baked out. These changes can not be undone. Make sure you Abort and save your scene \
-//if needed.\n\
-//\n\
-//Do you want to proceed with these changes now?");
-//				QString sMessageBoth = tr("\
-//The current scene contains instances and custom pivot points which must be replaced and baked out. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
-//\n\
-//Do you want to proceed with these changes now?");
-//				QString sMessageInstances = tr("\
-//The current scene contains instances which must be replaced with their original objects. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-//\n\
-//Do you want to proceed with these changes now?");
-//				QString sMessageCustomPivots = tr("\
-//The current scene contains custom pivot points which must be baked out. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-//\n\
-//Do you want to proceed with these changes now?");
-//				QString sMessageRigidFollowNodes = tr("\
-//The current scene contains rigid follow nodes which must be converted to rigged follower meshes. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-//\n\
-//Do you want to proceed with these changes now?");
-
-				QString sBakeObjectsPrompt;
-				//if (bInstancesDetected && bCustomPivotsDetected && bRigidFollowNodesDetected) sBakeObjectsPrompt = sMessageAll;
-				//if (bInstancesDetected && bCustomPivotsDetected) sBakeObjectsPrompt = sMessageBoth;
-				//else if (bInstancesDetected) sBakeObjectsPrompt = sMessageInstances;
-				//else if (bCustomPivotsDetected) sBakeObjectsPrompt = sMessageCustomPivots;
-				//else if (bRigidFollowNodesDetected) sBakeObjectsPrompt = sMessageRigidFollowNodes;
-				//else sBakeObjectsPrompt = sMessageAll;
-				sBakeObjectsPrompt = sMessageCustom;
-				userChoice = QMessageBox::information(0,
-					tr("Object Baking Recommended"),
-					sBakeObjectsPrompt,
-					QMessageBox::Yes,
-					QMessageBox::Ignore,
-					QMessageBox::Abort);
-				if (userChoice == QMessageBox::Abort) {
-					m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
-					return;
-				}
-			}
-		}
-
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10, false, true);
 
-		QScopedPointer<DzScript> Script(new DzScript());
-		if (bInstancesDetected && m_eBakeInstancesMode != DZ_BRIDGE_NAMESPACE::EBakeMode::NeverBake) 
-		{
-			if ( (m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) || 
-				(m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask && userChoice == QMessageBox::Yes) )
-			{
-				BakePivotsAndInstances(Script);
-			}
+		DzError result = doPromptableObjectBaking();
+		if (result != DZ_NO_ERROR) {
+			exportProgress->finish();
+			exportProgress->cancel();
+			m_nExecuteActionResult = result;
+			return;
 		}
-		if (bCustomPivotsDetected && m_eBakePivotPointsMode!= DZ_BRIDGE_NAMESPACE::EBakeMode::NeverBake)
-		{
-			if ((m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) ||
-				(m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask && userChoice == QMessageBox::Yes))
-			{
-				BakePivotsAndInstances(Script);
-			}
-		}
-		if (bRigidFollowNodesDetected && m_eBakeRigidFollowNodesMode != DZ_BRIDGE_NAMESPACE::EBakeMode::NeverBake) 
-		{
-			if ( (m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) ||
-				(m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::Ask && userChoice == QMessageBox::Yes) )
-			{
-				BakeRigidFollowNodes(Script);
-			}
-		}
+		exportProgress->step();
 
 		//Create Daz3D folder if it doesn't exist
 		QDir dir;
@@ -866,59 +743,10 @@ You may also Abort the transfer operation.").arg(sDetected);
 				return;
 			}
 
-//			if (isInteractiveMode())
-//			{			
-//				// Do not prompt if always bake is turned on for both operations
-//				// When processed in conjunction with Ask/Always/Never modes, this prompt
-//				// should act as a final Override for all prior settings.
-//				if ((m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) &&
-//					(m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake))
-//				{
-//					// skip prompt because always is turned on for both operations
-//				}
-//				else
-//				{
-//					if (bInstancesDetected || bCustomPivotsDetected)
-//					{
-//						QString sMessageBoth = tr("\
-//The current scene contains instances and custom pivot points which must be replaced and baked out. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
-//\n\
-//Do you want to proceed with these changes now?");
-//						QString sMessageInstances = tr("\
-//The current scene contains instances which must be replaced with their original objects. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-//\n\
-//Do you want to proceed with these changes now?");
-//						QString sMessageCustomPivots = tr("\
-//The current scene contains custom pivot points which must be baked out. \
-//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-//\n\
-//Do you want to proceed with these changes now?");
-//
-//						QString sEnvironmentMessagePrompt;
-//						if (bInstancesDetected && bCustomPivotsDetected) sEnvironmentMessagePrompt = sMessageBoth;
-//						else if (bInstancesDetected) sEnvironmentMessagePrompt = sMessageInstances;
-//						else sEnvironmentMessagePrompt = sMessageCustomPivots;
-//						int userChoice = QMessageBox::information(0,
-//							QObject::tr("Environment Export"),
-//							sEnvironmentMessagePrompt,
-//							QMessageBox::Yes,
-//							QMessageBox::Abort);
-//						if (userChoice == QMessageBox::Abort) {
-//							exportProgress->cancel();
-//							exportProgress->finish();
-//							m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
-//							return;
-//						}
-//					}
-//				}
-//			}
-//			BakePivotsAndInstances();
-
 			QDir().mkdir(m_sDestinationPath);
 			m_bUseLegacyAddon = true;
 
+			exportProgress->step();
 			DzNodeList rootNodeList = BuildRootNodeList();
 			m_pSelectedNode = rootNodeList[0];
 			foreach(DzNode* pNode, rootNodeList) {
@@ -944,16 +772,22 @@ You may also Abort the transfer operation.").arg(sDetected);
 				m_nExecuteActionResult = result;
 				return;
 			}
+			exportProgress->step();
 
 			writeConfiguration();
+			exportProgress->step();
 
 			undoPreProcessScene();
-
+			exportProgress->step();
 		}
 		else {
+			exportProgress->step();
 			exportHD(exportProgress);
+			exportProgress->step();
+
 		}
 
+		exportProgress->update(10);
 		// DB 2021-09-02: messagebox "Export Complete"
 		if (m_nNonInteractiveMode == 0)
 		{
