@@ -97,10 +97,6 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 item = model->findItems("Pose").first();
 	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
 	 
-
-	 // Connect new asset type handler
-	 connect(assetTypeCombo, SIGNAL(activated(int)), this, SLOT(HandleAssetTypeComboChange(int)));
-
 	 // Select Blender Executable Path GUI
 	 m_wRequiredInputFrame = new QGroupBox();
 //	 m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
@@ -394,13 +390,7 @@ void DzBlenderDialog::HandleSelectIntermediateFolderButton()
 
 void DzBlenderDialog::HandleAssetTypeComboChange(int state)
 {
-	//// enable/disable Morphs and Subdivision only if Skeletal selected
-	//if (assetTypeCombo->currentText() == "Skeletal Mesh")
-	//{
-	//	morphsEnabledCheckBox->setChecked(false);
-	//	subdivisionEnabledCheckBox->setChecked(false);
-	//}
-
+	DzBridgeDialog::HandleAssetTypeComboChange(state);
 }
 
 #include <QProcessEnvironment>
