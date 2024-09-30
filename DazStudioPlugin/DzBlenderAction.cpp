@@ -190,7 +190,7 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
 	bool bDefaultToEnvironment = false;
-	if (DZ_BRIDGE_NAMESPACE::DzBridgeAction::SelectBestRootNodeForTransfer() == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+	if (DZ_BRIDGE_NAMESPACE::DzBridgeAction::SelectBestRootNodeForTransfer(false) == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
 		bDefaultToEnvironment = true;
 	}
 
@@ -213,6 +213,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	exportProgress.step(25);
 
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
+	pBlenderAction->m_pSelectedNode = dzScene->getPrimarySelection();
 	pBlenderAction->m_sOutputBlendFilepath = QString(filename).replace("\\", "/");
 	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
 	pBlenderAction->createUI();
@@ -647,8 +648,12 @@ void DzBlenderAction::executeAction()
 	// otherwise continue on and do the thing that required modal
 	// input from the user.
 	bool bDefaultToEnvironment = false;
-	if (SelectBestRootNodeForTransfer() == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
-		bDefaultToEnvironment = true;
+	if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
+	{
+		if (SelectBestRootNodeForTransfer(true) == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+			bDefaultToEnvironment = true;
+		}
+		m_pSelectedNode = dzScene->getPrimarySelection();
 	}
 
 	// Create the dialog
@@ -781,10 +786,20 @@ void DzBlenderAction::executeAction()
 			exportProgress->step();
 		}
 		else {
+			DzNode* pParentNode = NULL;
+			if (m_pSelectedNode->isRootNode() == false) {
+				dzApp->log("INFO: Selected Node for Export is not a Root Node, unparenting now....");
+				pParentNode = m_pSelectedNode->getNodeParent();
+				pParentNode->removeNodeChild(m_pSelectedNode, true);
+				dzApp->log("INFO: Parent stored: " + pParentNode->getLabel() + ", New Root Node: " + m_pSelectedNode->getLabel());
+			}
 			exportProgress->step();
 			exportHD(exportProgress);
 			exportProgress->step();
-
+			if (pParentNode) {
+				dzApp->log("INFO: Restoring Parent relationship: " + pParentNode->getLabel() + ", child node: " + m_pSelectedNode->getLabel());
+				pParentNode->addNodeChild(m_pSelectedNode, true);
+			}
 		}
 
 		exportProgress->update(10);
