@@ -43,8 +43,6 @@ public:
 	DzError getExecutActionResult() { return m_nExecuteActionResult; }
 
 protected:
-	DzError m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
-	
 	void executeAction() override;
 	 Q_INVOKABLE void writeConfiguration() override;
 	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;
