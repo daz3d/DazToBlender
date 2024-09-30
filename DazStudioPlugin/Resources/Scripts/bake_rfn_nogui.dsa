@@ -1,0 +1,593 @@
+// DAZ Studio version 4.22.0.16 filetype DAZ Script
+
+(function(){
+
+    var nodesToDelete = [];
+    var newNameMapping = {};
+    var rfnToFigure = {};
+    var primarySelection = null;
+
+    var morphProperties = [];
+    var morphValues = {};    
+
+    function getWeights(target, referenceVertexIndexList)
+    {
+        var oBoneMap = {};
+
+        var skinBinding = target.getSkinBinding();
+        if (skinBinding==null) return;
+
+        // get the bone bindings
+        var numBoneBindings = skinBinding.getNumBoneBindings();
+        for (var b=0; b<numBoneBindings; b++) {
+            var boneBinding = skinBinding.getBoneBinding(b);
+            if (boneBinding==null) continue;
+
+            var boneNode = boneBinding.getBone();
+            if (boneNode==null) continue;
+            var boneName = boneNode.getName();
+
+            // get the weight maps
+            var weightMap = boneBinding.getWeights();
+            if (weightMap==null) continue;
+
+            var bNotEmpty = false;
+            var weightArray = [];
+            // get the weights for each reference vertex
+            for (var i=0; i<referenceVertexIndexList.length; i++) {
+                var vertexIndex = referenceVertexIndexList[i];
+                var weight = weightMap.getFloatWeight(vertexIndex);
+                if (weight > 0) {
+                    bNotEmpty = true;
+                }
+                weightArray.push(weight);
+            }
+            if (bNotEmpty) {
+                oBoneMap[boneName] = weightArray;
+            }
+        }
+
+        return oBoneMap;
+    }
+
+    function getStrongestWeight(oBoneMapAvg)
+    {
+        var strongestWeight = 0;
+        var strongestBone = "";
+        for (var boneName in oBoneMapAvg) {
+            var weight = oBoneMapAvg[boneName];
+            if (weight > strongestWeight) {
+                strongestWeight = weight;
+                strongestBone = boneName;
+            }
+        }
+        return strongestBone;
+    }
+
+    function copy_bone(sourceBone, source, target) 
+    {
+        // if already exists, return
+        if (target.getSkeleton().findNodeChild(sourceBone.getName(), true)) {
+            print("Bone already exists: " + sourceBone.getName());
+            return;
+        }
+
+        parentBoneName = sourceBone.getNodeParent().name;
+        targetParentBone = target.getSkeleton().findNodeChild(parentBoneName, true);
+        if (targetParentBone == null) {
+            targetParentBone = copy_bone(sourceBone.getNodeParent(), source, target);
+            if (targetParentBone == null) {
+                print("CRITCAL ERROR: unable to create bone hierarchy for: " + sourceBone.getName());
+                return;
+            }
+        }
+        
+        // Create a new bone
+        var newBone = new DzBone();
+        Scene.addNode(newBone);
+        
+        // Set the name of the new bone
+        newBone.setName(sourceBone.name);
+        newBone.setLabel(sourceBone.getLabel());
+        
+        // Copy the origin, end point, and orientation from the source bone
+        newBone.setOrigin(sourceBone.getOrigin());
+        newBone.setEndPoint(sourceBone.getEndPoint());
+        newBone.setOrientation(sourceBone.getOrientation());
+        
+        // Add the new bone to the target figure's skeleton under the parent bone
+        targetParentBone.addNodeChild(newBone);
+                    
+        // Refresh the scene to reflect changes
+        Scene.update();
+        
+        print("copy bone: success");
+        
+        return newBone;
+    }
+
+    function bake_rfn(node)
+    {
+        print("DEBUG: bake_rfn(): " + node.name);
+        if (node.inherits("DzRigidFollowNode")==false) return;
+
+        // get Follow Target (main mesh)
+        var target = node.getFollowTarget();
+        var targetShape = target.getObject().getCurrentShape();
+        var targetGeo = targetShape.getGeometry();
+        var targetSkeleton = node.getSkeleton();
+
+        // get Reference vertices and face (which serves as the mount point for
+        // the static mesh that is parented to the Rigid Follow Node
+        var group = node.getGroup();
+        if (group.inherits("DzRigidityGroup")==false) return;
+
+        var referenceVertexIndexList = group.getReferenceVertexIndices();
+
+        var oBoneMap = getWeights(target, referenceVertexIndexList);
+
+        // calculate average per bone in bonemap
+        var oBoneMapAvg = {};
+        for (var boneName in oBoneMap) {
+            var weightArray = oBoneMap[boneName];
+            var sum = 0;
+            for (var i=0; i<weightArray.length; i++) {
+                sum += weightArray[i];
+            }
+            var avg = sum / weightArray.length;
+            oBoneMapAvg[boneName] = avg;
+        }
+        print("DEBUG: oBoneMapAvg= " + JSON.stringify(oBoneMapAvg));
+
+        var oBoneParent = null;
+        if (oBoneParent==null) {
+            var sStrongestBoneName = getStrongestWeight(oBoneMapAvg);
+            oBoneParent = target.findNodeChild(sStrongestBoneName, true);
+        }
+        if (oBoneParent==null) {
+        	print("ERROR, can't find oBoneParent.");
+        	return;
+        }
+        print("DEBUG: oBoneParent= " + oBoneParent.name + " for rfn: " + node.name);
+
+        // get child nodes of node
+        var children = node.getNodeChildren(false)
+        for (var i=0; i < children.length; i++)
+        {
+            var child = children[i];
+            print("rfn child: " + child.name);
+            var object = child.getObject()
+            if (object==null) continue;
+            var shape = object.getCurrentShape();
+            if (shape==null) continue;
+            var childGeo = shape.getGeometry();
+            if (childGeo==null) continue;
+        
+            var tempFile = exportNodeAsObj(child);
+            var newNode = importObj(tempFile);
+
+            if (newNode == null) {
+                print("ERROR: newNode is null");
+                return;
+            }
+            print("DEBUG: newNode = " + newNode.name + ", moving to: " + oBoneParent.name);
+            oBoneParent.addNodeChild(newNode, true);
+            var rootBoneName = targetSkeleton.getNodeChild(0).name;
+            
+            print("DEBUG: converting prop to figure: " + newNode.name);
+            Scene.selectAllNodes(true);
+            var newFigure = target.convertPropToFigure(newNode, target.getSkeleton());
+            if (newFigure==null) {
+                print("WARNING: convertPropToFigure returned null, trying to find unselected node...");
+                newFigure = findUnselectedNode();
+                if (newFigure==null) {
+                    print("ERROR: newFigure is null");
+                    return;
+                }
+            }
+            correctPosition(newFigure, child);
+            newNameMapping[newFigure.name] = [child.name, child.getLabel()];
+            rfnToFigure[child] = newFigure;
+            print("DEBUG: newFigure = " + newFigure.name + " (" + child.getLabel() + "), setting follow target to: " + target.name);
+            target.addNodeChild(newFigure, true);
+            newFigure.setFollowTarget(target.getSkeleton());
+
+            var skinBinding = newFigure.getSkinBinding();
+            if (skinBinding == null) {
+                print("ERROR: Could not find skin binding for newFigure");
+                return;
+            }
+            skinBinding.convertToGeneralMaps();
+            skinBinding.removeAllBindings();
+
+            // Function to find bone binding by bone name
+            function findBoneBinding(skinBinding, boneName) {
+                var numBoneBindings = skinBinding.getNumBoneBindings();
+                for (var b=0; b<numBoneBindings; b++) {
+                    var boneBinding = skinBinding.getBoneBinding(b);
+                    if (boneBinding==null) continue;
+                    var boneNode = boneBinding.getBone();
+                    if (boneNode==null) continue;
+                    if (boneNode.getName() == boneName) {
+                        return boneBinding;
+                    }
+                }
+                return null;
+            }
+
+            // Get the number of vertices in the newFigure
+            var numVertices = newFigure.getObject().getCurrentShape().getGeometry().getNumVertices();
+
+            skinBinding.beginEdit();
+            skinBinding.setBindingMode(DzSkinBinding.General);
+            skinBinding.setGeneralMapMode(DzSkinBinding.Linear);
+            skinBinding.setScaleMode(DzSkinBinding.BindingMaps);
+            skinBinding.setTargetVertexCount(numVertices);
+
+            // For each bone in oBoneMapAvg, set the weight map
+            for (var boneName in oBoneMapAvg) {
+
+                // if bone doesn't exist in target, add it
+                var boneNode = newFigure.getSkeleton().findNodeChild(boneName, true);
+                if (boneNode==null) {
+                    print("Bone doesn't exist in target: " + boneName + ", creating...");
+                    boneNode = copy_bone(target.getSkeleton().findNodeChild(boneName, true), target, newFigure);
+                    if (boneNode==null) {
+                        print("CRTICAL ERROR: Unable to create bone: " + boneName + " for figure: " + newFigure.name);
+                        return;
+                    }
+                }
+
+                var boneWeight = oBoneMapAvg[boneName];
+
+                var boneBinding = findBoneBinding(skinBinding, boneName);
+//                var boneBinding = null;
+                if (boneBinding == null) {
+                    boneBinding = new DzBoneBinding();
+                    boneBinding.setFigure(newFigure);
+                    boneBinding.setBone(newFigure.findNodeChild(boneName, true));
+                    result = skinBinding.addBoneBinding(boneBinding);
+                    if (!result) {
+                        print("CRITICAL ERROR: Unable to add new bone binding to skin binding for: " + newFigure.name);
+                        return;
+                    }
+                    print("Creating new bonebinding for: " + boneName + ", boneBinding.label = " + boneBinding.getLabel());
+                } else {
+                    print("Found bonebinding for: " + boneName + ", boneBinding.label = " + boneBinding.getLabel());
+                }
+                boneBinding.beginEdit();
+
+                var weightMap = boneBinding.getWeights();
+                if (weightMap==null) {
+                    weightMap = new DzWeightMap();
+                    boneBinding.setWeights(weightMap);
+                    print("Creating new weightmap for: " + boneName + ", weightMap.label = " + weightMap.getLabel());
+                } else {
+                    print("Found weightmap for: " + boneName + ", weightMap.label = " + weightMap.getLabel());
+                }
+                weightMap.beginEdit();
+
+//                weightMap.empty();
+                if (weightMap.getNumWeights() != numVertices) {
+                    print("Setting numWeights for: " + boneName + " to " + numVertices);
+                    weightMap.setNumWeights(numVertices);
+                }
+                print("DEBUG: weightMap.label = " + weightMap.getLabel() + ", numWeights = " + weightMap.getNumWeights() );
+
+                // Set the weight for all vertices
+                print("DEBUG: setting weight for bone: " + boneName + ", weight: " + boneWeight);
+                for (var v=0; v<numVertices; v++) {
+                    weightMap.setFloatWeight(v, boneWeight);
+                }
+
+                boneBinding.setWeights(weightMap);
+                skinBinding.addBoneBinding(boneBinding);
+
+                weightMap.finishEdit();
+                boneBinding.finishEdit();
+                skinBinding.finishEdit();
+
+            }
+
+            // Ensure that other bones have zero weights
+            var numBoneBindings = skinBinding.getNumBoneBindings();
+            for (var b=0; b<numBoneBindings; b++) {
+                var boneBinding = skinBinding.getBoneBinding(b);
+                if (boneBinding==null) continue;
+                var boneNode = boneBinding.getBone();
+                if (boneNode==null) continue;
+                var boneName = boneNode.getName();
+
+                if (!(boneName in oBoneMapAvg)) {
+                    // Set weights to zero
+                    var weightMap = boneBinding.getWeights();
+                    if (weightMap==null) continue;
+                    weightMap.beginEdit();
+                    for (var v=0; v<numVertices; v++) {
+                        weightMap.setFloatWeight(v, 0.0);
+                    }
+                    weightMap.finishEdit();
+                }
+            }
+            nodesToDelete.push(child);
+        }        
+        
+    	//Scene.removeNode(node);
+        nodesToDelete.push(node);
+    }
+
+    function correctPosition(newNode, oldNode)
+    {
+        newNode.finalize();
+        oldNode.finalize();
+
+        var oldGeo = oldNode.getObject().getCachedGeom();
+        var newObj = newNode.getObject();
+        var newCached = newObj.getCachedGeom();
+        if (newCached==null) {
+            print("ERROR: newCached is null, trying to force update...");
+            newObj.forceCacheUpdate(newNode, true);
+            newCached = newObj.getCachedGeom();
+            if (newCached==null) {
+                print("ERROR: newCached is still null, skipping...");
+                return;
+            }
+            
+        }
+        var newGeo = newObj.getCurrentShape().getGeometry();
+
+        newGeo.beginEdit();
+        for (var i=0; i<oldGeo.getNumVertices(); i++) {
+            var oldVertex = oldGeo.getVertex(i);
+            if (newCached) {
+                var newCachedVertex = newCached.getVertex(i);
+            } else {
+                var newCachedVertex = null;
+            }
+            var newVertex = newGeo.getVertex(i);
+            // offset
+            var offset = oldVertex.subtract(newVertex);
+            newVertex = newVertex.add(offset);
+            newGeo.setVertex(i, newVertex);
+        }
+        newGeo.finishEdit();
+
+        newNode.finalize();
+        oldNode.finalize();
+        newNode.getObject().forceCacheUpdate(newNode, true);
+        oldNode.getObject().forceCacheUpdate(oldNode, true);
+        oldGeo = oldNode.getObject().getCachedGeom();
+        newGeo = newNode.getObject().getCachedGeom();
+        // Double Check
+        for (var i=0; i<oldGeo.getNumVertices(); i++) {
+            var oldVertex = oldGeo.getVertex(i);
+            var newVertex = newGeo.getVertex(i);
+            var offset = oldVertex.subtract(newVertex);
+        }
+
+    }
+
+	function findUnselectedNode()
+	{
+		var newNode = null;
+		for (var i=0; i < Scene.getNumNodes(); i++)
+		{
+			var node = Scene.getNode(i);
+			if (node.isSelected() == false) newNode = node;
+			node.select(!node.isSelected());
+		}
+		return newNode;
+	}
+
+    function importObj(filename)
+    {
+        print("DEBUG: importing obj: " + filename);
+        Scene.selectAllNodes(true);
+        var oImportOptions = new DzFileIOSettings();
+        oImportOptions.setFloatValue("Scale", 100.0);
+        oImportOptions.setIntValue("RunSilent", 1);
+        var importer = new DzObjImporter();
+        importer.readFile(filename, oImportOptions);
+
+        // reverse selection
+        var newNode = findUnselectedNode();
+        importer.deleteLater();
+        return newNode;
+    }
+
+	function exportNodeAsObj(node)
+	{
+        print("DEBUG: exporting obj: " + node.name);
+        Scene.selectAllNodes(false);
+        node.select(true);
+        // export
+        var exportOptions = new DzFileIOSettings();
+        exportOptions.setFloatValue("Scale", 100.0);
+        exportOptions.setBoolValue("IgnoreInvisible", true);
+        exportOptions.setBoolValue("WriteG", true);
+        exportOptions.setBoolValue("GroupGeom", true);
+        exportOptions.setBoolValue("GroupSingle", false);
+        exportOptions.setBoolValue("WriteMtllib", true);
+        exportOptions.setBoolValue("WriteUsemtl", true);
+        exportOptions.setBoolValue("SelectedOnly", true);
+        exportOptions.setIntValue("RunSilent", 1);
+
+        var tempName = App.getTempFilename() + ".obj";
+        oExporter = new DzObjExporter();
+        oExporter.writeFile(tempName, exportOptions);
+        oExporter.deleteLater();
+
+        return tempName;
+	}
+
+    // Function to process properties
+    function processProperty(oProperty, oNode) {
+        var propName = oProperty.getName();
+        var propLabel = oProperty.getLabel();
+        var oPresentation = oProperty.getPresentation();
+
+        if (oPresentation) {
+            var morphInfo = {
+                Name: propName,
+                Label: propLabel,
+                Path: oNode.getLabel() + "/" + oProperty.getPath(),
+                Type: oPresentation.type,
+                Property: oProperty,
+                Node: oNode
+            };
+
+            if (String(oPresentation.type).find("Shape")==-1) {
+                return;
+            }
+
+            // Store the original value of the morph property
+            if (oProperty.inherits("DzFloatProperty")) {
+                var originalValue = oProperty.getValue();
+            } else if (oProperty.inherits("DzDoubleProperty")) {
+                var originalValue = oProperty.getDoubleValue();
+            }
+            if (originalValue === 0) return;
+
+            // Use property path as key to ensure uniqueness
+            morphValues[morphInfo.Path] = originalValue;
+            print("DEBUG: " + propName + " , [" + propLabel + "] ==> 0 , type: " + oPresentation.type);
+
+            // Set the morph property value to zero
+            if (oProperty.inherits("DzFloatProperty"))
+            {
+                oProperty.setValue(0.0);
+            }
+            else if (oProperty.inherits("DzDoubleProperty")) 
+            {
+                oProperty.setDoubleValue(0.0);
+            }
+
+            // Store the property for later restoration
+            morphProperties.push(oProperty);
+        }
+    }
+
+    function resetMorphs(oNode) {
+
+        // Get the object and shape from the node
+        var oObject = oNode.getObject();
+    
+        // Process node properties
+        print("DEBUG: Processing node properties...");
+        var numNodeProperties = oNode.getNumProperties();
+        for (var i = 0; i < numNodeProperties; i++) {
+            var oProperty = oNode.getProperty(i);
+            processProperty(oProperty, oNode);
+        }
+    
+        print("DEBUG: Processing object modifiers...");
+        // Process object modifiers
+        if (oObject) {
+            var numModifiers = oObject.getNumModifiers();
+            for (var i = 0; i < numModifiers; i++) {
+                var oModifier = oObject.getModifier(i);
+                var modName = oModifier.getName();
+                var modLabel = oModifier.getLabel();
+    
+                // Check if the modifier is a DzMorph
+                if (oModifier.inherits("DzMorph")) {
+                    // Process properties of the modifier
+                    var numModifierProperties = oModifier.getNumProperties();
+                    for (var j = 0; j < numModifierProperties; j++) {
+                        var oProperty = oModifier.getProperty(j);
+                        processProperty(oProperty, oNode);
+                    }
+                }
+            }
+        }
+    
+    }
+
+    function main()
+    {
+        // get RigidFollowNode
+        primarySelection = Scene.getPrimarySelection();
+
+        resetMorphs(primarySelection);
+        primarySelection.finalize();
+        primarySelection.getObject().forceCacheUpdate(primarySelection, true);
+    
+        var children = primarySelection.getNodeChildren(true);
+        for (var i=0; i < children.length; i++)
+        {
+            var child = children[i];
+            if (child.inherits("DzRigidFollowNode"))
+            {
+                bake_rfn(child);
+            }
+        }
+
+        for (var i=0; i < nodesToDelete.length; i++)
+        {
+            var deleteMe = nodesToDelete[i];
+            if (deleteMe in rfnToFigure) {
+                if (deleteMe.inherits("DzRigidFollowNode")) continue;
+                if (deleteMe.getObject()==null) continue;
+                var newFigure = rfnToFigure[deleteMe];
+                if (newFigure) {
+                    print("DEBUG: rfnToFigure: " + deleteMe.name + " -> " + newFigure.name);
+                    correctPosition(newFigure, deleteMe);
+                }
+            }
+            
+        }
+
+        // delete nodes
+        for (var i=0; i < nodesToDelete.length; i++)
+        {
+            var deleteMe = nodesToDelete[i];
+            nodeParent = deleteMe.getNodeParent();
+            while (deleteMe.getNodeChildren().length > 0)
+            {
+                var child = deleteMe.getNodeChild(0);
+                if (child) {
+                    deleteMe.removeNodeChild(child, true);
+                    if (deleteMe in rfnToFigure) {
+                        var newFigure = rfnToFigure[deleteMe];
+                        if (newFigure) {
+                            newFigure.addNodeChild(child, true);
+                        } else if (nodeParent) nodeParent.addNodeChild(child, true);
+                    } else if (nodeParent) nodeParent.addNodeChild(child, true);    
+                }
+            }
+            if (nodeParent) nodeParent.removeNodeChild(deleteMe, true);
+            Scene.removeNode(deleteMe);
+        }
+
+    		print("DEBUG: renaming new figures...");
+        for (var newFigureName in newNameMapping) {
+        	var newFigure = Scene.findNode(newFigureName);
+        	if (newFigure==null) {
+        		print("can't find node: " + newFigureName);
+        	}
+        	print("DEBUG: newFigure=" + newFigure + ", name=" + newFigure.name + ", class= " + newFigure.className() );
+            var name = newNameMapping[newFigureName][0];
+            var label = newNameMapping[newFigureName][1]
+            print("DEBUG: renaming to " + name + ", label = " + label);
+            newFigure.setLabel(label);
+            newFigure.setName(name);
+        }
+
+        // Restore the morph properties to their original values
+        for (var i = 0; i < morphProperties.length; i++) {
+            var oProperty = morphProperties[i];
+            var sPath = primarySelection.getLabel() + "/" + oProperty.getPath();
+
+            // Restore the original value
+            print("DEBUG: " + sPath + " => " + morphValues[sPath]);
+            oProperty.setDoubleValue(morphValues[sPath]);
+        }
+
+        // restore selection
+        Scene.selectAllNodes(false);
+        Scene.setPrimarySelection(primarySelection);
+    }
+
+
+    main();
+})();

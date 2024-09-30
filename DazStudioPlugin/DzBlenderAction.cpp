@@ -716,8 +716,88 @@ void DzBlenderAction::executeAction()
 			return;
 		}
 
+		bool bInstancesDetected = DetectInstancesInScene();
+		bool bCustomPivotsDetected = DetectCustomPivotsInScene();
+		bool bRigidFollowNodesDetected = DetectRigidFollowNodes();
+
+		if (m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
+
+		}
+		if (m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
+
+		}
+		if (m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) {
+
+		}
+
+		if (isInteractiveMode())
+		{
+			// Do not prompt if always bake is turned on for both operations
+			// When processed in conjunction with Ask/Always/Never modes, this prompt
+			// should act as a final Override for all prior settings.
+			if ((m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) &&
+				(m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) &&
+				(m_eBakeRigidFollowNodesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake))
+			{
+				// skip prompt because always is turned on for both operations
+			}
+			else
+			{
+				if (bInstancesDetected || bCustomPivotsDetected || bRigidFollowNodesDetected)
+				{
+					QString sMessageAll = tr("\
+The current scene contains instances, custom pivot points and/or rigid follow nodes which must be \
+replaced and baked out. These changes can not be undone. Make sure you Abort and save your scene \
+if needed.\n\
+\n\
+Do you want to proceed with these changes now?");
+					QString sMessageBoth = tr("\
+The current scene contains instances and custom pivot points which must be replaced and baked out. \
+These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
+\n\
+Do you want to proceed with these changes now?");
+					QString sMessageInstances = tr("\
+The current scene contains instances which must be replaced with their original objects. \
+These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+\n\
+Do you want to proceed with these changes now?");
+					QString sMessageCustomPivots = tr("\
+The current scene contains custom pivot points which must be baked out. \
+These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+\n\
+Do you want to proceed with these changes now?");
+					QString sMessageRigidFollowNodes = tr("\
+The current scene contains rigid follow nodes which must be converted to rigged follower meshes. \
+These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+\n\
+Do you want to proceed with these changes now?");
+
+					QString sBakeObjectsPrompt;
+					if (bInstancesDetected && bCustomPivotsDetected && bRigidFollowNodesDetected) sBakeObjectsPrompt = sMessageAll;
+					if (bInstancesDetected && bCustomPivotsDetected) sBakeObjectsPrompt = sMessageBoth;
+					else if (bInstancesDetected) sBakeObjectsPrompt = sMessageInstances;
+					else if (bCustomPivotsDetected) sBakeObjectsPrompt = sMessageCustomPivots;
+					else if (bRigidFollowNodesDetected) sBakeObjectsPrompt = sMessageRigidFollowNodes;
+					else sBakeObjectsPrompt = sMessageAll;
+					int userChoice = QMessageBox::information(0,
+						tr("Object Baking Required"),
+						sBakeObjectsPrompt,
+						QMessageBox::Yes,
+						QMessageBox::Abort);
+					if (userChoice == QMessageBox::Abort) {
+						m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
+						return;
+					}
+				}
+			}
+		}
+
 		// DB 2021-10-11: Progress Bar
 		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
+
+		QScopedPointer<DzScript> Script(new DzScript());
+		BakeRigidFollowNodes(Script);
+		BakePivotsAndInstances(Script);
 
 		//Create Daz3D folder if it doesn't exist
 		QDir dir;
@@ -734,45 +814,55 @@ void DzBlenderAction::executeAction()
 				return;
 			}
 
-			if (isInteractiveMode())
-			{
-				QString sMessageBoth = tr("\
-The current scene contains instances and custom pivot points which must be replaced and baked out. \
-These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
-\n\
-Do you want to proceed with these changes now?");
-				QString sMessageInstances = tr("\
-The current scene contains instances which must be replaced with their original objects. \
-These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-\n\
-Do you want to proceed with these changes now?");
-				QString sMessageCustomPivots = tr("\
-The current scene contains custom pivot points which must be baked out. \
-These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
-\n\
-Do you want to proceed with these changes now?");
-				bool bInstancesDetected = DetectInstancesInScene();
-				bool bCustomPivotsDetected = DetectCustomPivotsInScene();
-				if (bInstancesDetected || bCustomPivotsDetected)
-				{
-					QString sEnvironmentMessagePrompt;
-					if (bInstancesDetected && bCustomPivotsDetected) sEnvironmentMessagePrompt = sMessageBoth;
-					else if (bInstancesDetected) sEnvironmentMessagePrompt = sMessageInstances;
-					else sEnvironmentMessagePrompt = sMessageCustomPivots;
-					int userChoice = QMessageBox::information(0,
-						QObject::tr("Environment Export"),
-						sEnvironmentMessagePrompt,
-						QMessageBox::Yes,
-						QMessageBox::Abort);
-					if (userChoice == QMessageBox::Abort) {
-						exportProgress->cancel();
-						exportProgress->finish();
-						m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
-						return;
-					}
-				}
-			}
-			BakePivotsAndInstances();
+//			if (isInteractiveMode())
+//			{			
+//				// Do not prompt if always bake is turned on for both operations
+//				// When processed in conjunction with Ask/Always/Never modes, this prompt
+//				// should act as a final Override for all prior settings.
+//				if ((m_eBakeInstancesMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake) &&
+//					(m_eBakePivotPointsMode == DZ_BRIDGE_NAMESPACE::EBakeMode::AlwaysBake))
+//				{
+//					// skip prompt because always is turned on for both operations
+//				}
+//				else
+//				{
+//					if (bInstancesDetected || bCustomPivotsDetected)
+//					{
+//						QString sMessageBoth = tr("\
+//The current scene contains instances and custom pivot points which must be replaced and baked out. \
+//These changes can not be undone. Make sure you Abort and save your scene if needed.\n\
+//\n\
+//Do you want to proceed with these changes now?");
+//						QString sMessageInstances = tr("\
+//The current scene contains instances which must be replaced with their original objects. \
+//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+//\n\
+//Do you want to proceed with these changes now?");
+//						QString sMessageCustomPivots = tr("\
+//The current scene contains custom pivot points which must be baked out. \
+//These changes can not be undone. Make sure you Abort and save your scene if needed. \n\
+//\n\
+//Do you want to proceed with these changes now?");
+//
+//						QString sEnvironmentMessagePrompt;
+//						if (bInstancesDetected && bCustomPivotsDetected) sEnvironmentMessagePrompt = sMessageBoth;
+//						else if (bInstancesDetected) sEnvironmentMessagePrompt = sMessageInstances;
+//						else sEnvironmentMessagePrompt = sMessageCustomPivots;
+//						int userChoice = QMessageBox::information(0,
+//							QObject::tr("Environment Export"),
+//							sEnvironmentMessagePrompt,
+//							QMessageBox::Yes,
+//							QMessageBox::Abort);
+//						if (userChoice == QMessageBox::Abort) {
+//							exportProgress->cancel();
+//							exportProgress->finish();
+//							m_nExecuteActionResult = DZ_USER_CANCELLED_OPERATION;
+//							return;
+//						}
+//					}
+//				}
+//			}
+//			BakePivotsAndInstances();
 
 			QDir().mkdir(m_sDestinationPath);
 			m_bUseLegacyAddon = true;
@@ -804,12 +894,6 @@ Do you want to proceed with these changes now?");
 			}
 
 			writeConfiguration();
-   //         QProcess* thisProcess = new QProcess(this);
-			//// if not in DzExporterMode, then run the blender script manually
-			//if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) {
-			//	DzBlenderUtils::PrepareAndRunBlenderProcessing(m_sDestinationFBX, m_sBlenderExecutablePath, thisProcess, m_nPythonExceptionExitCode);
-			//}
-   //         thisProcess->deleteLater();
 
 			undoPreProcessScene();
 

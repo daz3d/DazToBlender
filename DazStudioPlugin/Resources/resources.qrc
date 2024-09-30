@@ -2,6 +2,7 @@
 <RCC version="1.0">
     <qresource prefix="/DazBridge">
         <file alias="bake_pivots_and_instances_nogui.dsa">Scripts/bake_pivots_and_instances_nogui.dsa</file>
+        <file alias="bake_rfn_nogui.dsa">Scripts/bake_rfn_nogui.dsa</file>
     </qresource>
     <qresource prefix="/DazBridgeBlender">
         <file alias="blenderaddon.zip">blenderaddon.zip</file>
