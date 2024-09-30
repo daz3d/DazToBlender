@@ -822,6 +822,9 @@ You may also Abort the transfer operation.").arg(sDetected);
 			}
 		}
 
+		// DB 2021-10-11: Progress Bar
+		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10, false, true);
+
 		QScopedPointer<DzScript> Script(new DzScript());
 		if (bInstancesDetected && m_eBakeInstancesMode != DZ_BRIDGE_NAMESPACE::EBakeMode::NeverBake) 
 		{
@@ -847,10 +850,6 @@ You may also Abort the transfer operation.").arg(sDetected);
 				BakeRigidFollowNodes(Script);
 			}
 		}
-
-		// DB 2021-10-11: Progress Bar
-		DzProgress* exportProgress = new DzProgress("Sending to Blender...", 10);
-
 
 		//Create Daz3D folder if it doesn't exist
 		QDir dir;
@@ -955,15 +954,15 @@ You may also Abort the transfer operation.").arg(sDetected);
 			exportHD(exportProgress);
 		}
 
-		// DB 2021-10-11: Progress Bar
-		exportProgress->finish();
-
 		// DB 2021-09-02: messagebox "Export Complete"
 		if (m_nNonInteractiveMode == 0)
 		{
 			QMessageBox::information(0, "Daz To Blender Bridge",
 				tr("Export phase from Daz Studio complete. Please switch to Blender to begin Import phase."), QMessageBox::Ok);
 		}
+
+		// DB 2021-10-11: Progress Bar
+		exportProgress->finish();
 
 	}
 
@@ -984,6 +983,8 @@ QString DzBlenderAction::createBlenderFiles(bool replace)
 
 void DzBlenderAction::writeConfiguration()
 {
+	DzProgress* pDtuProgress = new DzProgress("Writing DTU file", 10, false, true);
+
 	QString DTUfilename = m_sDestinationPath + m_sExportFilename + ".dtu";
 	QFile DTUfile(DTUfilename);
 	DTUfile.open(QIODevice::WriteOnly);
@@ -991,6 +992,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.startObject(true);
 
 	writeDTUHeader(writer);
+	pDtuProgress->step();
 
 	// Plugin-specific items
 	writer.addMember("Use Legacy Addon", m_bUseLegacyAddon);
@@ -1003,6 +1005,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Generate Final Fbx", m_bGenerateFinalFbx);
 	writer.addMember("Generate Final Glb", m_bGenerateFinalGlb);
 	writer.addMember("Generate Final Usd", m_bGenerateFinalUsd);
+	pDtuProgress->step();
 
 //	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	if (true)
@@ -1018,25 +1021,31 @@ void DzBlenderAction::writeConfiguration()
 		}
 		if (m_sAssetType == "Environment") {
 			writeSceneMaterials(writer, pCVSStream);
+			pDtuProgress->step();
 		}
 		else {
 			writeAllMaterials(m_pSelectedNode, writer, pCVSStream);
+			pDtuProgress->step();
 		}
-		writeAllMorphs(writer);
 
+		writeAllMorphs(writer);
 		writeMorphLinks(writer);
 		writeMorphNames(writer);
+		pDtuProgress->step();
 
 		DzBoneList aBoneList = getAllBones(m_pSelectedNode);
 
 		writeSkeletonData(m_pSelectedNode, writer);
 		writeHeadTailData(m_pSelectedNode, writer);
-
 		writeJointOrientation(aBoneList, writer);
 		writeLimitData(aBoneList, writer);
 		writePoseData(m_pSelectedNode, writer, true);
+		pDtuProgress->step();
+
 		writeAllSubdivisions(writer);
+		pDtuProgress->step();
 		writeAllDforceInfo(m_pSelectedNode, writer);
+		pDtuProgress->step();
 	}
 
 	//if (m_sAssetType == "Pose")
@@ -1052,6 +1061,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.finishObject();
 	DTUfile.close();
 
+	pDtuProgress->finish();
 }
 
 // Setup custom FBX export options
