@@ -775,6 +775,8 @@ void DzBlenderAction::executeAction()
 			if (result != DZ_NO_ERROR) {
 				undoPreProcessScene();
 				m_nExecuteActionResult = result;
+				exportProgress->finish();
+				exportProgress->cancel();
 				return;
 			}
 			exportProgress->step();
