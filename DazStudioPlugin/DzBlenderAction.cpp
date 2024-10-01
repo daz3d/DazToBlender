@@ -870,6 +870,7 @@ void DzBlenderAction::writeConfiguration()
 			pCVSStream = new QTextStream(&file);
 			*pCVSStream << "Version, Object, Material, Type, Color, Opacity, File" << endl;
 		}
+		pDtuProgress->update(6);
 		if (m_sAssetType == "Environment") {
 			writeSceneMaterials(writer, pCVSStream);
 			pDtuProgress->step();
