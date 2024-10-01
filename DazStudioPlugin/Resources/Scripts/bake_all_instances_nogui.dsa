@@ -54,8 +54,7 @@
 	    doneList.push(a);
 	    
 	}
-	
-	
+		
 	function replaceInstanceWithTarget( instance )
 	{
 	    if (instance == null)
@@ -152,107 +151,14 @@
 	        Scene.removeNode(node);
 	    }
 	}
-		
-	function bakePivot(node) {
-		// // recursively bake pivot for descendents first
-		// var children = node.getNodeChildren();
-		// for (var i = 0; i < children.length; i++) {
-		//     var child = children[i];
-		//     if (child.getObject() && child.getObject().getCurrentShape()) {
-		//         bakePivot(child);
-		//     }
-		// }
-	
-		var object = node.getObject();
-	
-		var pivotPoint = node.getOrigin(false);
-		var inversePivot = pivotPoint.multiply(DzVec3(-1, -1, -1));
-	
-		if (pivotPoint.x != 0 || pivotPoint.y != 0 || pivotPoint.z != 0) {
-	
-			// print pivotPoint
-			print("Baking pivot for " + object.getName());
-			// print("Pivot Point: " + pivotPoint);
-			// print("Inverse Pivot: " + inversePivot);
-	
-			// bake pivotPoint into vertex positions
-			var geometry = object.getCurrentShape().getGeometry();
-			if (geometry) {
-				geometry.beginEdit();
-				geometry.translate(inversePivot);
-				geometry.finishEdit();
-	
-				updateAllLinkedNodes(geometry, pivotPoint);
-			}
-		}
-	}
-	
-	function updateAllLinkedNodes(geo, pivotPoint) {
-		if (!geo) {
-			return;
-		}
-		allNodes = Scene.getNodeList();
-		for (var i = 0; i < allNodes.length; i++) {
-			var node = allNodes[i];
-			if (node.getObject() && 
-				node.getObject().getCurrentShape() && 
-				node.getObject().getCurrentShape().getGeometry() == geo) 
-			{
-				var thisPivot = node.getOrigin(false);
-				if (thisPivot.x == 0 && thisPivot.y == 0 && thisPivot.z == 0) {
-					continue;
-				}
-				var parent = node.getNodeParent();
-				if (parent) {
-					parent.removeNodeChild(node, true);
-				}
-	
-				var children = node.getNodeChildren();
-				for (var j = 0; j < children.length; j++) {
-					var child = children[j];
-					node.removeNodeChild(child, true);
-				}
-	
-				node.setOrigin(DzVec3(0, 0, 0), false);
-				var translation = node.getWSPos();
-				translation = translation.add(pivotPoint);
-				node.setWSPos(translation);
-	
-				for (var j = 0; j < children.length; j++) {
-					var child = children[j];
-					node.addNodeChild(child, true);
-				}
-	
-				if (parent) {
-					parent.addNodeChild(node, true);
-				}
-			}
-		}
-	}
-	
-	function bakeAllPivots() {
-		var allNodes = Scene.getNodeList();
-		for (var i = 0; i < allNodes.length; i++) {
-			var node = allNodes[i];
-			if (node.getObject() && node.getObject().getCurrentShape() && node.inherits("DzSkeleton") == false) {
-				bakePivot(node);
-			}
-		}
-	
-	}
 
 	function main() {
 		// Run the function to replace instances with full copies
 		replaceInstancesWithCopies();
-		
-		// var selection = Scene.getPrimarySelection();
-		// bakePivot(selection);
-		
-		bakeAllPivots();
-		
+				
 		// Print completion message
-		print("Bake for full scene export script done.");
-	//	MessageBox.information("Bake for full scene export done.", "Script done", "OK");
+		print("Bake instances for full scene done.");
+//		MessageBox.information("Bake instances for full scene done.", "Script done", "OK");
 
 	}	
 	

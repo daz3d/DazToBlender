@@ -1,0 +1,132 @@
+// DAZ Studio version 4.22.0.16 filetype DAZ Script
+//
+// DB: 2024-09-30: This script bakes the pivot point of the selected node into the geometry of the node.
+// Version 5
+//
+
+(function(){	
+	
+	function bakePivot(node) {
+	    // // recursively bake pivot for descendents first
+	    // var children = node.getNodeChildren();
+	    // for (var i = 0; i < children.length; i++) {
+	    //     var child = children[i];
+	    //     if (child.getObject() && child.getObject().getCurrentShape()) {
+	    //         bakePivot(child);
+	    //     }
+	    // }
+	
+	    var object = node.getObject();
+	
+	    var pivotPoint = node.getOrigin(false);
+	    var inversePivot = pivotPoint.multiply(DzVec3(-1, -1, -1));
+	
+	    var pivotOrientation = node.getOrientation(true);
+	    var inversePivotOrientation = pivotOrientation.inverse();
+	
+	    var inverseMatrix = new DzMatrix3();
+	    inverseMatrix.makeIdentity();
+	    inverseMatrix.rotate(inversePivotOrientation);
+	    inverseMatrix.translate(inversePivot);
+	
+	    if (pivotPoint.x != 0 || pivotPoint.y != 0 || pivotPoint.z != 0) {
+	
+	        // print pivotPoint
+	        print("Baking pivot for " + object.getName());
+	        // print("Pivot Point: " + pivotPoint);
+	        // print("Inverse Pivot: " + inversePivot);
+	
+	        // bake pivotPoint into vertex positions
+	        var geometry = object.getCurrentShape().getGeometry();
+	        if (geometry) {                
+	            geometry.beginEdit();
+	            geometry.rotate(inversePivotOrientation);
+	            geometry.translate(inversePivot);
+	//            geometry.transform(inverseMatrix);
+	            geometry.finishEdit();
+	           
+	            updateAllLinkedNodes(geometry, pivotPoint, pivotOrientation);
+	        }
+	    }
+	}
+	
+	function updateAllLinkedNodes(geo, pivotPoint, pivotOrientation) {
+	    if (!geo) {
+	        return;
+	    }
+	    allNodes = Scene.getNodeList();
+	    for (var i = 0; i < allNodes.length; i++) {
+	        var node = allNodes[i];
+	        if (node.getObject() && 
+	            node.getObject().getCurrentShape() && 
+	            node.getObject().getCurrentShape().getGeometry() == geo) 
+	        {
+	            var thisPivot = node.getOrigin(false);
+	            if (thisPivot.x == 0 && thisPivot.y == 0 && thisPivot.z == 0) {
+	                continue;
+	            }
+	            var parent = node.getNodeParent();
+	            if (parent) {
+	                parent.removeNodeChild(node, true);
+	            }
+	
+	            var children = node.getNodeChildren();
+	            for (var j = 0; j < children.length; j++) {
+	                var child = children[j];
+	                node.removeNodeChild(child, true);
+	            }
+	
+	            node.setOrientation(DzQuat(0, 0, 0, 1), false);
+	            node.setOrigin(DzVec3(0, 0, 0), false);
+	
+	            var endTranslation = node.getEndPoint(false);
+	            var inversePivot = pivotPoint.multiply(DzVec3(-1, -1, -1));
+	            endTranslation = endTranslation.add(inversePivot);
+	            node.setEndPoint(endTranslation, false);
+	
+	            var orientation = node.getWSRot();
+	            orientation = pivotOrientation.multiply(orientation);
+	            node.setWSRot(orientation);
+	            var translation = node.getWSPos();
+	            translation = translation.add(pivotPoint);
+	            node.setWSPos(translation);
+	
+	            for (var j = 0; j < children.length; j++) {
+	                var child = children[j];
+	                node.addNodeChild(child, true);
+	            }
+	
+	            if (parent) {
+	                parent.addNodeChild(node, true);
+	            }
+	        }
+	    }
+	}
+	
+	function bakeAllPivots() {
+	    var allNodes = Scene.getNodeList();
+	    for (var i = 0; i < allNodes.length; i++) {
+	        var node = allNodes[i];
+	        if (node.getObject() && node.getObject().getCurrentShape() && node.inherits("DzSkeleton") == false) {
+	            bakePivot(node);
+	        }
+	    }
+	
+	}
+	
+	function main() {
+	    
+	    // var selection = Scene.getPrimarySelection();
+	    // bakePivot(selection);
+	    
+	    bakeAllPivots();
+	    
+	    // Print completion message
+	    print("Bake pivots for full scene done.");
+	 //   MessageBox.information("Bake pivots for full scene done.", "Script done", "OK");
+	
+	}	
+	
+	main();	
+	
+})();
