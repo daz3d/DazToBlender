@@ -773,6 +773,7 @@ def force_mixamo_compatible_materials():
     for mat in bpy.data.materials:
         if mat.node_tree is None:
             continue
+        _add_to_log("DEBUG: force_mixamo_compatible_materials(): processing material: " + mat.name)
         nodes = mat.node_tree.nodes
         if "Principled BSDF" in nodes:
             bsdf_node = mat.node_tree.nodes["Principled BSDF"]

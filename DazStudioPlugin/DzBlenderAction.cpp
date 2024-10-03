@@ -856,6 +856,7 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Generate Final Fbx", m_bGenerateFinalFbx);
 	writer.addMember("Generate Final Glb", m_bGenerateFinalGlb);
 	writer.addMember("Generate Final Usd", m_bGenerateFinalUsd);
+	writer.addMember("Use MaterialX", m_bUseMaterialX);
 	pDtuProgress->step();
 
 //	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")

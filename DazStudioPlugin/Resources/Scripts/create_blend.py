@@ -115,18 +115,30 @@ def _main(argv):
         with open(jsonPath, "r") as file:
             json_obj = json.load(file)
         # use_blender_tools = json_obj["Use Blender Tools"]
-        asset_type = json_obj["Asset Type"]
-        output_blend_filepath = json_obj["Output Blend Filepath"]
-        enable_embed_textures = json_obj["Embed Textures"]
-        generate_final_fbx = json_obj["Generate Final Fbx"]
-        generate_final_glb = json_obj["Generate Final Glb"]
-        generate_final_usd = json_obj["Generate Final Usd"]
-        use_material_x = json_obj["Use MaterialX"]
-        use_legacy_addon = json_obj["Use Legacy Addon"]
-        texture_atlas_mode = json_obj["Texture Atlas Mode"]
-        texture_atlas_size = json_obj["Texture Atlas Size"]
-        export_rig_mode = json_obj["Export Rig Mode"]
-        enable_gpu_baking = json_obj["Enable Gpu Baking"]
+        if "Asset Type" in json_obj:
+            asset_type = json_obj["Asset Type"]
+        if "Output Blend Filepath" in json_obj:
+            output_blend_filepath = json_obj["Output Blend Filepath"]
+        if "Embed Textures" in json_obj:
+            enable_embed_textures = json_obj["Embed Textures"]
+        if "Generate Final Fbx" in json_obj:
+            generate_final_fbx = json_obj["Generate Final Fbx"]
+        if "Generate Final Glb" in json_obj:
+            generate_final_glb = json_obj["Generate Final Glb"]
+        if "Generate Final Usd" in json_obj:
+            generate_final_usd = json_obj["Generate Final Usd"]
+        if "Use MaterialX" in json_obj:
+            use_material_x = json_obj["Use MaterialX"]
+        if "Use Legacy Addon" in json_obj:
+            use_legacy_addon = json_obj["Use Legacy Addon"]
+        if "Texture Atlas Mode" in json_obj:
+            texture_atlas_mode = json_obj["Texture Atlas Mode"]
+        if "Texture Atlas Size" in json_obj:
+            texture_atlas_size = json_obj["Texture Atlas Size"]
+        if "Export Rig Mode" in json_obj:
+            export_rig_mode = json_obj["Export Rig Mode"]
+        if "Enable Gpu Baking" in json_obj:
+            enable_gpu_baking = json_obj["Enable Gpu Baking"]
     except:
         print("ERROR: error occured while reading json file: " + str(jsonPath))
 
@@ -155,6 +167,7 @@ def _main(argv):
             G_DAZ_ADDON_ENABLED = True
 
     if use_legacy_addon and G_DAZ_ADDON_LOADED and G_DAZ_ADDON_ENABLED:
+        _add_to_log("DEBUG: main(): using legacy pathway...")
         DTB.Global.bNonInteractiveMode = 1
         DTB.Global.nSceneScaleOverride = 0.01
 
@@ -176,6 +189,8 @@ def _main(argv):
         DTB.Global.bNonInteractiveMode = 0
 
     else:
+        _add_to_log("DEBUG: main(): using modern pathway...")
+
         # load FBX
         _add_to_log("DEBUG: main(): loading fbx file: " + str(fbxPath))
         blender_tools.import_fbx(fbxPath, force_connect_bones)
@@ -191,11 +206,13 @@ def _main(argv):
 
     make_uv = True
     if texture_atlas_mode == "per_mesh":
+        _add_to_log("DEBUG: main(): converting to per mesh atlas...")
         bake_quality = 1
         for obj in bpy.data.objects:
             if obj.type == 'MESH' and obj.visible_get():
                 atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj, intermediate_folder_path, texture_atlas_size, bake_quality, make_uv, enable_gpu_baking)
     elif texture_atlas_mode == "single_atlas":
+        _add_to_log("DEBUG: main(): converting to single atlas...")
         texture_size = 2048
         bake_quality = 1
         # collect all meshes
