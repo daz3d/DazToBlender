@@ -749,7 +749,7 @@ void DzBlenderAction::executeAction()
 			}
 
 			QDir().mkdir(m_sDestinationPath);
-			m_bUseLegacyAddon = true;
+			m_bUseLegacyAddon = false;
 
 			exportProgress->step();
 			DzNodeList rootNodeList = BuildRootNodeList();

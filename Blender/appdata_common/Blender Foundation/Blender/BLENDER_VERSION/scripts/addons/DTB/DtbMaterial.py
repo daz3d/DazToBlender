@@ -320,10 +320,15 @@ class DtbShaders:
         # else:
         #     self.is_Alpha = False
 
+        if "Refraction Weight" in property_key and property_key["Refraction Weight"]["Value"] > 0:
+            self.is_Refract = True
+            self.is_Alpha = True
+
     def check_refract(self):
         if "Refraction Weight" in self.mat_property_dict.keys():
             if self.mat_property_dict["Refraction Weight"]["Value"] > 0:
                 self.is_Refract = True
+                self.is_Alpha = True
 
     def set_eevee_alpha(self, mat):
         if self.is_Alpha:
@@ -349,6 +354,7 @@ class DtbShaders:
         if self.is_Refract:
             mat.use_screen_refraction = True
             mat.refraction_depth = 0.8 * Global.get_size()
+            Versions.eevee_alpha(mat, "HASHED", 0)
 
     def find_node_property(self, input_key, mat_property_dict):
         property_key, property_type = input_key.split(": ")
@@ -462,8 +468,8 @@ class DtbShaders:
                         if "Opacity" in property_key:
                             print("DEBUG: DazToBlender: setup_materials(): property_key = Opacity, property_info = " + str(property_info))
                             alpha_file = property_info
-            if (color_file is not None 
-                and alpha_file is not None
+            if (color_file is not None and color_file != ""
+                and alpha_file is not None and alpha_file != ""
                 and color_file == alpha_file):
                 is_combined_diffuse_alpha = True
                 print("DEBUG: DazToBlender: DtbMaterial.py: setup_materials(): is_combined_diffuse_alpha = True, material: " + mat_name)
@@ -574,6 +580,11 @@ class DtbShaders:
                 # link pbsdf to outputs
                 mat_links.new(pbsdf.outputs["BSDF"], out_node_cy.inputs["Surface"])
                 mat_links.new(pbsdf.outputs["BSDF"], out_node_ev.inputs["Surface"])
+                # DB 2024-10-02: handle refraction weight
+                if self.is_Refract:
+                    # set iray opacity to 0.05
+                    if "Cutout Opacity: Value" in shader_node.inputs:
+                        shader_node.inputs["Cutout Opacity: Value"].default_value = 0.05
             elif node_group == "EyeWet":
                 pbsdf = mat_nodes.new(type="ShaderNodeBsdfPrincipled")
                 pbsdf.inputs["Metallic"].default_value = 1.0
