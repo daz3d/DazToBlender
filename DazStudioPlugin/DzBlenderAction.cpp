@@ -124,7 +124,7 @@ bool DzBlenderUtils::GenerateBlenderBatchFile(QString batchFilePath, QString sBl
 	QFile batchFileOut(batchFilePath);
 	bool bResult = batchFileOut.open(QIODevice::WriteOnly | QIODevice::OpenModeFlag::Truncate);
 	if (bResult) {
-		batchFileOut.write(sBatchString.toAscii().constData());
+		batchFileOut.write(sBatchString.toUtf8().constData());
 		batchFileOut.close();
 	}
 	else {
@@ -312,7 +312,9 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 			tr("Export from Daz Studio complete."), QMessageBox::Ok);
 
 #ifdef WIN32
-		ShellExecuteA(NULL, "open", sBlenderOutputPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
+//		ShellExecuteA(NULL, "open", sBlenderOutputPath.toUtf8().data(), NULL, NULL, SW_SHOWDEFAULT);
+		std::wstring wcsBlenderOutputPath(reinterpret_cast<const wchar_t*>(sBlenderOutputPath.utf16()));
+		ShellExecuteW(NULL, L"open", wcsBlenderOutputPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 #elif defined(__APPLE__)
 		QStringList args;
 		args << "-e";
@@ -339,16 +341,18 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 			sErrorString += QString("An error occured while running the Blender Python script (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("\nPlease check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
 			sErrorString += QString("\nYou can rerun the Blender command-line script manually using: %1").arg(batchFilePath);
-			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
 		}
 		else {
 			QString sErrorString;
 			sErrorString += QString("An error occured during the export process (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("Please check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
-			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toLocal8Bit()), QMessageBox::Ok);
+			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
 		}
 #ifdef WIN32
-		ShellExecuteA(NULL, "open", pBlenderAction->m_sDestinationPath.toLocal8Bit().data(), NULL, NULL, SW_SHOWDEFAULT);
+//		ShellExecuteA(NULL, "open", pBlenderAction->m_sDestinationPath.toUtf8().data(), NULL, NULL, SW_SHOWDEFAULT);
+		std::wstring wcsDestinationPath(reinterpret_cast<const wchar_t*>(pBlenderAction->m_sDestinationPath.utf16()));
+		ShellExecuteW(NULL, L"open", wcsDestinationPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 #elif defined(__APPLE__)
 		QStringList args;
 		args << "-e";
@@ -838,7 +842,11 @@ void DzBlenderAction::writeConfiguration()
 
 	QString DTUfilename = m_sDestinationPath + m_sExportFilename + ".dtu";
 	QFile DTUfile(DTUfilename);
-	DTUfile.open(QIODevice::WriteOnly);
+	if (!DTUfile.open(QIODevice::WriteOnly)) {
+		QString sErrorMessage = tr("ERROR: DzBridge: writeConfigureation(): unable to open file for writing: ") + DTUfilename;
+		dzApp->log(sErrorMessage);
+		return;
+	}
 	DzJsonWriter writer(&DTUfile);
 	writer.startObject(true);
 
@@ -1124,18 +1132,20 @@ FbxNode* GetMeshRootBone(FbxMesh* meshNode) {
 bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 {
 	bool result = DzBridgeAction::postProcessFbx(fbxFilePath);
-	//	if (!result) return false;
+	if (!result) return false;
 
 	if (m_bPostProcessFbx == false)
 		return false;
 
 	OpenFBXInterface* openFBX = OpenFBXInterface::GetInterface();
 	FbxScene* pScene = openFBX->CreateScene("Base Mesh Scene");
-	if (openFBX->LoadScene(pScene, fbxFilePath.toLocal8Bit().data()) == false)
+	if (openFBX->LoadScene(pScene, fbxFilePath.toUtf8().data()) == false)
 	{
-		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, "Error",
-			"An error occurred while processing the Fbx file...", QMessageBox::Ok);
-		printf("\n\nAn error occurred while processing the Fbx file...");
+		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->LoadScene(): ")
+			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		dzApp->log(sFbxErrorMessage);
+		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
+			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
 		return false;
 	}
 
@@ -1210,12 +1220,13 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		}
 	}
 
-	if (openFBX->SaveScene(pScene, fbxFilePath.toLocal8Bit().data()) == false)
+	if (openFBX->SaveScene(pScene, fbxFilePath.toUtf8().data()) == false)
 	{
-		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, "Error",
-			"An error occurred while processing the Fbx file...", QMessageBox::Ok);
-
-		printf("\n\nAn error occurred while processing the Fbx file...");
+		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->SaveScene(): ")
+			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		dzApp->log(sFbxErrorMessage);
+		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
+			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
 		return false;
 	}
 

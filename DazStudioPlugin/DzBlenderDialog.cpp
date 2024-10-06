@@ -28,6 +28,7 @@
 #include "DzBlenderDialog.h"
 #include "DzBridgeMorphSelectionDialog.h"
 #include "DzBridgeSubdivisionDialog.h"
+#include "DzBridgeAction.h"
 
 #include "version.h"
 
@@ -547,7 +548,10 @@ QMessageBox::Abort);
 	}
 
 	bool bInstallSuccessful = false;
-	bInstallSuccessful = installEmbeddedArchive(sBinariesFile, sPluginsPath);
+//	bInstallSuccessful = installEmbeddedArchive(sBinariesFile, sPluginsPath);
+	QString sEmbeddedFilePath = m_sEmbeddedFilesPath + "/" + sBinariesFile;
+	bInstallSuccessful = DZ_BRIDGE_NAMESPACE::DzBridgeAction::InstallEmbeddedArchive(sEmbeddedFilePath, sPluginsPath);
+
 
 	if (bInstallSuccessful)
 	{
