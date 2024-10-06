@@ -101,7 +101,7 @@ class ToRigify:
             return
         Global.convert_vgroups()  # Updates VertexGroups
         if len(Global.get_bone_limit()) == 0:  # Seems not Necessary
-            Global.bone_limit_modify()
+            Global.bone_limit_modify(self.dtu.get_bone_limits_dict())
         wm.progress_update(5)
         dobj = Global.getAmtr()
         Versions.select(dobj, True)
