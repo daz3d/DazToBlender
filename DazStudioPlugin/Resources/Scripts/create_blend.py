@@ -10,8 +10,8 @@ EXAMPLE:
 
     blender.exe --background --python create_blend.py "C:/Users/username/Documents/DAZ 3D/DazToBlender/Export/Genesis8Female.fbx"
 
-Version: 1.26
-Date: 2024-09-02
+Version: 1.29
+Date: 2024-11-07
 
 """
 
@@ -273,6 +273,7 @@ def _main(argv):
                                       use_selection=False, 
                                       export_animations=True,
                                       export_bake_animation=True,
+                                      export_animation_mode='ACTIVE_ACTIONS',
                                     #   export_normals=False,
                                       export_morph=True
                                     )
