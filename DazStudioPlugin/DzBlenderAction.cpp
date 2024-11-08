@@ -187,10 +187,16 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 	return true;
 }
 
+
+#define LOAD_BOOL_FROM_OPTION(var,str,opt) if (opt.contains(str)) { if (opt[str].toInt() > 0) { var = true; } else { var = false; } }
+#define LOAD_INT_FROM_OPTION(var,str,opt) if (opt.contains(str)) { var = opt[str].toInt(); }
+#define LOAD_STRING_FROM_OPTION(var,str,opt) if (opt.contains(str)) { var = opt[str]; }
+
 DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings* options)
 {
 	bool bDefaultToEnvironment = false;
-	if (DZ_BRIDGE_NAMESPACE::DzBridgeAction::SelectBestRootNodeForTransfer(false) == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+	auto eAssetType = DZ_BRIDGE_NAMESPACE::DzBridgeAction::SelectBestRootNodeForTransfer(false);
+	if (eAssetType == DZ_BRIDGE_NAMESPACE::EAssetType::Other || eAssetType == DZ_BRIDGE_NAMESPACE::EAssetType::Scene) {
 		bDefaultToEnvironment = true;
 	}
 
@@ -206,6 +212,67 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 		dzApp->log(QString("DEBUG: DzBlenderExporter: Options[%1]=[%2]").arg(key).arg(val) );
 	}
 
+	// Blender specific options
+	bool bRunSilent = false;
+	QString sAssetType = "";
+	QString sRigConversion = "";
+	bool bGenerateGlb = false;
+	bool bGenerateUsd = false;
+	bool bGenerateFbx = false;
+	bool bEmbedTextures = false;
+	LOAD_BOOL_FROM_OPTION(bRunSilent, "RunSilent", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bGenerateGlb, "GenerateGlb", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bGenerateUsd, "GenerateUsd", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bGenerateFbx, "GenerateFbx", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bEmbedTextures, "EmbedTextures", optionsMap);
+	LOAD_STRING_FROM_OPTION(sAssetType, "AssetType", optionsMap);
+	LOAD_STRING_FROM_OPTION(sRigConversion, "RigConversion", optionsMap);
+	// General Bridge options
+	bool bConvertToPng = false;
+	bool bConvertToJpg = false;
+	bool bExportAllTextures = false;
+	bool bCombineDiffuseAndAlphaMaps = false;
+	bool bResizeTextures = false;
+	QSize qTargetTextureSize = QSize(4096, 4096);
+	bool bMultiplyTextureValues = false;
+	bool bRecompressIfFileSizeTooBig = false;
+	int nFileSizeThresholdToInitiateRecompression = 1024 * 1024 * 10; // size in bytes
+	bool bForceReEncoding = false;
+	bool bBakeMakeupOverlay = false;
+	bool bBakeTranslucency = false;
+	bool bBakeSpecularToMetallic = false;
+	bool bBakeRefractionWeight = false;
+	LOAD_BOOL_FROM_OPTION(bConvertToPng, "ConverToPng", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bConvertToJpg, "ConvertToJpg", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bExportAllTextures, "ExportAllTextures", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bCombineDiffuseAndAlphaMaps, "CombineDiffuseAndAlphaMaps", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bResizeTextures, "ResizeTextures", optionsMap);
+	// qTargetTextureSize
+	if (optionsMap.contains("TargetTextureSize")) {
+		QString sTargetTextureSize = optionsMap["TargetTextureSize"];
+		if (sTargetTextureSize.contains(",")) {
+			auto values = sTargetTextureSize.split(",");
+			QString sWidth = values[0];
+			QString sHeight = values[1];
+			qTargetTextureSize.setWidth(sWidth.toInt());
+			qTargetTextureSize.setHeight(sHeight.toInt());
+		}
+	}
+	LOAD_BOOL_FROM_OPTION(bMultiplyTextureValues, "MultiplyTextureValues", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bRecompressIfFileSizeTooBig, "RecompressIfFileSizeTooBig", optionsMap);
+	LOAD_INT_FROM_OPTION(nFileSizeThresholdToInitiateRecompression, "FileSizeThresholdToInitiateRecompression", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bForceReEncoding, "ForceReEncoding", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bBakeMakeupOverlay, "BakeMakeupOverlay", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bBakeTranslucency, "BakeTranslucency", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bBakeSpecularToMetallic, "BakeSpecularToMetallic", optionsMap);
+	LOAD_BOOL_FROM_OPTION(bBakeRefractionWeight, "BakeRefractionWeight", optionsMap);
+
+	if (dzScene->getPrimarySelection() == NULL)
+	{
+		if (!bRunSilent) QMessageBox::critical(0, tr("No asset to export"), tr("There is no asset to export."), QMessageBox::Abort);
+		return DZ_OPERATION_FAILED_ERROR;
+	}
+
 	DzProgress exportProgress(tr("Blender Exporter starting..."), 100, false, true );
 	exportProgress.setInfo(QString("Exporting to:\n    \"%1\"\n").arg(filename));
 
@@ -215,7 +282,43 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	DzBlenderAction* pBlenderAction = new DzBlenderAction();
 	pBlenderAction->m_pSelectedNode = dzScene->getPrimarySelection();
 	pBlenderAction->m_sOutputBlendFilepath = QString(filename).replace("\\", "/");
-	pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
+	if (bRunSilent) {
+		pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterModeRunSilent);
+		if (sAssetType != "") {
+			pBlenderAction->setAssetType(sAssetType);
+		}
+		else {
+			pBlenderAction->setAssetType(eAssetType);
+		}
+		if (sRigConversion != "") {
+			pBlenderAction->m_sExportRigMode = sRigConversion;
+		}
+		//// BlenderExporter specific options which are blocked from regular bridge object scripting
+		pBlenderAction->m_bGenerateFinalGlb = bGenerateGlb;
+		pBlenderAction->m_bGenerateFinalFbx = bGenerateFbx;
+		pBlenderAction->m_bGenerateFinalUsd = bGenerateUsd;
+		pBlenderAction->m_bEmbedTexturesInOutputFile = bEmbedTextures;
+		//// General Bridge Options
+		pBlenderAction->setConvertToPng(bConvertToPng);
+		pBlenderAction->setConvertToJpg(bConvertToJpg);
+		pBlenderAction->setExportAllTextures(bExportAllTextures);
+		pBlenderAction->setExportAllTextures(bExportAllTextures);
+		pBlenderAction->setCombineDiffuseAndAlphaMaps(bCombineDiffuseAndAlphaMaps);
+		pBlenderAction->setResizeTextures(bResizeTextures);
+		// qTargetTextureSize
+		pBlenderAction->setTargetTexturesSize(qTargetTextureSize);
+		pBlenderAction->setMultiplyTextureValues(bMultiplyTextureValues);
+		pBlenderAction->setRecompressIfFileSizeTooBig(bRecompressIfFileSizeTooBig);
+		pBlenderAction->setFileSizeThresholdToInitiateRecompression(nFileSizeThresholdToInitiateRecompression);
+		pBlenderAction->setForceReEncoding(bForceReEncoding);
+		pBlenderAction->setBakeMakeupOverlay(bBakeMakeupOverlay);
+		pBlenderAction->setBakeTranslucency(bBakeTranslucency);
+		pBlenderAction->setBakeSpecularToMetallic(bBakeSpecularToMetallic);
+		pBlenderAction->setBakeRefractionWeight(bBakeRefractionWeight);
+	}
+	else {
+		pBlenderAction->setNonInteractiveMode(DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
+	}
 	pBlenderAction->createUI();
 	DzBlenderDialog* pDialog = qobject_cast<DzBlenderDialog*>(pBlenderAction->getBridgeDialog());
 
@@ -234,14 +337,17 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	pDialog->showBlenderToolsOptions(false);
 	pDialog->requireBlenderExecutableWidget(false);
 
-	if (pDialog->result() == QDialog::Rejected || nExecuteActionResult != DZ_NO_ERROR) {
+	if (
+		(!bRunSilent && pDialog->result() == QDialog::Rejected)
+		|| (nExecuteActionResult != DZ_NO_ERROR)
+		) {
 		exportProgress.cancel();
 		return DZ_USER_CANCELLED_OPERATION;
 	}
 
 	// if Blender Executable is not set, fail gracefully
 	if (pBlenderAction->m_sBlenderExecutablePath == "") {
-		QMessageBox::critical(0, tr("No Blender Executable Found"), tr("You must set the path to your Blender Executable. Aborting."), QMessageBox::Abort );
+		if (!bRunSilent) QMessageBox::critical(0, tr("No Blender Executable Found"), tr("You must set the path to your Blender Executable. Aborting."), QMessageBox::Abort );
 		return DZ_OPERATION_FAILED_ERROR;
 	}
 
@@ -308,7 +414,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	if (result)
 	{
 		exportProgress.update(100);
-		QMessageBox::information(0, "Blender Exporter",
+		if (!bRunSilent) QMessageBox::information(0, "Blender Exporter",
 			tr("Export from Daz Studio complete."), QMessageBox::Ok);
 
 #ifdef WIN32
@@ -341,13 +447,13 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 			sErrorString += QString("An error occured while running the Blender Python script (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("\nPlease check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
 			sErrorString += QString("\nYou can rerun the Blender command-line script manually using: %1").arg(batchFilePath);
-			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
+			if (!bRunSilent) QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
 		}
 		else {
 			QString sErrorString;
 			sErrorString += QString("An error occured during the export process (ExitCode=%1).\n").arg(pBlenderAction->m_nBlenderExitCode);
 			sErrorString += QString("Please check log files at : %1\n").arg(pBlenderAction->m_sDestinationPath);
-			QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
+			if (!bRunSilent) QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
 		}
 #ifdef WIN32
 //		ShellExecuteA(NULL, "open", pBlenderAction->m_sDestinationPath.toUtf8().data(), NULL, NULL, SW_SHOWDEFAULT);
@@ -652,9 +758,11 @@ void DzBlenderAction::executeAction()
 	// otherwise continue on and do the thing that required modal
 	// input from the user.
 	bool bDefaultToEnvironment = false;
-	if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
+	if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode &&
+		m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterModeRunSilent)
 	{
-		if (SelectBestRootNodeForTransfer(true) == DZ_BRIDGE_NAMESPACE::EAssetType::Other) {
+		auto result = SelectBestRootNodeForTransfer(true);
+		if (result == DZ_BRIDGE_NAMESPACE::EAssetType::Other || result == DZ_BRIDGE_NAMESPACE::EAssetType::Scene) {
 			bDefaultToEnvironment = true;
 		}
 		m_pSelectedNode = dzScene->getPrimarySelection();
@@ -1034,7 +1142,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 		if (m_sBlenderExecutablePath == "" || isInteractiveMode() ) m_sBlenderExecutablePath = pBlenderDialog->m_wBlenderExecutablePathEdit->text().replace("\\", "/");
 		
 		// if dzexporter mode, then read blender tools options
-		if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode) 
+		if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode)
 		{
 			m_bUseLegacyAddon = pBlenderDialog->getUseLegacyAddonCheckbox();
 			m_sTextureAtlasMode = pBlenderDialog->getTextureAtlasMode();
@@ -1047,7 +1155,7 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 			m_bGenerateFinalUsd = pBlenderDialog->getGenerateUsd();
 			m_bUseMaterialX = pBlenderDialog->getUseMaterialX();
 		}
-		else
+		else if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterModeRunSilent)
 		{
 			m_bUseLegacyAddon = false;
 			m_sOutputBlendFilepath = "";
@@ -1149,7 +1257,12 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		return false;
 	}
 
-	m_bExperimental_FbxPostProcessing = (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode);
+	m_bExperimental_FbxPostProcessing = false;
+	if (m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterMode ||
+		m_nNonInteractiveMode == DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::DzExporterModeRunSilent)
+	{
+		m_bExperimental_FbxPostProcessing = true;
+	}
 	if (m_bExperimental_FbxPostProcessing)
 	{
 		// Find the root bone.  There should only be one bone off the scene root
