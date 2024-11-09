@@ -22,6 +22,7 @@ from bpy.props import PointerProperty
 import os
 import json
 from copy import deepcopy
+import mathutils
 
 region = "UI"
 BV = Versions.getBV()
@@ -353,6 +354,12 @@ class IMP_OT_FBX(bpy.types.Operator):
 
 
             # DB 2024-06-14: work-around for dForce hair
+            object_correction_offset = None
+            if "Object Correction Offset" in dtu.dtu_dict and dtu.dtu_dict["Object Correction Offset"] is not None:
+                raw_value = dtu.dtu_dict["Object Correction Offset"]
+                if raw_value is not None and len(raw_value) == 3:
+                    object_correction_offset = mathutils.Vector((raw_value[0], raw_value[2], raw_value[1]))
+                print(*"DEBUG: IMP_OT_FBX.import_one(): object_correction_offset=" + str(object_correction_offset))
             if "dForce" in dtu.dtu_dict and dtu.dtu_dict["dForce"] is not None:
                 dforce_data = dtu.dtu_dict["dForce"]
                 for dforce_obj in dforce_data:
@@ -360,6 +367,12 @@ class IMP_OT_FBX(bpy.types.Operator):
                         obj_name = dforce_obj["Asset Name"]
                         if obj_name is not None:
                             obj = bpy.data.objects.get(obj_name + ".Shape")
+                            if obj is None:
+                                # find match with format "obj_name" + "_" + ignored_string_from_DS + ".Shape"
+                                for o in bpy.data.objects:
+                                    if o.name.startswith(obj_name + "_") and o.name.endswith(".Shape"):
+                                        obj = o
+                                        break
                             if obj is not None:
                                 # get DForce-Modifiers
                                 has_dforce_hairs = False
@@ -371,6 +384,12 @@ class IMP_OT_FBX(bpy.types.Operator):
                                                 has_dforce_hairs = True
                                                 break
                                 if has_dforce_hairs:
+                                    # apply bone correction to mesh
+                                    if object_correction_offset is not None:
+                                        print("DEBUG: IMP_OT_FBX.import_one(): applying bone correction to dForce hair object: " + obj.name + ", bone_correction_for_other_objects=" + str(object_correction_offset))
+                                        for v in obj.data.vertices:
+                                            # convert bone_correction from Mathutils.Vector to blender v.co
+                                            v.co += (object_correction_offset * 0.01)
                                     # check for vertex groups
                                     if len(obj.vertex_groups) == 0:
                                         # create vertex group

@@ -975,6 +975,16 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Use MaterialX", m_bUseMaterialX);
 	pDtuProgress->step();
 
+	if (m_pSelectedNode->inherits("DzFigure")) {
+		DzVec3 vObjectOffset(0, 0, 0);
+		bool result = DZ_BRIDGE_NAMESPACE::DzBridgeTools::CalculateRawOffset(m_pSelectedNode, vObjectOffset);
+		writer.startMemberArray("Object Correction Offset", true);
+		writer.addItem(-vObjectOffset.m_x);
+		writer.addItem(-vObjectOffset.m_y);
+		writer.addItem(-vObjectOffset.m_z);
+		writer.finishArray();
+	}
+
 //	if (m_sAssetType.toLower().contains("mesh") || m_sAssetType == "Animation")
 	if (true)
 	{
