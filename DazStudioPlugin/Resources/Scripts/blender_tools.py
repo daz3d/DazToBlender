@@ -9,8 +9,8 @@ Requirements:
     - Python 3+
     - Blender 3.6+
 
-Version: 1.26
-Date: 2024-09-02
+Version: 1.28
+Date: 2024-11-12
 
 """
 from pathlib import Path
@@ -565,19 +565,21 @@ def process_material(mat, lowres_mode=None):
             # links = data.node_tree.links
             # link = links.new(node_tex.outputs["Color"], bsdf_inputs["Emission"])
             
+            bsdf_inputs["Emission Strength"].default_value = 1.0
             # if blender version 4, use Emission Strength instead of Emission
             if bpy.app.version[0] >= 4:
-                _add_to_log("DEBUG: process_dtu(): using Emission Strength instead of emission for blender version 4")
-                load_cached_image_to_material(matName, "Emission Strength", "Color", emissionMap, 0.0, "Non-Color")
+                _add_to_log("DEBUG: process_dtu(): using Emission Color & Strength instead of emission for blender version 4")
+                load_cached_image_to_material(matName, "Emission Color", "Color", emissionMap, [0, 0, 0, 1], "Non-Color")
             else:
-                load_cached_image_to_material(matName, "Emission", "Color", emissionMap, [0, 0, 0, 0], "Non-Color")
+                load_cached_image_to_material(matName, "Emission", "Color", emissionMap, [0, 0, 0, 1], "Non-Color")
     else:
+        bsdf_inputs["Emission Strength"].default_value = 0.0
         # if blender version 4, use emission strength instead of emission
         if bpy.app.version[0] >= 4:
             _add_to_log("DEBUG: process_dtu(): using Emission Strength instead of emission for blender version 4")
-            bsdf_inputs["Emission Strength"].default_value = 0.0
+            bsdf_inputs["Emission Color"].default_value = [0, 0, 0, 1]
         else:
-            bsdf_inputs["Emission"].default_value = [0, 0, 0, 0]
+            bsdf_inputs["Emission"].default_value = [0, 0, 0, 1]
 
     if (normalMap != ""):
         if (not os.path.exists(normalMap)):
