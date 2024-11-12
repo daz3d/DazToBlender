@@ -226,20 +226,22 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 // Configure Target Plugin Installer
 	 renameTargetPluginInstaller("Blender Addon Installer");
 	 m_TargetSoftwareVersionCombo->clear();
-	 m_TargetSoftwareVersionCombo->addItem("Select Blender Version");
-     m_TargetSoftwareVersionCombo->addItem("Blender 2.83");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.0");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.1");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.2");
-	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path");
+	 // itemData string value will be used as installation subfolder name
+	 m_TargetSoftwareVersionCombo->addItem("Select Blender Version", "--");
+     m_TargetSoftwareVersionCombo->addItem("Blender 2.83", "2.83");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93", "2.93");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0", "3.0");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1", "3.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2", "3.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3", "3.3");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4", "3.4");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5", "3.5");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6", "3.6");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.0", "4.0");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.1", "4.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.2", "4.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.3", "4.3");
+	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path", "custom");
 	 showTargetPluginInstaller(true);
 
 	 // Make the dialog fit its contents, with a minimum width, and lock it down
@@ -409,56 +411,15 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
     QString sAppData = env.value("USERPROFILE") + "/Appdata/Roaming";
     QString sDestinationPath = sAppData + "/Blender Foundation/Blender";
 #endif
-	QString softwareVersion = m_TargetSoftwareVersionCombo->currentText();
-    if (softwareVersion.contains("2.83"))
-    {
-        sDestinationPath += "/2.83/scripts";
-    }
-    else if (softwareVersion.contains("2.93"))
+	QString softwareVersion = m_TargetSoftwareVersionCombo->itemData(m_TargetSoftwareVersionCombo->currentIndex()).toString();
+	if (softwareVersion == "" || softwareVersion == "--")
 	{
-		sDestinationPath += "/2.93/scripts";
+		// Warning, not a valid addons folder path
+		QMessageBox::information(0, "DazToBlender Bridge",
+			tr("Please select a Blender version."));
+		return;
 	}
-	else if (softwareVersion.contains("3.0"))
-	{
-		sDestinationPath += "/3.0/scripts";
-	}
-	else if (softwareVersion.contains("3.1"))
-	{
-		sDestinationPath += "/3.1/scripts";
-	}
-	else if (softwareVersion.contains("3.2"))
-	{
-		sDestinationPath += "/3.2/scripts";
-	}
-	else if (softwareVersion.contains("3.3"))
-	{
-		sDestinationPath += "/3.3/scripts";
-	}
-	else if (softwareVersion.contains("3.4"))
-	{
-		sDestinationPath += "/3.4/scripts";
-	}
-	else if (softwareVersion.contains("3.5"))
-	{
-		sDestinationPath += "/3.5/scripts";
-	}
-	else if (softwareVersion.contains("3.6"))
-	{
-		sDestinationPath += "/3.6/scripts";
-	}
-	else if (softwareVersion.contains("4.0"))
-	{
-		sDestinationPath += "/4.0/scripts";
-	}
-	else if (softwareVersion.contains("4.1"))
-	{
-		sDestinationPath += "/4.1/scripts";
-	}
-	else if (softwareVersion.contains("4.2"))
-	{
-		sDestinationPath += "/4.2/scripts";
-	}
-	else if (softwareVersion.contains("Custom"))
+	else if (softwareVersion == "custom")
 	{
 		// Get Destination Folder
 		sDestinationPath = QFileDialog::getExistingDirectory(this,
@@ -473,12 +434,8 @@ void DzBlenderDialog::HandleTargetPluginInstallerButton()
 			return;
 		}
 	}
-	else
-	{
-		// Warning, not a valid addons folder path
-		QMessageBox::information(0, "DazToBlender Bridge",
-			tr("Please select a Blender version."));
-		return;
+	else {
+		sDestinationPath += "/" + softwareVersion + "/scripts";
 	}
 
 	// fix path separators
