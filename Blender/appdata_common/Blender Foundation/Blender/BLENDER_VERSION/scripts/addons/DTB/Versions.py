@@ -32,12 +32,18 @@ def eevee_alpha(mat, mode, value):
         pass
     else:
         mat.blend_method = mode
-        if mode == "HASHED" or mode == "BLEND":
-            if mode == "BLEND":
-                mode = "CLIP"
-            mat.shadow_method = mode
-        if value > 0 and mode == "CLIP":
-            mat.alpha_threshold = value
+        if BV < 4.03:
+            if mode == "HASHED" or mode == "BLEND":
+                if mode == "BLEND":
+                    mode = "CLIP"
+                mat.shadow_method = mode
+            if value > 0 and mode == "CLIP":
+                mat.alpha_threshold = value
+        else:
+            if mode == "HASHED":
+                mat.surface_render_method = "DITHERED"
+            else:
+                mat.surface_render_method = "BLENDED"
 
 
 def rigify_finger():
