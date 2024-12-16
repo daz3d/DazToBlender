@@ -43,6 +43,10 @@ public:
 	DzError getExecutActionResult() { return m_nExecuteActionResult; }
 
 protected:
+	Q_INVOKABLE virtual void setUseLegacyPaths(bool arg) { m_bUseLegacyPaths = arg; }
+	Q_INVOKABLE virtual bool getUseLegacyPaths() { return m_bUseLegacyPaths; }
+	bool m_bUseLegacyPaths = true;
+
 	void executeAction() override;
 	 Q_INVOKABLE void writeConfiguration() override;
 	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;

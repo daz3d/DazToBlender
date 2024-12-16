@@ -1076,24 +1076,41 @@ QString DzBlenderAction::readGuiRootFolder()
 {
 	QString rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
 #if __LEGACY_PATHS__
-	if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+	if (m_bUseLegacyPaths) 
 	{
-		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG/FIG0";
-		rootFolder = rootFolder.replace("\\", "/");
+		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+		{
+			rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/FIG/FIG0";
+			rootFolder = rootFolder.replace("\\", "/");
+		}
+		else
+		{
+			rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV/ENV0";
+			rootFolder = rootFolder.replace("\\", "/");
+		}
+		if (m_bridgeDialog)
+		{
+			QLineEdit* intermediateFolderEdit = nullptr;
+			DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
+			if (blenderDialog)
+				intermediateFolderEdit = blenderDialog->getIntermediateFolderEdit();
+			if (intermediateFolderEdit)
+				rootFolder = intermediateFolderEdit->text().replace("\\", "/");
+		}
 	}
 	else
 	{
-		rootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/Exports/ENV/ENV0";
-		rootFolder = rootFolder.replace("\\", "/");
-	}
-	if (m_bridgeDialog)
-	{
-		QLineEdit* intermediateFolderEdit = nullptr;
-		DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
-		if (blenderDialog)
-			intermediateFolderEdit = blenderDialog->getIntermediateFolderEdit();
-		if (intermediateFolderEdit)
-			rootFolder = intermediateFolderEdit->text().replace("\\", "/");
+		if (m_bridgeDialog)
+		{
+			QLineEdit* intermediateFolderEdit = nullptr;
+			DzBlenderDialog* blenderDialog = qobject_cast<DzBlenderDialog*>(m_bridgeDialog);
+
+			if (blenderDialog)
+				intermediateFolderEdit = blenderDialog->getIntermediateFolderEdit();
+
+			if (intermediateFolderEdit)
+				rootFolder = intermediateFolderEdit->text().replace("\\", "/") + "/Daz3D";
+		}
 	}
 #else
 	if (m_bridgeDialog)
@@ -1121,27 +1138,30 @@ bool DzBlenderAction::readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog* BridgeDialog)
 	}
 
 #if __LEGACY_PATHS__
-	QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
-	if (m_sRootFolder == "")
-		m_sRootFolder = sDefaultRootFolder;
-	if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+	if (m_bUseLegacyPaths) 
 	{
-		m_sRootFolder = m_sRootFolder + "/Exports/FIG";
-		m_sRootFolder = m_sRootFolder.replace("\\", "/");
-		m_sExportSubfolder = "FIG0";
-		m_sExportFbx = "B_FIG";
-		m_sExportFilename = "FIG";
+		QString sDefaultRootFolder = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+		if (m_sRootFolder == "")
+			m_sRootFolder = sDefaultRootFolder;
+		if (m_sAssetType == "SkeletalMesh" || m_sAssetType == "Animation")
+		{
+			m_sRootFolder = m_sRootFolder + "/Exports/FIG";
+			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+			m_sExportSubfolder = "FIG0";
+			m_sExportFbx = "B_FIG";
+			m_sExportFilename = "FIG";
+		}
+		else
+		{
+			m_sRootFolder = m_sRootFolder + "/Exports/ENV";
+			m_sRootFolder = m_sRootFolder.replace("\\", "/");
+			m_sExportSubfolder = "ENV0";
+			m_sExportFbx = "B_ENV";
+			m_sExportFilename = "ENV";
+		}
+		m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
+		m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
 	}
-	else
-	{
-		m_sRootFolder = m_sRootFolder + "/Exports/ENV";
-		m_sRootFolder = m_sRootFolder.replace("\\", "/");
-		m_sExportSubfolder = "ENV0";
-		m_sExportFbx = "B_ENV";
-		m_sExportFilename = "ENV";
-	}
-	m_sDestinationPath = m_sRootFolder + "/" + m_sExportSubfolder + "/";
-	m_sDestinationFBX = m_sDestinationPath + m_sExportFbx + ".fbx";
 #endif
 
 	// Read Custom GUI values

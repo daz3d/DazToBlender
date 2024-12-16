@@ -361,8 +361,11 @@ void DzBlenderDialog::resetToDefaults()
 
 	m_bDontSaveSettings = true;
 
-//	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+#ifdef __LEGACY_PATHS__
 	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/DAZ 3D/Bridges/Daz To Blender/";
+#else
+	QString DefaultPath = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + QDir::separator() + "DazToBlender";
+#endif
 	m_wIntermediateFolderEdit->setText(DefaultPath);
 
 	m_bDontSaveSettings = false;
