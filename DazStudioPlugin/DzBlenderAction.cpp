@@ -1259,9 +1259,10 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 	FbxScene* pScene = openFBX->CreateScene("Base Mesh Scene");
 	if (openFBX->LoadScene(pScene, fbxFilePath) == false)
 	{
-		QString sFbxErrorMessage = tr("ERROR: DzBlenderBridge: openFBX->LoadScene(): ")
-			+ QString("(File: \"%1\") ").arg(fbxFilePath)
-			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		QString sFbxErrorMessage = tr("ERROR: DzBlenderBridge: openFBX->LoadScene():\n\n")
+			+ QString("File: \"%1\"\n\n").arg(fbxFilePath)
+			+ QString("FbxStatusCode: %1\n").arg(openFBX->GetErrorCode())
+			+ QString("Error Message: %1\n\n").arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
 		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
 			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
@@ -1346,9 +1347,10 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 
 	if (openFBX->SaveScene(pScene, fbxFilePath) == false)
 	{
-		QString sFbxErrorMessage = tr("ERROR: DzBlenderBridge: openFBX->SaveScene(): ")
-			+ QString("(File: \"%1\") ").arg(fbxFilePath)
-			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		QString sFbxErrorMessage = tr("ERROR: DzBlenderBridge: openFBX->SaveScene():\n\n")
+			+ QString("File: \"%1\"\n\n").arg(fbxFilePath)
+			+ QString("FbxStatusCode: %1\n").arg(openFBX->GetErrorCode())
+			+ QString("Error Message: %1\n\n").arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
 		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
 			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
