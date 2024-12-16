@@ -21,7 +21,7 @@
 	    b.select( true );
 	    if (recursive)
 	    {
-	        print("ERROR!!!!!: Attempting Duplicating node hierarchy: " + b.getLabel());
+	        print("ERROR: Attempted Duplicating node hierarchy: " + b.getLabel() + ", using single node duplication instead...");
 	        // Duplicate target node
 	//        triggerAction("DzDuplicateNodeHierarchyAction");
 	        triggerAction("DzDuplicateNodeAction");
@@ -46,8 +46,11 @@
 	    
 	    // parent to the same parent
 	    var parent = a.getNodeParent();
-	    parent.addNodeChild(newNode);
-	    parent.removeNodeChild(a);
+		if (parent != undefined && parent != null)
+		{
+			parent.addNodeChild(newNode);
+			parent.removeNodeChild(a);	
+		}
 	
 	    // Remove the old node
 	    Scene.removeNode(a);
@@ -98,7 +101,7 @@
 	        if (sInstanceMode.indexOf("Children") != -1)
 	        {
 	            if (!bTargetIsCircular) bRecursive = true;
-	            else print("ERROR!!!!!: Circular reference detected: " + target.getLabel());
+	            else print("ERROR: Circular reference detected: " + target.getLabel() + ", disabling recursive duplication...");
 	        }
 	        replaceAwithB( instance, target, bRecursive );
 	    }
