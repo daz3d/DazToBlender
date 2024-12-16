@@ -39,6 +39,8 @@
 
 #include "dzbridge.h"
 
+#include "ImageTools.h"
+
 int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, float fTimeoutInSeconds)
 {
 	// fork or spawn child process
@@ -682,6 +684,10 @@ DzBlenderAction::DzBlenderAction() :
 	QAction::setIcon(icon);
 	// Enable Optional Daz Bridge Behaviors
 
+	m_bDeferProcessingImageToolsJobs = true;
+	m_aKnownIntermediateFileExtensionsList += "blend";
+	m_aKnownIntermediateFileExtensionsList += "blend1";
+
 }
 
 bool DzBlenderAction::createUI()
@@ -849,6 +855,11 @@ void DzBlenderAction::executeAction()
 		QDir dir;
 		dir.mkpath(m_sRootFolder);
 		exportProgress->step();
+
+		// if InteractiveMode, clean intermediate folder
+		if (m_nNonInteractiveMode != DZ_BRIDGE_NAMESPACE::eNonInteractiveMode::ScriptMode) {
+			cleanIntermediateSubFolder(m_sExportSubfolder);
+		}
 
 		if (m_sAssetType == "Environment") {
 			// Sanity Check if zero nodes
@@ -1027,15 +1038,8 @@ void DzBlenderAction::writeConfiguration()
 		pDtuProgress->step();
 	}
 
-	//if (m_sAssetType == "Pose")
-	//{
-	//   writeAllPoses(writer);
-	//}
-
-	//if (m_sAssetType == "Environment")
-	//{
-	//	writeEnvironment(writer);
-	//}
+	m_ImageToolsJobsManager->processJobs();
+	m_ImageToolsJobsManager->clearJobs();
 
 	writer.finishObject();
 	DTUfile.close();
