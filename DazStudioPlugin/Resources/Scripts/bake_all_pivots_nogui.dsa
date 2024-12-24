@@ -1,7 +1,8 @@
 // DAZ Studio version 4.22.0.16 filetype DAZ Script
 //
+// DB: 2024-12-24: Added support to bake pivot for instances.
 // DB: 2024-09-30: This script bakes the pivot point of the selected node into the geometry of the node.
-// Version 5
+// Version 6
 //
 
 (function(){	
@@ -54,13 +55,34 @@
 	    if (!geo) {
 	        return;
 	    }
+		// print("DEBUG: updateAllLinkedNodes()....");
 	    allNodes = Scene.getNodeList();
 	    for (var i = 0; i < allNodes.length; i++) {
 	        var node = allNodes[i];
-	        if (node.getObject() && 
+			var bUpdateNode = false;
+
+			if (node.inherits("DzInstanceNode")) {
+				var target = node.getTarget();
+				if (target &&
+					target.getObject() && 
+	            	target.getObject().getCurrentShape() && 
+	            	target.getObject().getCurrentShape().getGeometry() == geo) 
+		        {
+					bUpdateNode = true;
+					// print("Updating link to baked pivot for instance " + node.getName());
+				}
+			}
+
+			if (node.getObject() && 
 	            node.getObject().getCurrentShape() && 
 	            node.getObject().getCurrentShape().getGeometry() == geo) 
 	        {
+				bUpdateNode = true;
+			}
+
+			if (bUpdateNode) 
+			{
+				// print("Updating link to baked pivot for " + node.getName());
 	            var thisPivot = node.getOrigin(false);
 	            if (thisPivot.x == 0 && thisPivot.y == 0 && thisPivot.z == 0) {
 	                continue;
