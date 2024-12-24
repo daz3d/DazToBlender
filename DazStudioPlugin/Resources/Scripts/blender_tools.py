@@ -9,8 +9,10 @@ Requirements:
     - Python 3+
     - Blender 3.6+
 
-Version: 1.28
-Date: 2024-11-12
+Version: 1.29
+Date: 2024-12-23
+
+- Fixed bug in process_dtu() causing infinite loop because bpy.data.objects is an active collection, not a static list.
 
 """
 from pathlib import Path
@@ -722,7 +724,8 @@ def process_dtu(jsonPath, lowres_mode=None):
             obj_data_dict[obj_asset_name] = obj_data
 
     # process objects, mapping to DTU data
-    for obj in bpy.data.objects:
+    original_list = list(bpy.data.objects)
+    for obj in original_list:
         # if obj.type != "MESH":
         #     continue
         obj_data = None
