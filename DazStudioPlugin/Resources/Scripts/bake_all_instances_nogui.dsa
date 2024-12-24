@@ -1,4 +1,8 @@
 // DAZ Studio version 4.22.0.16 filetype DAZ Script
+//
+// DB: 2024-12-24: Added crashfix for null parent condition
+// Version 4
+//
 
 (function(){
 	
@@ -46,7 +50,7 @@
 	    
 	    // parent to the same parent
 	    var parent = a.getNodeParent();
-		if (parent != undefined && parent != null)
+		if (parent != undefined || parent != null)
 		{
 			parent.addNodeChild(newNode);
 			parent.removeNodeChild(a);	

@@ -682,8 +682,10 @@ DzBlenderAction::DzBlenderAction() :
 	QIcon icon;
 	icon.addPixmap(basePixmap, QIcon::Normal, QIcon::Off);
 	QAction::setIcon(icon);
-	// Enable Optional Daz Bridge Behaviors
 
+	m_sEmbeddedFolderPath = ":/DazBridgeBlender";
+
+	// Enable Optional Daz Bridge Behaviors
 	m_bDeferProcessingImageToolsJobs = true;
 	m_aKnownIntermediateFileExtensionsList += "blend";
 	m_aKnownIntermediateFileExtensionsList += "blend1";

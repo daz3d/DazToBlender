@@ -1,11 +1,10 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
-    <qresource prefix="/DazBridge">
+    <qresource prefix="/DazBridgeBlender">
         <file alias="bake_all_pivots_nogui.dsa">Scripts/bake_all_pivots_nogui.dsa</file>
         <file alias="bake_all_instances_nogui.dsa">Scripts/bake_all_instances_nogui.dsa</file>
         <file alias="bake_rfn_nogui.dsa">Scripts/bake_rfn_nogui.dsa</file>
-    </qresource>
-    <qresource prefix="/DazBridgeBlender">
+
         <file alias="blenderaddon.zip">blenderaddon.zip</file>
         <file alias="icon">Images/Daz to Blender.png</file>
         <file alias="banner.jpg">Images/banner.jpg</file>
