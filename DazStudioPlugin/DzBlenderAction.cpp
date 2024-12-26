@@ -1014,6 +1014,7 @@ void DzBlenderAction::writeConfiguration()
 		if (m_sAssetType == "Environment") {
 			writeSceneMaterials(writer, pCVSStream);
 			pDtuProgress->step();
+			writeSceneDefinition(writer);
 		}
 		else {
 			writeAllMaterials(m_pSelectedNode, writer, pCVSStream);

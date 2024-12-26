@@ -9,9 +9,11 @@ Requirements:
     - Python 3+
     - Blender 3.6+
 
-Version: 1.29
-Date: 2024-12-23
+Version: 1.30
 
+2024-12-25
+- Added process_dtu_scene_definition() and DzInstance recreation
+2024-12-23
 - Fixed bug in process_dtu() causing infinite loop because bpy.data.objects is an active collection, not a static list.
 
 """
@@ -944,3 +946,114 @@ def fix_unreal_rig():
 
     print("DEBUG: fix_unreal_rig() done.")
     return
+
+##################### DTU Scene Definition Processing #####################
+# abstracted dictionary insertion for potential key optimization
+def map_object_to_uri(obj, uri, uri_to_obj_dict):
+    # create sub-dictionary if not present
+    if uri not in uri_to_obj_dict:
+        uri_to_obj_dict[uri] = obj
+    else:
+        print("DEBUG: URI " + uri + " already exists in uri_to_obj_dict")
+    return uri
+
+# abstracted dictionary lookup for potential key optimization
+def find_object_by_uri(uri, uri_to_obj_dict):
+    if uri in uri_to_obj_dict:
+        return uri_to_obj_dict[uri]
+    print("DEBUG: Could not find object with URI " + uri)
+    return None
+
+def create_linked_duplicate(source_obj, destination_parent_obj):
+    # deselect all objects
+    bpy.ops.object.select_all(action='DESELECT')
+    # select source_obj then perform linked duplicate
+    source_obj.select_set(True)
+    bpy.context.view_layer.objects.active = source_obj
+    bpy.ops.object.duplicate(linked=True)
+    dup = bpy.context.active_object
+    dup.name = destination_parent_obj.name + ".Shape"
+    # deselect all objects
+    bpy.ops.object.select_all(action='DESELECT')
+    # perform parent without inverse to destination_parent_obj
+    dup.select_set(True)
+    destination_parent_obj.select_set(True)
+    bpy.context.view_layer.objects.active = destination_parent_obj
+    bpy.ops.object.parent_no_inverse_set(keep_transform=False)
+    return dup
+
+def build_uri_to_obj_mapping(scene_definitions):
+    uri_to_obj_dict = {}
+    for node_definition in scene_definitions:
+        node_uri = node_definition["StudioSceneID"]
+        node_label = node_definition["StudioNodeLabel"]
+        node_class = node_definition["ClassName"]
+        # build node_ID (uri) to blender obj mapping
+        obj = None
+        search_label = node_label + ".Node"
+        if bpy.data.objects.find(search_label) != -1:
+            obj = bpy.data.objects[search_label]
+        if obj:
+            do_mapping = False
+            # double-check if obj is correct
+            if obj["StudioSceneID"] == node_uri:
+                do_mapping = True
+            else:
+                alternative_uri = "#" + node_uri.split("#")[1].replace("%20", " ")
+                if alternative_uri in obj["StudioSceneID"]:
+                    do_mapping = True
+                elif "Instance" in node_class:
+                    # print("INFO: StudioSceneID mismatch for instance node " + node_label + " [" + node_class + "] with obj_ID \"" + node_ID + "\", blind mapping to DTU based StudioSceneID.")
+                    do_mapping = True
+                else:
+                    print("DEBUG: StudioSceneID mismatch for object " + node_label + " [" + node_class + "] with URI \"" + node_uri + "\", skipping...")
+                    continue
+            if do_mapping:
+                map_object_to_uri(obj, node_uri, uri_to_obj_dict)
+        else:
+            print("DEBUG: Could not find object with label " + search_label + ", skipping...")
+    return uri_to_obj_dict
+
+def recreate_instances(scene_definitions, uri_to_obj_dict):
+    restored_instance_count = 0
+    for node_definition in scene_definitions:
+        node_class = node_definition["ClassName"]
+        if "Instance" not in node_class:
+            continue
+        node_uri = node_definition["StudioSceneID"]
+        node_label = node_definition["StudioNodeLabel"]
+        target_ID = node_definition["TargetSceneID"]
+        obj = find_object_by_uri(node_uri, uri_to_obj_dict)
+        if not obj:
+            print("ERROR: Could not find object with URI " + node_uri + ", skipping...")
+            continue
+        if obj and target_ID != "":
+            target_obj = find_object_by_uri(target_ID, uri_to_obj_dict)
+            if target_obj:
+                # get child of obj of type MESH
+                mesh = None
+                for child in target_obj.children:
+                    if child.type == "MESH":
+                        mesh = child
+                        break
+                if mesh:
+                    restored_instance_count += 1
+                    print("INFO: [" + str(restored_instance_count) + "] linking instance " + node_label + " to target " + target_obj.name)
+                    create_linked_duplicate(mesh, obj)
+                    continue
+            else:
+                print("ERROR: Could not find target object with URI " + target_ID + ", skipping...")
+                continue
+    return
+
+def process_scene_definition(dtu_dict):
+    if "SceneDefinition" not in dtu_dict:
+        print("DEBUG: No SceneDefinition found in DTU file.")
+        return
+
+    scene_definitions = dtu_dict["SceneDefinition"]
+    uri_to_obj_dict = build_uri_to_obj_mapping(scene_definitions)
+    recreate_instances(scene_definitions, uri_to_obj_dict)
+
+    return
+##################### DTU Scene Definition Processing #####################
