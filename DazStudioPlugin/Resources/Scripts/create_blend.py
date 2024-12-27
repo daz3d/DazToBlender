@@ -10,8 +10,11 @@ EXAMPLE:
 
     blender.exe --background --python create_blend.py "C:/Users/username/Documents/DAZ 3D/DazToBlender/Export/Genesis8Female.fbx"
 
-Version: 1.29
-Date: 2024-11-07
+Version: 1.30
+Date: 2024-12-26
+- Added support for instance recreation
+- Dtu material deduplication
+- Bugfixed USDZ for Blender 3.6
 
 """
 
@@ -199,6 +202,9 @@ def _main(argv):
         _add_to_log("DEBUG: main(): loading json file: " + str(jsonPath))
         dtu_dict = blender_tools.process_dtu(jsonPath)
 
+    blender_tools.deduplicate_blender_materials()
+    blender_tools.process_scene_definition(dtu_dict)
+
     debug_blend_file = False
     if debug_blend_file:
         debug_blend_file = fbxPath.replace(".fbx", "_debug.blend")
@@ -309,7 +315,19 @@ def _main(argv):
     if generate_final_usd:
         usd_output_file_path = blenderFilePath.replace(".blend", ".usdz")
         # if blender < 4, don't use extra options
-        if bpy.app.version < (4, 2, 0):
+        if bpy.app.version < (4, 0, 0):
+            try:
+                _add_to_log("DEBUG: Using older version of USD Exporter for Blender: " + str(bpy.app.version))
+                bpy.ops.wm.usd_export(filepath=usd_output_file_path,
+                                        export_textures = True,
+                                        export_animation = True,
+                                        )
+                _add_to_log("DEBUG: save completed.")
+            except Exception as e:
+                _add_to_log("ERROR: unable to save Final USD file: " + usd_output_file_path)
+                _add_to_log("EXCEPTION: " + str(e))
+                raise e
+        elif bpy.app.version < (4, 2, 0):
             try:
                 _add_to_log("DEBUG: Using older version of USD Exporter for Blender: " + str(bpy.app.version))
                 bpy.ops.wm.usd_export(filepath=usd_output_file_path,

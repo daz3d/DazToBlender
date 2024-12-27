@@ -9,8 +9,12 @@ Requirements:
     - Python 3+
     - Blender 3.6+
 
-Version: 1.30
+Version: 1.32
 
+2024-12-26
+- Bugfix for duplicate materials
+- Bugfix for Instance labels
+- Refactored node rename with dtu labels
 2024-12-25
 - Added process_dtu_scene_definition() and DzInstance recreation
 2024-12-23
@@ -24,6 +28,8 @@ logFilename = "blender_tools.log"
 
 ## Do not modify below
 import sys, json, os
+import re
+
 try:
     import bpy
     import NodeArrange
@@ -694,6 +700,67 @@ def load_dtu(jsonPath):
     return jsonObj
 
 
+def rename_with_dtu_labels(obj_data_dict):
+    # process objects, mapping to DTU data
+    fix_duplicate_name_list = []
+    original_list = list(bpy.data.objects)
+    for obj in original_list:
+        # if obj.type != "MESH":
+        #     continue
+        obj_data = None
+        studio_label = None
+        studio_name = None
+        has_custom_properties = False
+        # if custom properties are present, use them instead of DTU data
+        try:
+            studio_label = obj["StudioNodeLabel"]
+            studio_name = obj["StudioNodeName"]
+            has_custom_properties = True
+        except:
+            if ".Shape" not in obj.name:
+                print("ERROR: process_dtu(): unable to retrieve StudioNodeLabel/StudioNodeName Custom Properties for object: " + obj.name)
+            studio_name = obj.name.replace(".Shape", "")
+        if studio_name in obj_data_dict:
+            obj_data = obj_data_dict[studio_name]
+            studio_label = obj_data["StudioNodeLabel"]
+        # populate custom data using DTU if custom properties were not found
+        if has_custom_properties == False:
+            if obj_data is not None:
+                obj["StudioNodeLabel"] = obj_data["StudioNodeLabel"]
+                obj["StudioNodeName"] = obj_data["StudioNodeName"]
+                obj["StudioSceneID"] = obj_data["StudioSceneID"]
+            else:
+                print("DEBUG: process_dtu(): unable to find DTU data to recreate custom properties for object: " + obj.name)
+        # rename object name to label
+        if studio_label is not None:
+            # skip hardcoded objects
+            if obj.name.lower().replace(".shape","") in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
+                continue
+            if obj.name.lower() in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
+                continue
+            correct_label = studio_label
+            if obj.type == "MESH":
+                correct_label = studio_label + ".Shape"
+            elif obj.type == "EMPTY":
+                correct_label = studio_label + ".Node"
+            print("DEBUG: process_dtu(): renaming object: " + obj.name + " to " + correct_label)
+            obj.name = correct_label
+            # check for duplicate names
+            if obj.name != correct_label:
+                fix_duplicate_name_list.append([obj, correct_label])
+
+    # perform second pass to fix duplicate names
+    for pair in fix_duplicate_name_list:
+        obj = pair[0]
+        correct_label = pair[1]
+        if correct_label in bpy.data.objects:
+            _add_to_log("ERROR: process_dtu(): duplicate object name found: " + correct_label)
+            continue
+        obj.name = correct_label
+    
+    return
+
+
 def process_dtu(jsonPath, lowres_mode=None):
     _add_to_log("DEBUG: process_dtu(): json file = " + jsonPath)
     jsonObj = {}
@@ -713,56 +780,38 @@ def process_dtu(jsonPath, lowres_mode=None):
 
     # extract object, label and type from materials
     obj_data_dict = {}
-    for mat in materialsList:
-        obj_asset_name = mat["Asset Name"]
-        obj_asset_label = mat["Asset Label"]
-        obj_asset_type = mat["Value"]
-        if obj_asset_name not in obj_data_dict:
+    # prefer to use scene definition if available
+    scene_definition = None
+    if "SceneDefinition" in jsonObj:
+        scene_definition = jsonObj["SceneDefinition"]
+        for obj_def in scene_definition:
+            obj_asset_name = obj_def["StudioNodeName"]
+            obj_asset_label = obj_def["StudioNodeLabel"]
+            obj_asset_type = obj_def["ClassName"]
+            obj_asset_uri = obj_def["StudioSceneID"]
             obj_data = {
-                "Asset Name": obj_asset_name,
-                "Asset Label": obj_asset_label,
-                "Asset Type": obj_asset_type
+                "StudioNodeName": obj_asset_name,
+                "StudioNodeLabel": obj_asset_label,
+                "StudioClassName": obj_asset_type,
+                "StudioSceneID": obj_asset_uri,
             }
             obj_data_dict[obj_asset_name] = obj_data
+    else:
+        for mat in materialsList:
+            obj_asset_name = mat["Asset Name"]
+            obj_asset_label = mat["Asset Label"]
+            obj_asset_type = mat["Value"]
+            obj_asset_uri = ""
+            if obj_asset_name not in obj_data_dict:
+                obj_data = {
+                    "StudioNodeName": obj_asset_name,
+                    "StudioNodeLabel": obj_asset_label,
+                    "StudioClassName": obj_asset_type,
+                    "StudioSceneID": obj_asset_uri
+                }
+                obj_data_dict[obj_asset_name] = obj_data
 
-    # process objects, mapping to DTU data
-    original_list = list(bpy.data.objects)
-    for obj in original_list:
-        # if obj.type != "MESH":
-        #     continue
-        obj_data = None
-        studio_label = None
-        studio_name = None
-        has_custom_properties = False
-        # if custom properties are present, use them instead of DTU data
-        try:
-            studio_label = obj["StudioNodeLabel"]
-            studio_name = obj["StudioNodeName"]
-            has_custom_properties = True
-        except:
-            print("ERROR: process_dtu(): unable to retrieve StudioNodeLabel/StudioNodeName Custom Properties for object: " + obj.name)
-            studio_name = obj.name.replace(".Shape", "")            
-        if studio_name in obj_data_dict:
-            obj_data = obj_data_dict[studio_name]
-            studio_label = obj_data["Asset Label"]
-        # populate custom data using DTU if custom properties were not found
-        if has_custom_properties == False and obj_data is not None:
-            obj["StudioNodeLabel"] = obj_data["Asset Label"]
-            obj["StudioNodeName"] = obj_data["Asset Name"]
-            obj["StudioPresentationType"] = obj_data["Asset Type"]
-        # rename object name to label
-        if studio_label is not None:
-            # skip hardcoded objects
-            if obj.name.lower().replace(".shape","") in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
-                continue
-            if obj.name.lower() in ["genesis9tear", "genesis9eyes", "genesis9mouth", "genesis9"]:
-                continue
-            print("DEBUG: process_dtu(): renaming object: " + obj.name + " to " + studio_label)
-            obj.name = studio_label
-            if obj.type == "MESH":
-                obj.name = studio_label + ".Shape"
-            elif obj.type == "EMPTY":
-                obj.name = studio_label + ".Node"
+    rename_with_dtu_labels(obj_data_dict)
 
     apply_dtu_materials(jsonObj, lowres_mode)
 
@@ -972,7 +1021,14 @@ def create_linked_duplicate(source_obj, destination_parent_obj):
     bpy.context.view_layer.objects.active = source_obj
     bpy.ops.object.duplicate(linked=True)
     dup = bpy.context.active_object
-    dup.name = destination_parent_obj.name + ".Shape"
+    # match name with .Node at end of string
+    regex = re.compile(r'^(.*)\.Node$')
+    match = regex.search(destination_parent_obj.name)
+    if match:
+        # extract name without .Node, then append .Shape
+        dup.name = match.group(1) + ".Shape"
+    else:
+        dup.name = destination_parent_obj.name + ".Shape"
     # deselect all objects
     bpy.ops.object.select_all(action='DESELECT')
     # perform parent without inverse to destination_parent_obj
@@ -1057,3 +1113,27 @@ def process_scene_definition(dtu_dict):
 
     return
 ##################### DTU Scene Definition Processing #####################
+
+def deduplicate_blender_materials():
+    # iterate through each mesh and check material slots, assume ".001, .002, etc." are duplicates
+    for obj in bpy.data.objects:
+        if obj.type == "MESH":
+            for slot in obj.material_slots:
+                mat = slot.material
+                if mat is None:
+                    continue
+                mat_name = mat.name
+                # create regex to match form ".001, .002, etc."
+                regex = re.compile(r'^(.*)\.\d+$')
+                # find match
+                match = regex.search(mat_name)
+                if match:
+                    # if match found, remove the ".001, .002, etc." part
+                    mat_name = match.group(1)
+                    # check if deduplicated material exists
+                    if mat_name in bpy.data.materials:
+                        dedup_mat = bpy.data.materials[mat_name]
+                        # assign deduplicated material to slot
+                        slot.material = dedup_mat
+                        print("INFO: deduplicate_blender_materials(): deduplicated material " + mat.name + " to " + dedup_mat.name)
+

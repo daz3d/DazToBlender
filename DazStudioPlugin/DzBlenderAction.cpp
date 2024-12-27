@@ -879,9 +879,8 @@ void DzBlenderAction::executeAction()
 			exportProgress->step();
 			DzNodeList rootNodeList = BuildRootNodeList();
 			m_pSelectedNode = rootNodeList[0];
-			foreach(DzNode* pNode, rootNodeList) {
-				preProcessScene(pNode);
-			}
+			preProcessScene(NULL);
+
 			DzExportMgr* ExportManager = dzApp->getExportMgr();
 			DzExporter* Exporter = ExportManager->findExporterByClassName("DzFbxExporter");
 			DzFileIOSettings ExportOptions;
