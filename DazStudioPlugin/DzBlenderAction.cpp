@@ -878,6 +878,12 @@ void DzBlenderAction::executeAction()
 
 			exportProgress->step();
 			DzNodeList rootNodeList = BuildRootNodeList();
+			if (rootNodeList.isEmpty()) {
+				exportProgress->finish();
+				exportProgress->cancel();
+				m_nExecuteActionResult = DZ_OPERATION_FAILED_ERROR;
+				return;
+			}
 			m_pSelectedNode = rootNodeList[0];
 			preProcessScene(NULL);
 
