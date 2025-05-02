@@ -807,7 +807,7 @@ void DzBlenderAction::executeAction()
 			m_MorphNamesToExport.clear();
 			foreach(QString morphName, m_aMorphListOverride)
 			{
-				QString label = m_morphSelectionDialog->GetMorphLabelFromName(morphName);
+//				QString label = MorphTools::GetMorphLabelFromName(morphName, m_pSelectedNode);
 				m_MorphNamesToExport.append(morphName);
 			}
 		}

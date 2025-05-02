@@ -97,7 +97,11 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 //	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
 	 item = model->findItems("Pose").first();
 	 if (item) item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
-	 
+
+	 // enable invisible options
+	 m_wAutoJCMCheckBox->setVisible(true);
+	 m_wFakeDualQuatCheckBox->setVisible(false);
+
 	 // Select Blender Executable Path GUI
 	 m_wRequiredInputFrame = new QGroupBox();
 //	 m_wRequiredInputFrame->setStyleSheet("QGroupBox { border: 2px solid red; }");
@@ -324,11 +328,18 @@ void DzBlenderDialog::accept()
 	}
 
 	bool bResult = HandleAcceptButtonValidationFeedback();
-	if (bResult == true)
-	{
-		saveSettings();
-		return DzBasicDialog::accept();
+	if (bResult == false) {
+		return;
 	}
+
+	bResult = sanityChecksAndWarnUser();
+	if (bResult == false) {
+		return;
+	}
+
+	saveSettings();
+	return DzBasicDialog::accept();
+
 }
 
 void DzBlenderDialog::saveSettings()
