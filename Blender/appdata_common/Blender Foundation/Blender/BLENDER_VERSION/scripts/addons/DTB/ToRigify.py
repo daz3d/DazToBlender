@@ -11,6 +11,15 @@ from . import DataBase
 from . import Util
 
 
+
+LAYERS_MAP = {
+    3: "Torso",
+    4: "Torso (Tweak)",
+    15: "Leg.L (Tweak)",
+    18: "Leg.R (Tweak)",
+}
+
+
 class ToRigify:
     notEnglish = False
     amtr_objs = []
@@ -239,13 +248,13 @@ class ToRigify:
                                 eb.parent = robj.data.edit_bones["toe.R"]
                             else:
                                 eb.parent = robj.data.edit_bones["toe_ik.R"]
-                            self.to_layer(eb, 18)
+                            self.to_layer(robj, eb, 18)
                         else:
                             if bpy.app.version < (3, 1):
                                 eb.parent = robj.data.edit_bones["toe.L"]
                             else:
                                 eb.parent = robj.data.edit_bones["toe_ik.L"]
-                            self.to_layer(eb, 15)
+                            self.to_layer(robj, eb, 15)
                         find = True
                     else:
                         for combi in parent_combis:
@@ -270,18 +279,30 @@ class ToRigify:
                                             eb.parent = robj.data.edit_bones.get(
                                                 nparent
                                             )
-                                            self.to_layer(eb, 3)
+                                            self.to_layer(robj, eb, 3)
                                             find = True
                                             break
                     if find == False:
                         eb.parent = robj.data.edit_bones["torso"]
-                        self.to_layer(eb, 3)
+                        self.to_layer(robj, eb, 3)
 
-    def to_layer(self, ebone, lnum):
-        ebone.layers[lnum] = True
-        for i in range(32):
-            if i != lnum:
-                ebone.layers[i] = False
+    def to_layer(self, robj, ebone, lnum, remove=False):
+        if bpy.app.version[0] >= 4:
+            # may also work but is less predictable
+            # collection = robj.data.collections[lnum]
+            collection_name = LAYERS_MAP[lnum]
+            collection = robj.data.collections.get(collection_name)
+            if collection is None:
+                collection = robj.data.collections.new(collection_name)
+            if remove:
+                collection.unassign(ebone)
+            else:
+                collection.assign(ebone)
+        else:
+            ebone.layers[lnum] = True
+            for i in range(32):
+                if i != lnum:
+                    ebone.layers[i] = False
 
     def toToeWeight1(self, dobj):
         Versions.active_object(dobj)
@@ -341,8 +362,9 @@ class ToRigify:
                 pbs[bs[2]].custom_shape = Util.allobjs().get(bs[3])
                 #blender 3.0 break change
                 Versions.handle_custom_shape_scale(pbs[bs[2]], 6.0)
-            Global.getRgfyBones()[bs[2]].layers[3] = True
-            Global.getRgfyBones()[bs[2]].layers[4] = False
+            ebone = Global.getRgfyBones()[bs[2]]
+            self.to_layer(rig, ebone, 3)
+            self.to_layer(rig, ebone, 4, remove=True)
             for i in range(3):
                 Global.getRgfy().pose.bones[bs[2]].lock_rotation[i] = False
         Global.setRgfy_name("rig" + Util.get_dzidx())
