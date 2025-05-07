@@ -231,21 +231,27 @@ DzBlenderDialog::DzBlenderDialog(QWidget* parent, const QString& windowTitle) :
 	 renameTargetPluginInstaller("Blender Addon Installer");
 	 m_TargetSoftwareVersionCombo->clear();
 	 // itemData string value will be used as installation subfolder name
-	 m_TargetSoftwareVersionCombo->addItem("Select Blender Version", "--");
-     m_TargetSoftwareVersionCombo->addItem("Blender 2.83", "2.83");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93", "2.93");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0", "3.0");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1", "3.1");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2", "3.2");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3", "3.3");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4", "3.4");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5", "3.5");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6", "3.6");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.0", "4.0");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.1", "4.1");
-	 m_TargetSoftwareVersionCombo->addItem("Blender 4.2", "4.2");
+	 m_TargetSoftwareVersionCombo->addItem(tr("Select a Blender Version then click Install Plugin..."), "--");
+	 //// NOTE: To add support for a new version, you just need to add a new label and itemdata string to the list with addItem
+	 ////       Requirement: itemdata must be a string that matches the folder name / version number system used by Blender
+	 ////		The HandleTargetPluginInstallerButton() method will do the rest of evaluating the absolute path based on the
+	 ////		itemdata string and copying files
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.5 LTS", "4.5");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.4", "4.4");
 	 m_TargetSoftwareVersionCombo->addItem("Blender 4.3", "4.3");
-	 m_TargetSoftwareVersionCombo->addItem("Custom Addon Path", "custom");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.2 LTS", "4.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.1", "4.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 4.0", "4.0");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.6 LTS", "3.6");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.5", "3.5");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.4", "3.4");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.3 LTS", "3.3");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.2", "3.2");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.1", "3.1");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 3.0", "3.0");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 2.93 LTS", "2.93");
+	 m_TargetSoftwareVersionCombo->addItem("Blender 2.83 LTS", "2.83");
+	 m_TargetSoftwareVersionCombo->addItem(tr("Let me choose my Blender Installation"), "custom");
 	 showTargetPluginInstaller(true);
 
 	 // Make the dialog fit its contents, with a minimum width, and lock it down
@@ -270,7 +276,7 @@ Recommend using the lowest version of Blender LTS that is compatible with your p
 	 QString sAssetNameHelp = tr("This is the name the asset will use in Blender.");
 	 QString sAssetTypeHelp = tr("Skeletal Mesh for something with moving parts, like a character\nStatic Mesh for things like props\nAnimation for a character animation.");
 	 QString sIntermediateFolderHelp = tr("DazToBlender will collect the assets in a subfolder under this folder.  Blender will import them from here.");
-	 QString sTargetPluginInstallerHelp = tr("You can install the Blender Addon by selecting the desired Blender version and then clicking Install.");
+	 QString sTargetPluginInstallerHelp = tr("You can install the Blender Addon by selecting the desired Blender version and then clicking Install Plugin...");
 
 	 assetNameEdit->setToolTip(sAssetNameHelp);
 	 assetNameEdit->setWhatsThis(sAssetNameHelp);
