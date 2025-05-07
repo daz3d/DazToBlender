@@ -3,7 +3,7 @@ A Daz Studio Plugin based on Daz Bridge Library, allowing transfer of Daz Studio
 
 * Owner: [Daz 3D][OwnerURL] – [@Daz3d][TwitterURL]
 * License: [Apache License, Version 2.0][LicenseURL] - see ``LICENSE`` and ``NOTICE`` for more information.
-* Offical Release: [Daz to Blender Bridge][ProductURL]
+* Official Release: [Daz to Blender Bridge][ProductURL]
 * Official Project: [github.com/daz3d/DazToBlender][RepositoryURL]
 
 
@@ -93,7 +93,7 @@ Setup and configuration of the build system is done via CMake to generate projec
 
 Download or clone the DazToBlender github repository to your local machine. The Daz Bridge Library is linked as a git submodule to the DazBridge repository. Depending on your git client, you may have to use `git submodule init` and `git submodule update` to properly clone the Daz Bridge Library.
 
-The build setup process is designed to be run with CMake gui in an interactive session.  After setting up the source code folder and an output folder, the user can click Configure.  CMake will stop during the configurtaion process to prompt the user for the following paths:
+The build setup process is designed to be run with CMake gui in an interactive session.  After setting up the source code folder and an output folder, the user can click Configure.  CMake will stop during the configuration process to prompt the user for the following paths:
 
 -	DAZ_SDK_DIR – the root folder to the Daz Studio 4.5+ SDK.  This MUST be the version purchased from the Daz Store and installed via the DIM.  Any other versions will NOT work with this source code project and result in build errors and failure. example: C:/Users/Public/Documents/My DAZ 3D Library/DAZStudio4.5+ SDK
 -	DAZ_STUDIO_EXE_DIR – the folder containing the Daz Studio executable file.  example: C:/Program Files/DAZ 3D/DAZStudio4
