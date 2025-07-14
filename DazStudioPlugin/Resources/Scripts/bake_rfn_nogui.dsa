@@ -1,4 +1,5 @@
 // DAZ Studio version 4.22.0.16 filetype DAZ Script
+// BakeRfn Version 1.7, 2025-07-14, DB: bugfix for rigged Rfn children support (skip them)
 // BakeRfn Version 1.6, 2025-07-14, DB: bugfix crash when primary selection does not have geometry / dzobject
 // BakeRfn Version 1.5, 2025-07-14, DB: bugfix incorrect Obj file export/import due to unfinalized nodes when viewport not visible
 // BakeRfn Version 1.4, 2025-07-11, DB: disabled debug logging, code cleanup
@@ -15,6 +16,8 @@
 
     var aMorphProperties = [];
     var oMorphValues = {};    
+
+    var aSafeNodes = [];
 
     function getWeights(oTarget, aReferenceVertexIndexList)
     {
@@ -163,6 +166,12 @@
         for (var i=0; i < children.length; i++)
         {
             var oChildNode = children[i];
+            if (oChildNode.inherits("DzFigure")) {
+                if (aSafeNodes.indexOf(oRfnNode) < 0) {
+                    aSafeNodes.push(oRfnNode);
+                }
+                continue;
+            }
             var object = oChildNode.getObject()
             if (object==null) continue;
             var shape = object.getCurrentShape();
@@ -360,8 +369,7 @@
             skinBinding.finishEdit();
 
         }        
-        
-    	//Scene.removeNode(node);
+
         aNodesToDelete.push(oRfnNode);
     }
 
@@ -596,6 +604,9 @@
         {
             var deleteMe = aNodesToDelete[i];
             nodeParent = deleteMe.getNodeParent();
+            if (aSafeNodes.indexOf(deleteMe) >= 0) {
+                continue; // skip safe nodes
+            }
             while (deleteMe.getNodeChildren().length > 0)
             {
                 var child = deleteMe.getNodeChild(0);
