@@ -1348,8 +1348,9 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		{
 
 			if (m_sExportRigMode == "unreal" || m_sExportRigMode == "metahuman") {
+				FbxTools::UnrealBoneFix oUnrealBoneFixer;
 				FbxTools::RemoveBindPoses(pScene);
-				FbxTools::FixClusterTranformLinks(pScene, RootBone);
+				FbxTools::FixClusterTranformLinks(pScene, RootBone, &oUnrealBoneFixer);
 
 				FbxTools::AddIkNodes(pScene, RootBone, "foot_l", "foot_r", "hand_l", "hand_r");
 
