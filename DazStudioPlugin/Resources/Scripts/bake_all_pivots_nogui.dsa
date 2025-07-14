@@ -1,11 +1,37 @@
 // DAZ Studio version 4.22.0.16 filetype DAZ Script
 //
+// DB: 2025-07-13: Bugfix nodes with locked or clamped transform properties
 // DB: 2024-12-24: Added support to bake pivot for instances.
 // DB: 2024-09-30: This script bakes the pivot point of the selected node into the geometry of the node.
-// Version 6
+// Version 7
 //
 
 (function(){	
+
+	function unlockProperty(oProperty) {
+		if (oProperty) {
+			oProperty.lock(false);
+			oProperty.setIsClamped(false);
+		}
+	}
+
+	function unlockNodeTransforms(oNode) {
+		if (!oNode) {
+			return;
+		}
+
+		// get transform properties
+		unlockProperty(oNode.getXPosControl());
+		unlockProperty(oNode.getYPosControl());
+		unlockProperty(oNode.getZPosControl());
+		unlockProperty(oNode.getXRotControl());
+		unlockProperty(oNode.getYRotControl());
+		unlockProperty(oNode.getZRotControl());
+		unlockProperty(oNode.getXScaleControl());
+		unlockProperty(oNode.getYScaleControl());
+		unlockProperty(oNode.getZScaleControl());
+		unlockProperty(oNode.getScaleControl());
+	}
 	
 	function bakePivot(node) {
 	    // // recursively bake pivot for descendents first
@@ -59,6 +85,7 @@
 	    allNodes = Scene.getNodeList();
 	    for (var i = 0; i < allNodes.length; i++) {
 	        var node = allNodes[i];
+			
 			var bUpdateNode = false;
 
 			if (node.inherits("DzInstanceNode")) {
@@ -97,7 +124,7 @@
 	                var child = children[j];
 	                node.removeNodeChild(child, true);
 	            }
-	
+
 	            node.setOrientation(DzQuat(0, 0, 0, 1), false);
 	            node.setOrigin(DzVec3(0, 0, 0), false);
 	
@@ -127,6 +154,12 @@
 	
 	function bakeAllPivots() {
 	    var allNodes = Scene.getNodeList();
+
+	    for (var i = 0; i < allNodes.length; i++) {
+	        var node = allNodes[i];
+            unlockNodeTransforms(node);
+	    }
+
 	    for (var i = 0; i < allNodes.length; i++) {
 	        var node = allNodes[i];
 	        if (node.getObject() && node.getObject().getCurrentShape() && node.inherits("DzSkeleton") == false) {
