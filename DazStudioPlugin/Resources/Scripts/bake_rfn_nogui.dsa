@@ -1,4 +1,5 @@
 // DAZ Studio version 4.22.0.16 filetype DAZ Script
+// BakeRfn Version 1.5, 2025-07-14, DB: bugfix incorrect Obj file export/import due to unfinalized nodes when viewport not visible
 // BakeRfn Version 1.4, 2025-07-11, DB: disabled debug logging, code cleanup
 // BakeRfn Version 1.3, 2025-07-03, DB: bugfix for multi-level RfN hierarchy (i.e. RfN parented to another RfN, etc)
 // BakeRfn Version 1.2.5, 2025-05-20, DB: add empty bone bindings for all ancestor bones
@@ -558,6 +559,7 @@
         oPrimarySelection = Scene.getPrimarySelection();
 
         resetMorphs(oPrimarySelection);
+        Scene.update();
         oPrimarySelection.finalize();
         oPrimarySelection.getObject().forceCacheUpdate(oPrimarySelection, true);
     
