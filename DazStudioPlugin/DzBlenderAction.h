@@ -70,7 +70,6 @@ protected:
 	 bool m_bUseLegacyAddon = false;
 	 QString m_sOutputBlendFilepath = "";
 	 QString m_sTextureAtlasMode = "";
-	 QString m_sExportRigMode = "";
 
 	 int m_nTextureAtlasSize = 0;
 	 bool m_bEnableGpuBaking = false;
