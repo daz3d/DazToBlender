@@ -1199,6 +1199,45 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		return false;
 	}
 
+	if (m_sExportRigMode == "" || m_sExportRigMode == "--")
+	{
+		QList<FbxNode*> nodeList;
+		FbxNode* pFbxRootNode = pScene->GetRootNode();
+		FbxTools::GetAllMeshes(pFbxRootNode, nodeList);
+		FbxNode* pFbxRootBone = nullptr;
+		QString sFbxRootBoneName = "";
+		for (int ChildIndex = 0; ChildIndex < pFbxRootNode->GetChildCount(); ++ChildIndex)
+		{
+			FbxNode* ChildNode = pFbxRootNode->GetChild(ChildIndex);
+			FbxNodeAttribute* Attr = ChildNode->GetNodeAttribute();
+			if (Attr && Attr->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+			{
+				pFbxRootBone = ChildNode;
+				sFbxRootBoneName = pFbxRootBone->GetName();
+				break;
+			}
+		}
+
+		FbxTools::FixClusterTranformLinks(pScene, pFbxRootBone, nullptr);
+		// Bake New Bind Pose
+		FbxPose* pNewBindPose = FbxTools::SaveBindMatrixToPose(pScene, "NewBindPose", nullptr, true);
+		FbxTools::ApplyBindPose(pScene, pNewBindPose);
+		foreach(FbxNode * pNode, nodeList) {
+			QString debugName(pNode->GetName());
+			FbxMesh* pMesh = pNode->GetMesh();
+			FbxAMatrix matrix = pNode->EvaluateGlobalTransform();
+			FbxVector4* pVertexBuffer = pMesh->GetControlPoints();
+			if (pVertexBuffer == NULL) continue;
+			FbxTools::BakePoseToVertexBuffer(pVertexBuffer, &matrix, pNewBindPose, pMesh);
+			// Clear Pre/Post Rotations
+			pNode->SetPreRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+			pNode->SetPostRotation(FbxNode::eSourcePivot, FbxVector4(0, 0, 0));
+			pNode->LclScaling.Set(FbxDouble3(1.0, 1.0, 1.0));
+			pNode->LclRotation.Set(FbxDouble3(0, 0, 0));
+			pNode->LclTranslation.Set(FbxDouble3(0, 0, 0));
+		}
+		pNewBindPose->Destroy();			
+	}
 
 	if (openFBX->SaveScene(pScene, fbxFilePath) == false)
 	{
