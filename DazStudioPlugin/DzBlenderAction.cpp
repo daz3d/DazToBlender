@@ -41,23 +41,41 @@
 
 #include "ImageTools.h"
 
-int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, float fTimeoutInSeconds)
+int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, DzApp* dzApp, float fTimeoutInSeconds)
 {
 	// fork or spawn child process
 	QStringList args = sCommandlineArguments.split(";");
 
-//	float fTimeoutInSeconds = 2 * 60;
 	float fMilliSecondsPerTick = 200;
 	int numTotalTicks = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
 	DzProgress* progress = new DzProgress("Running Blender Script", numTotalTicks, false, true);
 	progress->enable(true);
 	QProcess* pToolProcess = new QProcess(thisProcess);
+	dzApp->log("DEBUG: Blender Exporter: setting working dir for blender script: " + sWorkingPath);
 	pToolProcess->setWorkingDirectory(sWorkingPath);
+	pToolProcess->setProcessChannelMode(QProcess::MergedChannels);
+	pToolProcess->setReadChannel(QProcess::StandardOutput);
+	dzApp->log("DEBUG: Blender Exporter: starting blender script: [" + sBlenderExecutablePath + "] with args: " + args.join(";"));
 	pToolProcess->start(sBlenderExecutablePath, args);
 	int currentTick = 0;
 	int timeoutTicks = numTotalTicks;
 	bool bUserInitiatedTermination = false;
+#ifdef __APPLE__
+	while (pToolProcess->state() != QProcess::NotRunning) {
+		int iMilliSecondsPerTick = (int) fMilliSecondsPerTick;
+		struct timespec ts = { iMilliSecondsPerTick / 1000, (iMilliSecondsPerTick % 1000) * 1000 * 1000 };
+		nanosleep(&ts, NULL);
+#else
 	while (pToolProcess->waitForFinished(fMilliSecondsPerTick) == false) {
+#endif
+		QApplication::processEvents();
+		while (pToolProcess->canReadLine()) {
+			QByteArray qa = pToolProcess->readLine();
+			QString sProcessOutput = qa.data();
+			sProcessOutput = sProcessOutput.replace("\n","").replace("\r","");
+			//dzApp->log("BLENDER: " + sProcessOutput);
+			progress->setCurrentInfo("BLENDER: " + sProcessOutput);
+		}
 		// if timeout reached, then terminate process
 		if (currentTick++ > timeoutTicks) {
 			if (!bUserInitiatedTermination)
@@ -67,24 +85,28 @@ The current Blender operation is taking a long time.\n\
 Do you want to Ignore this time-out and wait a little longer, or \n\
 Do you want to Abort the operation now?");
 				int result = QMessageBox::critical(0,
-					QObject::tr("Daz To Blender: Blender Timout Error"),
+					QObject::tr("Blender Exporter: Blender Process Timout Error"),
 					sTimeoutText,
 					QMessageBox::Ignore,
 					QMessageBox::Abort);
 				if (result == QMessageBox::Ignore) {
-					int snoozeTime = fTimeoutInSeconds * 1000 / fMilliSecondsPerTick;
+					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
 					timeoutTicks += snoozeTime;
 				}
 				else {
+					dzApp->log("DEBUG: executeBlenderScripts(): User initiated termination...");
 					bUserInitiatedTermination = true;
 				}
 			}
 			else
 			{
 				if (currentTick - timeoutTicks < 5) {
+					QString mesg = QString("DEBUG: currentTick = %1, timeoutTicks = %2, terminating...").arg(currentTick).arg(timeoutTicks);
+					dzApp->log( mesg );
 					pToolProcess->terminate();
 				}
 				else {
+					dzApp->log("DEBUG: Sending Kill Signal to Blender Process...");
 					pToolProcess->kill();
 				}
 			}
@@ -92,14 +114,49 @@ Do you want to Abort the operation now?");
 		if (pToolProcess->state() == QProcess::Running) {
 			progress->step();
 		}
-		else {
+		else if (pToolProcess->state() == QProcess::NotRunning) {
+			dzApp->log("DEBUG: QProcess State is now NotRunning, stopping monitor....");
 			break;
 		}
+		else {
+			QString mesg = "DEBUG: QProcess State Changed to: " + QString(pToolProcess->state());
+			dzApp->log( mesg );
+			progress->setCurrentInfo( mesg );
+		}
 	}
-	progress->setCurrentInfo("Blender Script Completed.");
+	// dzApp->log("DEBUG: flushing Blender output buffer...");
+	while (pToolProcess->canReadLine()) {
+		QByteArray qa = pToolProcess->readLine();
+		QString sProcessOutput = qa.data();
+		sProcessOutput = sProcessOutput.replace("\n","").replace("\r","");
+		// dzApp->log("BLENDER: " + sProcessOutput);
+		progress->setCurrentInfo("BLENDER: " + sProcessOutput);
+	}
+	progress->setCurrentInfo("Blender Process Completed.");
 	progress->finish();
 	delete progress;
 	int nBlenderExitCode = pToolProcess->exitCode();
+	QProcess::ExitStatus qExitStatus = pToolProcess->exitStatus();
+	if (qExitStatus == QProcess::CrashExit) {
+		if (nBlenderExitCode == 0) {
+			dzApp->warning("Blender Exporter: ERROR: Blender process Crashed but exit code is 0, manually setting to -1...");
+			nBlenderExitCode = -1;
+		}
+	}
+#ifdef __APPLE__
+	if (nBlenderExitCode != 0 && nBlenderExitCode != 120)
+#else
+	if (nBlenderExitCode != 0)
+#endif
+	{
+		if (nBlenderExitCode == PYTHON_EXCEPTION_CODE) {
+			dzApp->warning(QString("Blender Exporter: ERROR: Python error:.... %1").arg(nBlenderExitCode));
+		} else {
+			dzApp->warning(QString("Blender Exporter: ERROR: exit code = %1").arg(nBlenderExitCode));
+		}
+	} else {
+		dzApp->log(QString("Blender Exporter: DEBUG: blender script successful, exit code = %1").arg(nBlenderExitCode));
+	}
 
 	return nBlenderExitCode;
 }
@@ -170,7 +227,7 @@ bool DzBlenderUtils::PrepareAndRunBlenderProcessing(QString sDestinationFbx, QSt
 #endif
 	DzBlenderUtils::GenerateBlenderBatchFile(batchFilePath, sBlenderExecutablePath, sCommandArgs);
 
-	int nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, 240);
+	int nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, dzApp, 240);
 #ifdef __APPLE__
 	if (nBlenderExitCode != 0 && nBlenderExitCode != 120)
 #else
@@ -391,7 +448,7 @@ DzError	DzBlenderExporter::write(const QString& filename, const DzFileIOSettings
 	//bool result = pBlenderAction->executeBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs);
 	bool result = false;
     QProcess *thisProcess = new QProcess(this);
-	pBlenderAction->m_nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, 240);
+	pBlenderAction->m_nBlenderExitCode = DzBlenderUtils::ExecuteBlenderScripts(pBlenderAction->m_sBlenderExecutablePath, sCommandArgs, sIntermediatePath, thisProcess, dzApp, 240);
 #ifdef __APPLE__
 	if (pBlenderAction->m_nBlenderExitCode != 0 && pBlenderAction->m_nBlenderExitCode != 120)
 #else
@@ -494,22 +551,40 @@ bool DzBlenderAction::executeBlenderScripts(QString sFilePath, QString sCommandl
 	DzProgress* progress = new DzProgress("Running Blender Script", numTotalTicks, false, true);
 	progress->enable(true);
 	QProcess* pToolProcess = new QProcess(this);
+	dzApp->log("DEBUG: Blender Exporter: setting working dir for blender script: " + sWorkingPath);
 	pToolProcess->setWorkingDirectory(sWorkingPath);
+	pToolProcess->setProcessChannelMode(QProcess::MergedChannels);
+	pToolProcess->setReadChannel(QProcess::StandardOutput);
+	dzApp->log("DEBUG: Blender Exporter: starting blender script: [" + sFilePath + "] with args: " + args.join(";"));
 	pToolProcess->start(sFilePath, args);
 	int currentTick = 0;
 	int timeoutTicks = numTotalTicks;
 	bool bUserInitiatedTermination = false;
+#ifdef __APPLE__
+	while (pToolProcess->state() != QProcess::NotRunning) {
+		int iMilliSecondsPerTick = (int) fMilliSecondsPerTick;
+		struct timespec ts = { iMilliSecondsPerTick / 1000, (iMilliSecondsPerTick % 1000) * 1000 * 1000 };
+		nanosleep(&ts, NULL);
+#else
 	while (pToolProcess->waitForFinished(fMilliSecondsPerTick) == false) {
+#endif
+		QApplication::processEvents();
+		while (pToolProcess->canReadLine()) {
+			QByteArray qa = pToolProcess->readLine();
+			QString sProcessOutput = qa.data();
+			sProcessOutput = sProcessOutput.replace("\n","").replace("\r","");
+			//dzApp->log("BLENDER: " + sProcessOutput);
+			progress->setCurrentInfo("BLENDER: " + sProcessOutput);
+		}
 		// if timeout reached, then terminate process
 		if (currentTick++ > timeoutTicks) {
-			if (!bUserInitiatedTermination)
-			{
+			if (!bUserInitiatedTermination) {
 				QString sTimeoutText = tr("\
 The current Blender operation is taking a long time.\n\
 Do you want to Ignore this time-out and wait a little longer, or \n\
 Do you want to Abort the operation now?");
 				int result = QMessageBox::critical(0,
-					tr("Daz To Blender: Blender Timout Error"),
+					tr("Blender Exporter: Blender Process Timout Error"),
 					sTimeoutText,
 					QMessageBox::Ignore,
 					QMessageBox::Abort);
@@ -517,28 +592,52 @@ Do you want to Abort the operation now?");
 					int snoozeTime = 60 * 1000 / fMilliSecondsPerTick;
 					timeoutTicks += snoozeTime;
 				} else {
+					dzApp->log("DEBUG: executeBlenderScripts(): User initiated termination...");
 					bUserInitiatedTermination = true;
 				}
-			} 
+			}
 			else 
 			{
 				if (currentTick - timeoutTicks < 5) {
+					QString mesg = QString("DEBUG: currentTick = %1, timeoutTicks = %2, terminating...").arg(currentTick).arg(timeoutTicks);
+					dzApp->log( mesg );
 					pToolProcess->terminate();
 				} else {
+					dzApp->log("DEBUG: Sending Kill Signal to Blender Process...");
 					pToolProcess->kill();
 				}
 			}
 		}
 		if (pToolProcess->state() == QProcess::Running) {
 			progress->step();
-		} else {
+		} else if (pToolProcess->state() == QProcess::NotRunning) {
+			dzApp->log("DEBUG: QProcess State is now NotRunning, stopping monitor....");
 			break;
+		} else {
+			QString mesg = "DEBUG: QProcess State Changed to: " + QString(pToolProcess->state());
+			dzApp->log( mesg );
+			progress->setCurrentInfo( mesg );
 		}
 	}
-	progress->setCurrentInfo("Blender Script Completed.");
+	// dzApp->log("DEBUG: flushing Blender output buffer...");
+	while (pToolProcess->canReadLine()) {
+		QByteArray qa = pToolProcess->readLine();
+		QString sProcessOutput = qa.data();
+		sProcessOutput = sProcessOutput.replace("\n","").replace("\r","");
+		// dzApp->log("BLENDER: " + sProcessOutput);
+		progress->setCurrentInfo("BLENDER: " + sProcessOutput);
+	}
+	progress->setCurrentInfo("Blender Process Completed.");
 	progress->finish();
 	delete progress;
 	m_nBlenderExitCode = pToolProcess->exitCode();
+	QProcess::ExitStatus qExitStatus = pToolProcess->exitStatus();
+	if (qExitStatus == QProcess::CrashExit) {
+		if (m_nBlenderExitCode == 0) {
+			dzApp->log("Blender Exporter: ERROR: Blender process Crashed but exit code is 0, manually setting to -1...");
+			m_nBlenderExitCode = -1;
+		}
+	}
 #ifdef __APPLE__
 	if (m_nBlenderExitCode != 0 && m_nBlenderExitCode != 120)
 #else
@@ -546,12 +645,13 @@ Do you want to Abort the operation now?");
 #endif
 	{
 		if (m_nBlenderExitCode == m_nPythonExceptionExitCode) {
-			dzApp->log(QString("Daz To Blender: ERROR: Python error:.... %1").arg(m_nBlenderExitCode));
+			dzApp->log(QString("Blender Exporter: ERROR: Python error:.... %1").arg(m_nBlenderExitCode));
 		} else {
-			dzApp->log(QString("Daz To Blender: ERROR: exit code = %1").arg(m_nBlenderExitCode));
+			dzApp->log(QString("Blender Exporter: ERROR: exit code = %1").arg(m_nBlenderExitCode));
 		}
 		return false;
 	}
+	dzApp->log(QString("Blender Exporter: DEBUG: blender script successful, exit code = %1").arg(m_nBlenderExitCode));
 
 	return true;
 }

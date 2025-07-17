@@ -13,11 +13,13 @@ class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
 
+#define PYTHON_EXCEPTION_CODE 11
+
 class QProcess;
 class DzBlenderUtils
 {
 public:
-	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, float fTimeoutInSeconds=120);
+	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, DzApp* dzApp, float fTimeoutInSeconds=120);
 	static bool GenerateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
 	static bool PrepareAndRunBlenderProcessing(QString sDestinationFbx, QString sBlenderExecutablePath, QProcess* thisProcess, int nPythonExceptionExitCode);
 };
