@@ -238,8 +238,11 @@ void DzBlenderActionExtras_02::executeAction()
 	QString sRootFolder = oFileInfo.path();
 	
 	QString sFinalFilePath = sRootFolder + "/" + sExportFolder + "/" + sExportFilename + ".dtu";
+
+	QString sFinalFolderPath = sRootFolder + "/" + sExportFolder;
+	sFinalFolderPath.replace("\\", "/");
 	QDir dir;
-	dir.mkpath(sRootFolder + "/" + sExportFolder);
+	dir.mkpath(sFinalFolderPath);
 
 
 	DzBlenderAction oBridge;
@@ -258,6 +261,58 @@ void DzBlenderActionExtras_02::executeAction()
 	oBridge.setBakeMakeupOverlay(true); // bake HD makeup overlays to diffuse texture
 
 	oBridge.executeAction();
+
+	if (oBridge.m_nExecuteActionResult == DZ_NO_ERROR)
+	{
+		QMessageBox::information(0, "Blender Exporter",
+			tr("Export from Daz Studio complete."), QMessageBox::Ok);
+
+#ifdef WIN32
+		std::wstring wcsBlenderOutputPath(reinterpret_cast<const wchar_t*>(sBlenderOutputPath.utf16()));
+		ShellExecuteW(NULL, L"open", wcsBlenderOutputPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+#elif defined(__APPLE__)
+		QStringList args;
+		args << "-e";
+		args << "tell application \"Finder\"";
+		args << "-e";
+		args << "activate";
+		args << "-e";
+		if (QFileInfo(sFinalFilePath).exists()) {
+			args << "select POSIX file \"" + sFinalFilePath + "\"";
+		}
+		else {
+			args << "select POSIX file \"" + sFinalFolderPath + "/." + "\"";
+		}
+		args << "-e";
+		args << "end tell";
+		QProcess::startDetached("osascript", args);
+#endif
+	}
+	else
+	{
+		QString sErrorString;
+		sErrorString += QString("An error occured during the export operation (ErrorCode=%1).\n").arg(oBridge.m_nExecuteActionResult);
+		sErrorString += QString("Please check log files at : %1\n").arg(oBridge.m_sDestinationPath);
+		QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
+#ifdef WIN32
+		std::wstring wcsDestinationPath(reinterpret_cast<const wchar_t*>(this->m_sDestinationPath.utf16()));
+		ShellExecuteW(NULL, L"open", wcsDestinationPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+#elif defined(__APPLE__)
+		QStringList args;
+		args << "-e";
+		args << "tell application \"Finder\"";
+		args << "-e";
+		args << "activate";
+		args << "-e";
+		args << "select POSIX file \"" + sFinalFolderPath + "/." + "\"";
+		args << "-e";
+		args << "end tell";
+		QProcess::startDetached("osascript", args);
+#endif
+
+	}
+
+
 }
 
 
