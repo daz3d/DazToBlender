@@ -4,6 +4,7 @@
 #include "version.h"
 #include "DzBlenderAction.h"
 #include "DzBlenderDialog.h"
+#include "DzBlenderUtils.h"
 
 #include "dzbridge.h"
 

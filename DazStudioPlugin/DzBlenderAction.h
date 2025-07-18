@@ -4,7 +4,6 @@
 #include <dzjsonwriter.h>
 #include <QtCore/qfile.h>
 #include <QtCore/qtextstream.h>
-#include <dzexporter.h>
 
 #include <DzBridgeAction.h>
 #include "DzBlenderDialog.h"
@@ -12,31 +11,6 @@
 class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
-
-#define PYTHON_EXCEPTION_CODE 11
-
-class QProcess;
-class DzBlenderUtils
-{
-public:
-	static int ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, DzApp* dzApp, float fTimeoutInSeconds=120);
-	static bool GenerateBlenderBatchFile(QString batchFilePath, QString sBlenderExecutablePath, QString sCommandArgs);
-	static bool PrepareAndRunBlenderProcessing(QString sDestinationFbx, QString sBlenderExecutablePath, QProcess* thisProcess, int nPythonExceptionExitCode);
-};
-
-class DzBlenderExporter : public DzExporter {
-	Q_OBJECT
-public:
-	DzBlenderExporter() : DzExporter(QString("blend")) { this->setObjectName("DzBridge_DazToBlender_Exporter"); };
-
-public slots:
-	virtual void getDefaultOptions(DzFileIOSettings* options) const {};
-	virtual QString getDescription() const override { return QString("Blender File"); };
-	virtual bool isFileExporter() const override { return true; };
-
-protected:
-	virtual DzError	write(const QString& filename, const DzFileIOSettings* options) override;
-};
 
 class DzBlenderAction : public DZ_BRIDGE_NAMESPACE::DzBridgeAction {
 	 Q_OBJECT
