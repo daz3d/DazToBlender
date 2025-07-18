@@ -56,6 +56,7 @@ protected:
 	 bool m_bGenerateFinalUsd = false;
 	 bool m_bUseMaterialX = false;
 
+	bool writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable);
 
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE

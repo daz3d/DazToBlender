@@ -43,6 +43,147 @@
 #include "DzBlenderUtils.h"
 
 
+#include <Alembic/Abc/All.h>
+#include <Alembic/AbcGeom/All.h>
+#include <Alembic/AbcCoreOgawa/All.h>
+#include "Alembic/AbcGeom/OCurves.h"
+#include "Alembic/AbcGeom/Basis.h"
+#include "Alembic/AbcGeom/CurveType.h"
+
+bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
+{
+	// mesh pathway
+	Alembic::AbcGeom::OPolyMesh MeshObj(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
+	Alembic::AbcGeom::OPolyMeshSchema& MeshSchema = MeshObj.getSchema();			
+
+	// Update the character and current figure mesh for the frame
+	pNode->update();
+	pNode->finalize();
+	DzObject* pObject = pNode->getObject();
+
+	// Get the Geometry
+	DzVertexMesh* pVertexMesh = pObject->getCachedGeom();
+	// Next get the vertex indexes and count for each face
+	DzFacetMesh* pFacetMesh = dynamic_cast<DzFacetMesh*>(pVertexMesh);
+
+	std::map<int, int> oOldVertexIndexToNewVertexIndex;
+	std::vector<int> aUniqueVertexIndices;
+	// First pass to get vertex numbers and create a remapping
+	{
+
+		for (int nFacetIndex = 0; nFacetIndex < pFacetMesh->getNumFacets(); nFacetIndex++)
+		{
+			// Add the vertex count for this face
+			DzFacet pFacet = pFacetMesh->getFacet(nFacetIndex);
+			int nFacetVertexCount = 3;
+			if (pFacet.isQuad())
+			{
+				nFacetVertexCount = 4;
+			}
+
+			// Add the vertex indices for this face
+			for (int FacetVertexIndex = 0; FacetVertexIndex < nFacetVertexCount; FacetVertexIndex++)
+			{
+				if (std::find(aUniqueVertexIndices.begin(), aUniqueVertexIndices.end(), pFacet.m_vertIdx[FacetVertexIndex]) == aUniqueVertexIndices.end()) {
+					aUniqueVertexIndices.push_back(pFacet.m_vertIdx[FacetVertexIndex]);
+				}
+			}
+		}
+	}
+	int newIndex = 0;
+	std::sort(aUniqueVertexIndices.begin(), aUniqueVertexIndices.end());
+	for (auto iterator : aUniqueVertexIndices)
+	{
+		int oldIndex = iterator;
+		oOldVertexIndexToNewVertexIndex.insert(std::pair<int, int>(oldIndex, newIndex));
+		newIndex++;
+	}
+
+	// Get the vertex positions
+	std::vector<Imath::V3f> aAlembicVertices;
+	float scaleFactor = 1.0f;
+	// At this point uniqueVertexIndices is a sorted list of just the used vertices.  So using this will update the indexes as they are exported
+	for (auto vertexID: aUniqueVertexIndices)
+	{
+		aAlembicVertices.push_back(Imath::V3f(pVertexMesh->getVertex(vertexID)[0] * scaleFactor, pVertexMesh->getVertex(vertexID)[1] * scaleFactor, pVertexMesh->getVertex(vertexID)[2] * scaleFactor));
+	}
+
+	// Add the vertex positions for the frame
+	Alembic::AbcGeom::OPolyMeshSchema::Sample oFrameSample;
+	oFrameSample.setPositions(Alembic::Abc::V3fArraySample(aAlembicVertices));
+
+	std::vector<int> aFaceVertexIndices;
+	std::vector<int> aFaceVertexCounts;
+	for (int nFacetIndex = 0; nFacetIndex < pFacetMesh->getNumFacets(); nFacetIndex++)
+	{
+		// Add the vertex count for this face
+		DzFacet oFacet = pFacetMesh->getFacet(nFacetIndex);
+		int nFacetVertexCount = 3;
+		if (oFacet.isQuad())
+		{
+			nFacetVertexCount = 4;
+		}
+		aFaceVertexCounts.push_back(nFacetVertexCount);
+
+		// Add the vertex indices for this face
+		for (int nFacetVertexIndex = 0; nFacetVertexIndex < nFacetVertexCount; nFacetVertexIndex++)
+		{
+			int nVertexIndexInFace = oFacet.m_vertIdx[nFacetVertexIndex];
+			int nConvertedIndex = oOldVertexIndexToNewVertexIndex[nVertexIndexInFace];
+			aFaceVertexIndices.push_back(nConvertedIndex);
+		}
+	}
+
+	// Add the face data for the frame
+	oFrameSample.setFaceIndices(Alembic::Abc::Int32ArraySample(aFaceVertexIndices));
+	oFrameSample.setFaceCounts(Alembic::Abc::Int32ArraySample(aFaceVertexCounts));
+
+	// Add the frame to the Mesh
+	MeshSchema.set(oFrameSample);
+	
+	return true;
+}
+
+bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
+{
+	Alembic::AbcGeom::OCurves oCurve(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
+	Alembic::AbcGeom::OCurvesSchema &oCurveSchema = oCurve.getSchema();
+	
+	return false;
+	
+	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample;
+	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
+	oFrameSample.setType(Alembic::AbcGeom::kLinear);
+	oFrameSample.setWrap(Alembic::AbcGeom::kNonPeriodic);
+	Alembic::AbcGeom::Box3d box;
+	oFrameSample.setSelfBounds(box);
+	oCurveSchema.set(oFrameSample);
+
+	return true;
+}
+
+bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable)
+{
+	// Create the Abc file and set the time to match Daz output
+	Alembic::AbcCoreOgawa::WriteArchive AbcWriteArchive;
+	Alembic::Abc::OArchive AbcArchive = Alembic::Abc::OArchive(AbcWriteArchive, sFilePath.toLocal8Bit().data());
+	Alembic::Abc::TimeSamplingPtr TimeSampling = Alembic::Abc::TimeSamplingPtr(new Alembic::Abc::TimeSampling((double)dzScene->getTimeStep() / 4800, 0.0));
+
+	foreach(DzNode* pNode, oUndoTable.keys())
+	{
+		if (isStrandBasedHair(pNode) == false) {
+			writeAbcMesh(pNode, AbcArchive, TimeSampling);
+			continue;
+		}
+
+		writeAbcMesh(pNode, AbcArchive, TimeSampling);
+
+	}
+	
+	return true;
+}
+
+
 bool DzBlenderAction::executeBlenderScripts(QString sFilePath, QString sCommandlineArguments)
 {
 	// fork or spawn child process
@@ -175,6 +316,30 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 
 	DzBridgeAction::preProcessScene(parentNode);
 
+	QMap<DzNode*, DzNode*> oUndoTable;
+	hideAllStrandBasedHair(parentNode, oUndoTable);
+	// hide scalp
+	foreach(DzNode* pHairNode, oUndoTable.keys())
+	{
+		if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
+			DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
+			// if not directly following figure (parentNode), assume is scalp
+			if (pFollowTarget != parentNode) {
+				pFollowTarget->setVisible(false);
+				if (oUndoTable.contains(pFollowTarget) == false)
+				{
+					DzNode* pParentNode = pFollowTarget->getNodeParent();
+					if (pParentNode) {
+						oUndoTable.insert(pFollowTarget, pParentNode);
+						pParentNode->removeNodeChild(pFollowTarget);					
+					}					
+				}
+			}
+		}
+	}
+	QString sAbcTest = QString(m_sDestinationFBX).replace(".fbx", ".abc");
+	writeHair(sAbcTest, oUndoTable);
+	
 	blenderProgress->finish();
 
 	return true;
