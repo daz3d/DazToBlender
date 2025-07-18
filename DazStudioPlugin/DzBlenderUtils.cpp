@@ -10,6 +10,8 @@
 #include <dzscene.h>
 #include <dzprogress.h>
 
+#include <Windows.h>
+
 #include "DzBlenderAction.h"
 
 int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, DzApp* dzApp, float fTimeoutInSeconds)

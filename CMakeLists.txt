@@ -15,6 +15,8 @@
 #	information about the DAZ Studio SDK.
 #**********************************************************************
 
+add_definitions(-DNOMINMAX)
+
 cmake_minimum_required(VERSION 3.4.0)
 
 if(APPLE)

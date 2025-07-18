@@ -169,10 +169,16 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 
 	for (int nPolylineIndex=0; nPolylineIndex < nNumLines; nPolylineIndex++)
 	{
-		QVariantList aVertexIndices = getPolylineVertexIndices(pFacetMesh, nPolylineIndex);
-		for (int i=0; i < aVertexIndices.count(); i++)
+		QVariantList* pVertexIndices = new QVariantList();
+		if (getPolylineVertexIndices(pFacetMesh, nPolylineIndex, *pVertexIndices) == false) {
+			QString mesg = QString("ERROR: writeAbcCurve(): failed trying to call getPolylineVertexIndices on nPolyLineIndex #%1").arg(nPolylineIndex);
+			dzApp->warning(mesg);
+			printf("%s\n", mesg.toLocal8Bit().data());
+			return false;
+		}
+		for (int i=0; i < pVertexIndices->count(); i++)
 		{
-			int nVertexIndex = aVertexIndices[i].toInt();
+			int nVertexIndex = pVertexIndices->at(i).toInt();
 			if (nVertexIndex > nNumVerts) {
 				QString mesg = QString("ERROR: writeAbcCurve(): nVertexCounter larger than num verts: %i").arg(nVertexIndex);
 				dzApp->warning( mesg );
@@ -186,7 +192,10 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 			);
 			aAlembicVertices.push_back(vDataPoint);			
 		}
-		aPolylineVertexIndices.push_back(aVertexIndices.count());
+		aPolylineVertexIndices.push_back(pVertexIndices->count());
+#if __APPLE__
+		delete(pVertexIndices);
+#endif
 	}
 
 	
