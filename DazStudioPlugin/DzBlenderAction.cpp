@@ -162,15 +162,40 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 	}
 
 	printf("DEBUG: %s: numPolyLines: %i, segments: %i, vert_indexes: %i, numVerts: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumLines, nNumLineSegments, nNumLineVertIndexes, nNumVerts);
+
+	std::vector<Imath::V3f> aAlembicVertices;
+	std::vector<int32_t> aPolylineVertexIndices;
+	float scaleFactor = 1.0f;
+
+	for (int nPolylineIndex=0; nPolylineIndex < nNumLines; nPolylineIndex++)
+	{
+		QVariantList aVertexIndices = getPolylineVertexIndices(pFacetMesh, nPolylineIndex);
+		for (int i=0; i < aVertexIndices.count(); i++)
+		{
+			int nVertexIndex = aVertexIndices[i].toInt();
+			if (nVertexIndex > nNumVerts) {
+				QString mesg = QString("ERROR: writeAbcCurve(): nVertexCounter larger than num verts: %i").arg(nVertexIndex);
+				dzApp->warning( mesg );
+				printf("%s\n", mesg.toLocal8Bit().data() );
+				return false;
+			}
+			Imath::V3f vDataPoint(
+				pFacetMesh->getVertex(nVertexIndex)[0] * scaleFactor,
+				pFacetMesh->getVertex(nVertexIndex)[1] * scaleFactor,
+				pFacetMesh->getVertex(nVertexIndex)[2] * scaleFactor
+			);
+			aAlembicVertices.push_back(vDataPoint);			
+		}
+		aPolylineVertexIndices.push_back(aVertexIndices.count());
+	}
+
 	
-	return false;
-	
-	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample;
+	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample( Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
 	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
 	oFrameSample.setType(Alembic::AbcGeom::kLinear);
 	oFrameSample.setWrap(Alembic::AbcGeom::kNonPeriodic);
-	Alembic::AbcGeom::Box3d box;
-	oFrameSample.setSelfBounds(box);
+//	Alembic::AbcGeom::Box3d box;
+//	oFrameSample.setSelfBounds(box);
 	oCurveSchema.set(oFrameSample);
 
 	return true;
@@ -186,7 +211,7 @@ bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndo
 	foreach(DzNode* pNode, oUndoTable.keys())
 	{
 		if (isStrandBasedHair(pNode) == false) {
-			writeAbcMesh(pNode, AbcArchive, TimeSampling);
+//			writeAbcMesh(pNode, AbcArchive, TimeSampling);
 			continue;
 		}
 
