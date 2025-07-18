@@ -42,7 +42,6 @@
 #include "ImageTools.h"
 #include "DzBlenderUtils.h"
 
-
 #include <Alembic/Abc/All.h>
 #include <Alembic/AbcGeom/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
@@ -50,7 +49,7 @@
 #include "Alembic/AbcGeom/Basis.h"
 #include "Alembic/AbcGeom/CurveType.h"
 
-bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
+bool DzBlenderAction::writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
 {
 	// mesh pathway
 	Alembic::AbcGeom::OPolyMesh MeshObj(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
@@ -144,10 +143,25 @@ bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Ab
 	return true;
 }
 
-bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
+bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
 {
 	Alembic::AbcGeom::OCurves oCurve(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
 	Alembic::AbcGeom::OCurvesSchema &oCurveSchema = oCurve.getSchema();
+	
+	int nNumLines=-1;
+	int nNumLineSegments=-1;
+	int nNumLineVertIndexes=-1;
+	int nNumVerts=-1;
+
+	DzFacetMesh* pFacetMesh = qobject_cast<DzFacetMesh*>(pNode->getObject()->getCachedGeom());
+	if (pFacetMesh) {
+		nNumLines = getNumPolylines(pFacetMesh);
+		nNumLineSegments = getNumPolylineSegments(pFacetMesh);
+		nNumLineVertIndexes = getNumPolylineVertexDataIndices(pFacetMesh);
+		nNumVerts = pFacetMesh->getNumVertices();		
+	}
+
+	printf("DEBUG: %s: numPolyLines: %i, segments: %i, vert_indexes: %i, numVerts: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumLines, nNumLineSegments, nNumLineVertIndexes, nNumVerts);
 	
 	return false;
 	
@@ -176,7 +190,7 @@ bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndo
 			continue;
 		}
 
-		writeAbcMesh(pNode, AbcArchive, TimeSampling);
+		writeAbcCurve(pNode, AbcArchive, TimeSampling);
 
 	}
 	
@@ -1031,6 +1045,8 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 
 	return true;
 }
+
+
 
 
 #include "moc_DzBlenderAction.cpp"

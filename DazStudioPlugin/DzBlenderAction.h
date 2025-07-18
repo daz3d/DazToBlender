@@ -8,6 +8,8 @@
 #include <DzBridgeAction.h>
 #include "DzBlenderDialog.h"
 
+#include <Alembic/Abc/All.h>
+
 class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
@@ -57,6 +59,9 @@ protected:
 	 bool m_bUseMaterialX = false;
 
 	bool writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable);
+	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
+	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
+
 
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE
