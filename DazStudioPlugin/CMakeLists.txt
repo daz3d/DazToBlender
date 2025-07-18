@@ -40,6 +40,8 @@ add_library( ${DZ_PLUGIN_TGT_NAME} SHARED
 	DzBlenderDialog.h
 	DzBlenderUtils.cpp
 	DzBlenderUtils.h
+	DzBlenderActionExtras.cpp
+	DzBlenderActionExtras.h
 	pluginmain.cpp
 	version.h
 	real_version.h

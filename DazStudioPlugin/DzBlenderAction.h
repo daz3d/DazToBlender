@@ -63,6 +63,7 @@ protected:
 	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
 
 
+	friend class DzBlenderActionExtras_02;
 	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE
 	friend class UnitTest_DzBlenderAction;

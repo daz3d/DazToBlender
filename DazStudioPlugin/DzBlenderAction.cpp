@@ -145,6 +145,7 @@ bool DzBlenderAction::writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArc
 
 bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
 {
+	printf("DEBUG: writeAbcCurve() pNode=%s\n", pNode->getLabel().toLocal8Bit().data());
 	Alembic::AbcGeom::OCurves oCurve(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
 	Alembic::AbcGeom::OCurvesSchema &oCurveSchema = oCurve.getSchema();
 	
@@ -194,7 +195,7 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 		}
 		aPolylineVertexIndices.push_back(pVertexIndices->count());
 #if __APPLE__
-		delete(pVertexIndices);
+//		delete(pVertexIndices);
 #endif
 	}
 
@@ -212,6 +213,7 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 
 bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable)
 {
+	printf("DEBUG: writeHair(%s)\n", sFilePath.toLocal8Bit().data());
 	// Create the Abc file and set the time to match Daz output
 	Alembic::AbcCoreOgawa::WriteArchive AbcWriteArchive;
 	Alembic::Abc::OArchive AbcArchive = Alembic::Abc::OArchive(AbcWriteArchive, sFilePath.toLocal8Bit().data());

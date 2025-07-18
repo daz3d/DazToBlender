@@ -10,7 +10,9 @@
 #include <dzscene.h>
 #include <dzprogress.h>
 
+#ifdef WIN32
 #include <Windows.h>
+#endif
 
 #include "DzBlenderAction.h"
 
