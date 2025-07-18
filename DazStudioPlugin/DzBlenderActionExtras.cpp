@@ -38,6 +38,10 @@
 #include "DzBridgeSubdivisionDialog.h"
 #include "DzBlenderUtils.h"
 
+#ifdef WIN32
+#include <shellapi.h>
+#endif
+
 DzBlenderActionExtras_01::DzBlenderActionExtras_01()
 {
 	this->setText("BROKEN!");
@@ -268,7 +272,7 @@ void DzBlenderActionExtras_02::executeAction()
 			tr("Export from Daz Studio complete."), QMessageBox::Ok);
 
 #ifdef WIN32
-		std::wstring wcsBlenderOutputPath(reinterpret_cast<const wchar_t*>(sBlenderOutputPath.utf16()));
+		std::wstring wcsBlenderOutputPath(reinterpret_cast<const wchar_t*>(sFinalFolderPath.utf16()));
 		ShellExecuteW(NULL, L"open", wcsBlenderOutputPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 #elif defined(__APPLE__)
 		QStringList args;
@@ -295,7 +299,7 @@ void DzBlenderActionExtras_02::executeAction()
 		sErrorString += QString("Please check log files at : %1\n").arg(oBridge.m_sDestinationPath);
 		QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
 #ifdef WIN32
-		std::wstring wcsDestinationPath(reinterpret_cast<const wchar_t*>(this->m_sDestinationPath.utf16()));
+		std::wstring wcsDestinationPath(reinterpret_cast<const wchar_t*>(oBridge.m_sDestinationPath.utf16()));
 		ShellExecuteW(NULL, L"open", wcsDestinationPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 #elif defined(__APPLE__)
 		QStringList args;
