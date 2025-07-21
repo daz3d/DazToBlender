@@ -393,7 +393,7 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 	}
 	if (oUndoTable.count() > 0) {
 		QString sAbcTest = QString(m_sDestinationFBX).replace(".fbx", ".abc");
-		writeHair(sAbcTest, oUndoTable);
+//		writeHair(sAbcTest, oUndoTable);
 	}
 	
 	blenderProgress->finish();
