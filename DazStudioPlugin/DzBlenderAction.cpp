@@ -173,7 +173,14 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 
 	std::vector<Imath::V3f> aAlembicVertices;
 	std::vector<int32_t> aPolylineVertexIndices;
+	std::vector<Imath::V2f> aUvBuffer;
+	DzMap* pDazUVmap = nullptr;
+	DzPnt2* pRawUvmap = nullptr;
+	
 	float scaleFactor = 1.0f;
+
+	pDazUVmap = pFacetMesh->getUVs();
+	if (pDazUVmap != nullptr) pRawUvmap = pDazUVmap->getPnt2ArrayPtr();
 
 	for (int nPolylineIndex=0; nPolylineIndex < nNumLines; nPolylineIndex++)
 	{
@@ -198,31 +205,47 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 				pFacetMesh->getVertex(nVertexIndex)[1] * scaleFactor,
 				pFacetMesh->getVertex(nVertexIndex)[2] * scaleFactor
 			);
-			aAlembicVertices.push_back(vDataPoint);			
+			aAlembicVertices.push_back(vDataPoint);	
+
+			// UVs
+			if (pRawUvmap != nullptr) {
+				Imath::V2f oUVvalue;
+				oUVvalue[0] = pRawUvmap[nVertexIndex][0];
+				oUVvalue[1] = pRawUvmap[nVertexIndex][1];
+				aUvBuffer.push_back(oUVvalue);
+				if (nVertexIndex % 100 == 0) {
+					printf("DEBUG: [%i] UV= [%f, %f]\n", nVertexIndex, oUVvalue[0], oUVvalue[1]);
+				}
+			}
+
 		}
 		aPolylineVertexIndices.push_back(pVertexIndices->count());
+
 #if __APPLE__
 //		delete(pVertexIndices);
 #endif
 	}
 
-	// UVs
-	std::vector<Imath::V2f> aUvBuffer;
-	if (nNumUVs == nNumVerts) {
-		DzMap* pDazUVmap = pFacetMesh->getUVs();
-		if (pDazUVmap)
-		{
-			DzPnt2* pRawUvmap = pDazUVmap->getPnt2ArrayPtr();
-			if (pRawUvmap)
-			{
-				aUvBuffer.resize(nNumUVs);
-				for (int nUVIndex=0; nUVIndex < nNumUVs; nUVIndex++) {
-					aUvBuffer[nUVIndex][0] = pRawUvmap[nUVIndex][0];
-					aUvBuffer[nUVIndex][1] = pRawUvmap[nUVIndex][1];					
-				}
-			}
-		}
-	}
+//	// UVs
+//	if (nNumUVs == nNumVerts) {
+//		if (pDazUVmap != nullptr)
+//		{
+//			if (pRawUvmap != nullptr)
+//			{
+//				for (int nVertexIndex=0; nVertexIndex < nNumUVs; nVertexIndex++) {
+//					
+//					Imath::V2f oUVvalue(
+//						pRawUvmap[nVertexIndex][0],
+//						pRawUvmap[nVertexIndex][1]
+//					);
+//					aUvBuffer.push_back(oUVvalue);
+//					if (nVertexIndex % 100 == 1) {
+////						printf("DEBUG: [%i] UV= [%f, %f]\n", nVertexIndex, oUVvalue[0], oUVvalue[1]);
+//					}
+//				}
+//			}
+//		}
+//	}
 
 	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample( Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
 	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
