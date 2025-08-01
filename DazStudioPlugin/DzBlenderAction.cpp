@@ -154,15 +154,22 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 	int nNumLineVertIndexes=-1;
 	int nNumVerts=-1;
 
+	int nNumUVs = -1;
+	int nNumNormals = -1;
+	
 	DzFacetMesh* pFacetMesh = qobject_cast<DzFacetMesh*>(pNode->getObject()->getCachedGeom());
 	if (pFacetMesh) {
 		nNumLines = getNumPolylines(pFacetMesh);
 		nNumLineSegments = getNumPolylineSegments(pFacetMesh);
 		nNumLineVertIndexes = getNumPolylineVertexDataIndices(pFacetMesh);
-		nNumVerts = pFacetMesh->getNumVertices();		
+		nNumVerts = pFacetMesh->getNumVertices();
+		
+		nNumUVs = pFacetMesh->getUVs()->getNumValues();
+		nNumNormals = pFacetMesh->getNumNormals();
 	}
 
 	printf("DEBUG: %s: numPolyLines: %i, segments: %i, vert_indexes: %i, numVerts: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumLines, nNumLineSegments, nNumLineVertIndexes, nNumVerts);
+	printf("DEBUG2: %s: numUVs: %i, numNormals: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumUVs, nNumNormals);
 
 	std::vector<Imath::V3f> aAlembicVertices;
 	std::vector<int32_t> aPolylineVertexIndices;
@@ -181,7 +188,7 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 		{
 			int nVertexIndex = pVertexIndices->at(i).toInt();
 			if (nVertexIndex > nNumVerts) {
-				QString mesg = QString("ERROR: writeAbcCurve(): nVertexCounter larger than num verts: %i").arg(nVertexIndex);
+				QString mesg = QString("ERROR: writeAbcCurve(): nVertexIndex larger than num verts: %i").arg(nVertexIndex);
 				dzApp->warning( mesg );
 				printf("%s\n", mesg.toLocal8Bit().data() );
 				return false;
@@ -199,13 +206,44 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 #endif
 	}
 
-	
+	// UVs
+	std::vector<Imath::V2f> aUvBuffer;
+	if (nNumUVs == nNumVerts) {
+		DzMap* pDazUVmap = pFacetMesh->getUVs();
+		if (pDazUVmap)
+		{
+			DzPnt2* pRawUvmap = pDazUVmap->getPnt2ArrayPtr();
+			if (pRawUvmap)
+			{
+				aUvBuffer.resize(nNumUVs);
+				for (int nUVIndex=0; nUVIndex < nNumUVs; nUVIndex++) {
+					aUvBuffer[nUVIndex][0] = pRawUvmap[nUVIndex][0];
+					aUvBuffer[nUVIndex][1] = pRawUvmap[nUVIndex][1];					
+				}
+			}
+		}
+	}
+
 	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample( Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
 	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
 	oFrameSample.setType(Alembic::AbcGeom::kLinear);
 	oFrameSample.setWrap(Alembic::AbcGeom::kNonPeriodic);
-//	Alembic::AbcGeom::Box3d box;
-//	oFrameSample.setSelfBounds(box);
+
+	if (aUvBuffer.size() > 0) {
+		printf("DEBUG: adding UVs to %s (UVs: %i)\n", pNode->getLabel().toLocal8Bit().constData(), nNumUVs);
+		Alembic::AbcGeom::OV2fGeomParam::Sample oUvSamples;
+		oUvSamples.setVals(aUvBuffer);
+		oFrameSample.setUVs(oUvSamples);
+	}
+	
+	DzBox3 oDazBoundingBox = pFacetMesh->getBoundingBox();
+	Alembic::AbcGeom::Box3d oHairBounds;
+	for (int i=0; i < 3; i++) {
+		oHairBounds.min[i] = oDazBoundingBox.getMin()[i];
+		oHairBounds.max[i] = oDazBoundingBox.getMax()[i];
+	}
+	oFrameSample.setSelfBounds(oHairBounds);
+
 	oCurveSchema.set(oFrameSample);
 
 	return true;
