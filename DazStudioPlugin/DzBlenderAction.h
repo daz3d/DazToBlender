@@ -58,7 +58,7 @@ protected:
 	 bool m_bGenerateFinalUsd = false;
 	 bool m_bUseMaterialX = false;
 
-	bool writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable);
+	bool writeHair(QString sFilePath, QList<DzNode*> aHairNodesList);
 	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
 	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
 

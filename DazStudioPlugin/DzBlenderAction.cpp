@@ -211,9 +211,9 @@ bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcAr
 	return true;
 }
 
-bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndoTable)
+bool DzBlenderAction::writeHair(QString sFilePath, QList<DzNode*> aHairNodesList)
 {
-	if (oUndoTable.count() < 1) {
+	if (aHairNodesList.count() < 1) {
 		return false;
 	}
 
@@ -223,14 +223,13 @@ bool DzBlenderAction::writeHair(QString sFilePath, QMap<DzNode*, DzNode*> &oUndo
 	Alembic::Abc::OArchive AbcArchive = Alembic::Abc::OArchive(AbcWriteArchive, sFilePath.toLocal8Bit().data());
 	Alembic::Abc::TimeSamplingPtr TimeSampling = Alembic::Abc::TimeSamplingPtr(new Alembic::Abc::TimeSampling((double)dzScene->getTimeStep() / 4800, 0.0));
 
-	foreach(DzNode* pNode, oUndoTable.keys())
+	foreach(DzNode* pHairNode, aHairNodesList)
 	{
-		if (isStrandBasedHair(pNode) == false) {
-//			writeAbcMesh(pNode, AbcArchive, TimeSampling);
+		if (isStrandBasedHair(pHairNode) == false) {
 			continue;
 		}
 
-		writeAbcCurve(pNode, AbcArchive, TimeSampling);
+		writeAbcCurve(pHairNode, AbcArchive, TimeSampling);
 
 	}
 	
@@ -392,8 +391,22 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 		}
 	}
 	if (oUndoTable.count() > 0) {
-		QString sAbcTest = QString(m_sDestinationFBX).replace(".fbx", ".abc");
-//		writeHair(sAbcTest, oUndoTable);
+		QList<DzNode*> aHairNodesList = oUndoTable.keys();
+		if (m_bCombineStrandHairParts)
+		{
+			QString sHairPostfix = QString("_%1.abc").arg("hair");
+			QString sAbcFilename = QString(m_sDestinationFBX).replace(".fbx", sHairPostfix, Qt::CaseInsensitive);
+			writeHair(sAbcFilename, aHairNodesList);
+		}
+		else
+		{
+			foreach (DzNode* pHairNode, aHairNodesList) {
+				if (isStrandBasedHair(pHairNode)==false) continue;
+				QString sHairPostfix = QString("_%1.abc").arg( cleanString(pHairNode->getLabel()) );
+				QString sAbcFilename = QString(m_sDestinationFBX).replace(".fbx", sHairPostfix, Qt::CaseInsensitive);
+				writeHair(sAbcFilename, QList<DzNode*>() << pHairNode );
+			}
+		}
 	}
 	
 	blenderProgress->finish();
@@ -421,6 +434,7 @@ DzBlenderAction::DzBlenderAction() :
 	m_bDeferProcessingImageToolsJobs = true;
 	m_aKnownIntermediateFileExtensionsList += "blend";
 	m_aKnownIntermediateFileExtensionsList += "blend1";
+	m_aKnownIntermediateFileExtensionsList += "abc";
 
 }
 
