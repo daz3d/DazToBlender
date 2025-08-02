@@ -42,6 +42,34 @@
 #include <shellapi.h>
 #endif
 
+bool ShowExplorerWindow(QString sFilePath)
+{
+	QString sFolderPath = QFileInfo(sFilePath).path();
+
+#ifdef WIN32
+	std::wstring wcsFileOutputPath(reinterpret_cast<const wchar_t*>(sFolderPath.utf16()));
+	ShellExecuteW(NULL, L"open", wcsFileOutputPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+#elif defined(__APPLE__)
+	QStringList args;
+	args << "-e";
+	args << "tell application \"Finder\"";
+	args << "-e";
+	args << "activate";
+	args << "-e";
+	if (QFileInfo(sFinalFilePath).exists()) {
+		args << "select POSIX file \"" + sFilePath + "\"";
+	}
+	else {
+		args << "select POSIX file \"" + sFolderPath + "/." + "\"";
+	}
+	args << "-e";
+	args << "end tell";
+	QProcess::startDetached("osascript", args);
+#endif
+
+	return true;
+}
+
 DzBlenderActionExtras_01::DzBlenderActionExtras_01()
 {
 	this->setText("BROKEN!");
@@ -250,13 +278,14 @@ void DzBlenderActionExtras_02::executeAction()
 
 
 	DzBlenderAction oBridge;
+	oBridge.setCombineStrandHairPartsEnabled(true);
 	oBridge.setNonInteractiveMode(1); // set script mode to disable GUI prompts
 	
 	oBridge.setUseLegacyPaths(false); // do not use legacy add-on intermediate folder system (blender, maya, cd4d)
 
-	oBridge.m_sRootFolder = sRootFolder; // set base folder for exports
-	oBridge.m_sExportSubfolder = sExportFolder; // set relative output folder for asset
-	oBridge.m_sExportFilename = sExportFilename; // set basefilename (no extension)
+	oBridge.setRootFolder(sRootFolder); // set base folder for exports
+	oBridge.setExportFolder(sExportFolder); // set relative output folder for asset
+	oBridge.setExportFilename(sExportFilename); // set basefilename (no extension)
 
 //	oBridge.aMorphList = aMorphNames; // set morph names to export
 	oBridge.setAllowMorphDoubleDipping(true); // must be enabled so that blendshape vertex deltas are fully evaluated to correct final vertex positions
@@ -266,58 +295,239 @@ void DzBlenderActionExtras_02::executeAction()
 
 	oBridge.executeAction();
 
-	if (oBridge.m_nExecuteActionResult == DZ_NO_ERROR)
+	DzError oExecuteActionResult = oBridge.getExecutActionResult();
+	if (oExecuteActionResult == DZ_NO_ERROR)
 	{
 		QMessageBox::information(0, "Blender Exporter",
 			tr("Export from Daz Studio complete."), QMessageBox::Ok);
-
-#ifdef WIN32
-		std::wstring wcsBlenderOutputPath(reinterpret_cast<const wchar_t*>(sFinalFolderPath.utf16()));
-		ShellExecuteW(NULL, L"open", wcsBlenderOutputPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
-#elif defined(__APPLE__)
-		QStringList args;
-		args << "-e";
-		args << "tell application \"Finder\"";
-		args << "-e";
-		args << "activate";
-		args << "-e";
-		if (QFileInfo(sFinalFilePath).exists()) {
-			args << "select POSIX file \"" + sFinalFilePath + "\"";
-		}
-		else {
-			args << "select POSIX file \"" + sFinalFolderPath + "/." + "\"";
-		}
-		args << "-e";
-		args << "end tell";
-		QProcess::startDetached("osascript", args);
-#endif
+		ShowExplorerWindow(sFinalFilePath);
 	}
 	else
 	{
 		QString sErrorString;
-		sErrorString += QString("An error occured during the export operation (ErrorCode=%1).\n").arg(oBridge.m_nExecuteActionResult);
-		sErrorString += QString("Please check log files at : %1\n").arg(oBridge.m_sDestinationPath);
+		sErrorString += QString("An error occured during the export operation (ErrorCode=%1).\n").arg(oExecuteActionResult);
+		sErrorString += QString("Please check log files at : %1\n").arg(oBridge.getDestinationPath());
 		QMessageBox::critical(0, "Blender Exporter", tr(sErrorString.toUtf8()), QMessageBox::Ok);
-#ifdef WIN32
-		std::wstring wcsDestinationPath(reinterpret_cast<const wchar_t*>(oBridge.m_sDestinationPath.utf16()));
-		ShellExecuteW(NULL, L"open", wcsDestinationPath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
-#elif defined(__APPLE__)
-		QStringList args;
-		args << "-e";
-		args << "tell application \"Finder\"";
-		args << "-e";
-		args << "activate";
-		args << "-e";
-		args << "select POSIX file \"" + sFinalFolderPath + "/." + "\"";
-		args << "-e";
-		args << "end tell";
-		QProcess::startDetached("osascript", args);
-#endif
 
+		ShowExplorerWindow(oBridge.getDestinationPath());
 	}
 
-
 }
+
+DzBlenderActionExtras_03::DzBlenderActionExtras_03() :
+	DzAction(tr("Export Strand-based Hair (Combined)..."), tr("An Extra Blender Action"))
+{
+}
+
+void DzBlenderActionExtras_03::executeAction()
+{
+	bool m_bCombineStrandHairParts = true;
+	DzNode* m_pSelectedNode = dzScene->getPrimarySelection();
+	if (m_pSelectedNode == nullptr) return;
+
+	m_pSelectedNode = m_pSelectedNode->getSkeleton();
+
+	if (m_pSelectedNode == nullptr || (m_pSelectedNode->getObject() == nullptr))
+	{
+		QMessageBox::critical(0, tr("No selection"), tr("You must select a figure to output."), QMessageBox::Abort);
+		return;
+	}
+
+	QString sOriginalFilename = QFileDialog::getSaveFileName(0, "Package into an easy export folder...", QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation));
+
+	if (sOriginalFilename.isEmpty() || sOriginalFilename == "") {
+		return;
+	}
+
+	QFileInfo oFileInfo(sOriginalFilename);
+	QString sExportFilename = oFileInfo.fileName();
+	QString sExportFolder = sExportFilename;
+	QString sRootFolder = oFileInfo.path();
+
+	QString sFinalFilePath = sRootFolder + "/" + sExportFolder + "/" + sExportFilename + ".dtu";
+
+	QString sFinalFolderPath = sRootFolder + "/" + sExportFolder;
+	sFinalFolderPath.replace("\\", "/");
+	QDir dir;
+	dir.mkpath(sFinalFolderPath);
+
+	DzBlenderAction oBridge;
+	oBridge.setCombineStrandHairPartsEnabled(true);
+	oBridge.setNonInteractiveMode(1); // set script mode to disable GUI prompts
+
+	oBridge.setUseLegacyPaths(false); // do not use legacy add-on intermediate folder system (blender, maya, cd4d)
+
+	oBridge.setRootFolder(sRootFolder); // set base folder for exports
+	oBridge.setExportFolder(sExportFolder); // set relative output folder for asset
+	oBridge.setExportFilename(sExportFilename); // set basefilename (no extension)
+
+	//	oBridge.aMorphList = aMorphNames; // set morph names to export
+	oBridge.setAllowMorphDoubleDipping(true); // must be enabled so that blendshape vertex deltas are fully evaluated to correct final vertex positions
+	oBridge.setEmbedTexturesInOutputFile(false); // embed textures in fbx
+	oBridge.setExportAllTextures(true); // collect all textures in ExportTextures folder
+	oBridge.setBakeMakeupOverlay(true); // bake HD makeup overlays to diffuse texture
+
+	DzNode* parentNode = m_pSelectedNode;
+	QMap<DzNode*, DzNode*> oUndoTable;
+	oBridge.hideAllStrandBasedHair(parentNode, oUndoTable);
+	// hide scalp
+	foreach(DzNode *pHairNode, oUndoTable.keys())
+	{
+		if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
+			DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
+			// if not directly following figure (parentNode), assume is scalp
+			if (pFollowTarget != parentNode) {
+				pFollowTarget->setVisible(false);
+				if (oUndoTable.contains(pFollowTarget) == false)
+				{
+					DzNode* pParentNode = pFollowTarget->getNodeParent();
+					if (pParentNode) {
+						oUndoTable.insert(pFollowTarget, pParentNode);
+						pParentNode->removeNodeChild(pFollowTarget);
+					}
+				}
+			}
+		}
+	}
+	if (oUndoTable.count() > 0) {
+		QList<DzNode*> aHairNodesList = oUndoTable.keys();
+		if (m_bCombineStrandHairParts)
+		{
+			QString sHairPostfix = QString("_%1.abc").arg("hair");
+			QString sAbcFilename = QString(sFinalFilePath).replace(".dtu", sHairPostfix, Qt::CaseInsensitive);
+			oBridge.writeHair(sAbcFilename, aHairNodesList);
+		}
+		else
+		{
+			foreach(DzNode * pHairNode, aHairNodesList) {
+				if (oBridge.isStrandBasedHair(pHairNode) == false) continue;
+				QString sHairPostfix = QString("_%1.abc").arg(oBridge.cleanString(pHairNode->getLabel()));
+				QString sAbcFilename = QString(sFinalFilePath).replace(".dtu", sHairPostfix, Qt::CaseInsensitive);
+				oBridge.writeHair(sAbcFilename, QList<DzNode*>() << pHairNode);
+			}
+		}
+	}
+
+	// UNDO
+	foreach(DzNode* pHairNode, oUndoTable.keys())
+	{
+		DzNode* pParentNode = oUndoTable[pHairNode];
+		if (pParentNode) {
+			pParentNode->addNodeChild(pHairNode);
+		}
+		pHairNode->setVisible(true);
+	}
+
+	ShowExplorerWindow(sFinalFilePath);
+}
+
+DzBlenderActionExtras_04::DzBlenderActionExtras_04() :
+	DzAction(tr("Export Strand-based Hair (Separate)..."), tr("An Extra Blender Action"))
+{
+}
+
+void DzBlenderActionExtras_04::executeAction()
+{
+	bool m_bCombineStrandHairParts = false;
+	DzNode* m_pSelectedNode = dzScene->getPrimarySelection();
+	if (m_pSelectedNode == nullptr) return;
+
+	m_pSelectedNode = m_pSelectedNode->getSkeleton();
+
+	if (m_pSelectedNode == nullptr || (m_pSelectedNode->getObject() == nullptr))
+	{
+		QMessageBox::critical(0, tr("No selection"), tr("You must select a figure to output."), QMessageBox::Abort);
+		return;
+	}
+
+	QString sOriginalFilename = QFileDialog::getSaveFileName(0, "Package into an easy export folder...", QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation));
+
+	if (sOriginalFilename.isEmpty() || sOriginalFilename == "") {
+		return;
+	}
+
+	QFileInfo oFileInfo(sOriginalFilename);
+	QString sExportFilename = oFileInfo.fileName();
+	QString sExportFolder = sExportFilename;
+	QString sRootFolder = oFileInfo.path();
+
+	QString sFinalFilePath = sRootFolder + "/" + sExportFolder + "/" + sExportFilename + ".dtu";
+
+	QString sFinalFolderPath = sRootFolder + "/" + sExportFolder;
+	sFinalFolderPath.replace("\\", "/");
+	QDir dir;
+	dir.mkpath(sFinalFolderPath);
+
+	DzBlenderAction oBridge;
+	oBridge.setCombineStrandHairPartsEnabled(true);
+	oBridge.setNonInteractiveMode(1); // set script mode to disable GUI prompts
+
+	oBridge.setUseLegacyPaths(false); // do not use legacy add-on intermediate folder system (blender, maya, cd4d)
+
+	oBridge.setRootFolder(sRootFolder); // set base folder for exports
+	oBridge.setExportFolder(sExportFolder); // set relative output folder for asset
+	oBridge.setExportFilename(sExportFilename); // set basefilename (no extension)
+
+	//	oBridge.aMorphList = aMorphNames; // set morph names to export
+	oBridge.setAllowMorphDoubleDipping(true); // must be enabled so that blendshape vertex deltas are fully evaluated to correct final vertex positions
+	oBridge.setEmbedTexturesInOutputFile(false); // embed textures in fbx
+	oBridge.setExportAllTextures(true); // collect all textures in ExportTextures folder
+	oBridge.setBakeMakeupOverlay(true); // bake HD makeup overlays to diffuse texture
+
+	DzNode* parentNode = m_pSelectedNode;
+	QMap<DzNode*, DzNode*> oUndoTable;
+	oBridge.hideAllStrandBasedHair(parentNode, oUndoTable);
+	// hide scalp
+	foreach(DzNode * pHairNode, oUndoTable.keys())
+	{
+		if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
+			DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
+			// if not directly following figure (parentNode), assume is scalp
+			if (pFollowTarget != parentNode) {
+				pFollowTarget->setVisible(false);
+				if (oUndoTable.contains(pFollowTarget) == false)
+				{
+					DzNode* pParentNode = pFollowTarget->getNodeParent();
+					if (pParentNode) {
+						oUndoTable.insert(pFollowTarget, pParentNode);
+						pParentNode->removeNodeChild(pFollowTarget);
+					}
+				}
+			}
+		}
+	}
+	if (oUndoTable.count() > 0) {
+		QList<DzNode*> aHairNodesList = oUndoTable.keys();
+		if (m_bCombineStrandHairParts)
+		{
+			QString sHairPostfix = QString("_%1.abc").arg("hair");
+			QString sAbcFilename = QString(sFinalFilePath).replace(".dtu", sHairPostfix, Qt::CaseInsensitive);
+			oBridge.writeHair(sAbcFilename, aHairNodesList);
+		}
+		else
+		{
+			foreach(DzNode * pHairNode, aHairNodesList) {
+				if (oBridge.isStrandBasedHair(pHairNode) == false) continue;
+				QString sHairPostfix = QString("_%1.abc").arg(oBridge.cleanString(pHairNode->getLabel()));
+				QString sAbcFilename = QString(sFinalFilePath).replace(".dtu", sHairPostfix, Qt::CaseInsensitive);
+				oBridge.writeHair(sAbcFilename, QList<DzNode*>() << pHairNode);
+			}
+		}
+	}
+
+	// UNDO
+	foreach(DzNode * pHairNode, oUndoTable.keys())
+	{
+		DzNode* pParentNode = oUndoTable[pHairNode];
+		if (pParentNode) {
+			pParentNode->addNodeChild(pHairNode);
+		}
+		pHairNode->setVisible(true);
+	}
+
+	ShowExplorerWindow(sFinalFilePath);
+}
+
 
 
 #include "moc_DzBlenderActionExtras.cpp"
