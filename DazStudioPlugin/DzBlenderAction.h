@@ -20,23 +20,31 @@ public:
 	DzBlenderAction();
 	DzError getExecutActionResult() { return m_nExecuteActionResult; }
 
-protected:
 	Q_INVOKABLE virtual void setUseLegacyPaths(bool arg) { m_bUseLegacyPaths = arg; }
 	Q_INVOKABLE virtual bool getUseLegacyPaths() { return m_bUseLegacyPaths; }
-	bool m_bUseLegacyPaths = true;
+
+	Q_INVOKABLE void writeConfiguration() override;
+	Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;
+
+	Q_INVOKABLE virtual bool readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog*) override;
+
+	Q_INVOKABLE QString createBlenderFiles(bool replace = true);
+
+	Q_INVOKABLE bool createUI();
+
+	// DB 2024-09-01: Refactored convenience function accessible from Daz Script, C++ users should use DzBlenderUtils::ExecuteBlenderScripts() directly
+	Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
+
+	bool writeHair(QString sFilePath, QList<DzNode*> aHairNodesList);
+	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling);
+	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling, int groom_id);
 
 	void executeAction() override;
-	 Q_INVOKABLE void writeConfiguration() override;
-	 Q_INVOKABLE void setExportOptions(DzFileIOSettings& ExportOptions) override;
+
+protected:
+	bool m_bUseLegacyPaths = true;
+
 	 virtual QString readGuiRootFolder() override;
-	 Q_INVOKABLE virtual bool readGui(DZ_BRIDGE_NAMESPACE::DzBridgeDialog*) override;
-
-	 Q_INVOKABLE QString createBlenderFiles(bool replace = true);
-
-	 Q_INVOKABLE bool createUI();
-
-	 // DB 2024-09-01: Refactored convenience function accessible from Daz Script, C++ users should use DzBlenderUtils::ExecuteBlenderScripts() directly
-	 Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
 
 	 virtual bool preProcessScene(DzNode* parentNode) override;
 	 virtual bool postProcessFbx(QString fbxFilePath) override;
@@ -58,13 +66,8 @@ protected:
 	 bool m_bGenerateFinalUsd = false;
 	 bool m_bUseMaterialX = false;
 
-	bool writeHair(QString sFilePath, QList<DzNode*> aHairNodesList);
-	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
-	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling);
+	friend class DzBlenderExporter;
 
-
-	friend class DzBlenderActionExtras_02;
-	 friend class DzBlenderExporter;
 #ifdef UNITTEST_DZBRIDGE
 	friend class UnitTest_DzBlenderAction;
 #endif
