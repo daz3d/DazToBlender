@@ -37,7 +37,7 @@ public:
 
 	bool writeHair(QString sFilePath, QList<DzNode*> aHairNodesList);
 	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling);
-	bool writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling, int groom_id);
+	bool writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling, int groom_id);
 
 	void executeAction() override;
 

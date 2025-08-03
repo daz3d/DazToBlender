@@ -49,6 +49,34 @@
 #include "Alembic/AbcGeom/Basis.h"
 #include "Alembic/AbcGeom/CurveType.h"
 
+
+int GetClosestVertexIndex(DzVec3 oSourcePoint, DzGeometry *pGeometry)
+{
+	// get vertex buffer
+	DzPnt3 *pVertexBuffer = pGeometry->getVerticesPtr();
+
+	int nClosestVertexIndex = -1;
+	float fShortestDistance = -1;
+	for (int i = 0; i < pGeometry->getNumVertices(); i++)
+	{
+		if (nClosestVertexIndex == -1) {
+			nClosestVertexIndex = i;
+			DzVec3 oCurrentPoint(pVertexBuffer[i]);
+			fShortestDistance = DzVec3(oCurrentPoint - oSourcePoint).lengthSquared();
+			continue;
+		}
+
+		DzVec3 oCurrentPoint(pVertexBuffer[i]);
+		float fCurrentDistance = DzVec3(oCurrentPoint - oSourcePoint).lengthSquared();
+		if (fCurrentDistance < fShortestDistance) {
+			nClosestVertexIndex = i;
+			fShortestDistance = fCurrentDistance;
+		}
+	}
+
+	return nClosestVertexIndex;
+}
+
 bool DzBlenderAction::writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
 {
 	// mesh pathway
@@ -143,129 +171,204 @@ bool DzBlenderAction::writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArc
 	return true;
 }
 
-bool DzBlenderAction::writeAbcCurve(DzNode* pNode, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling)
+bool DzBlenderAction::writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling, int groom_id)
 {
-	printf("DEBUG: writeAbcCurve() pNode=%s\n", pNode->getLabel().toLocal8Bit().data());
+	bool bUnrealMode = true;
+	if (aNodeList.isEmpty()) return false;
+
+	DzNode* pNode = aNodeList[0];
+	printf("DEBUG: writeAbcCurve() groom count=%i, pNode[%i]=%s\n", aNodeList.count(), groom_id, pNode->getLabel().toLocal8Bit().data());
 	Alembic::AbcGeom::OCurves oCurve(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
-	Alembic::AbcGeom::OCurvesSchema &oCurveSchema = oCurve.getSchema();
-	
-	int nNumLines=-1;
-	int nNumLineSegments=-1;
-	int nNumLineVertIndexes=-1;
-	int nNumVerts=-1;
+	Alembic::AbcGeom::OCurvesSchema& oCurveSchema = oCurve.getSchema();
 
-	int nNumUVs = -1;
-	int nNumNormals = -1;
-	
-	DzFacetMesh* pFacetMesh = qobject_cast<DzFacetMesh*>(pNode->getObject()->getCachedGeom());
-	if (pFacetMesh) {
-		nNumLines = getNumPolylines(pFacetMesh);
-		nNumLineSegments = getNumPolylineSegments(pFacetMesh);
-		nNumLineVertIndexes = getNumPolylineVertexDataIndices(pFacetMesh);
-		nNumVerts = pFacetMesh->getNumVertices();
-		
-		nNumUVs = pFacetMesh->getUVs()->getNumValues();
-		nNumNormals = pFacetMesh->getNumNormals();
-	}
+	// Assuming oCurve is your Alembic::AbcGeom::OCurves
+	Alembic::Abc::OCompoundProperty userProps = oCurve.getProperties();
 
-	printf("DEBUG: %s: numPolyLines: %i, segments: %i, vert_indexes: %i, numVerts: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumLines, nNumLineSegments, nNumLineVertIndexes, nNumVerts);
-	printf("DEBUG2: %s: numUVs: %i, numNormals: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumUVs, nNumNormals);
+	// Required Unreal metadata:
+	Alembic::Abc::OInt16Property groomVersionMajorProp(userProps, "groom_version_major");
+	groomVersionMajorProp.set(1);
 
+	Alembic::Abc::OInt16Property groomVersionMinorProp(userProps, "groom_version_minor");
+	groomVersionMinorProp.set(5);
+
+	std::vector<int32_t> aGroomGroupIds;
 	std::vector<Imath::V3f> aAlembicVertices;
 	std::vector<int32_t> aPolylineVertexIndices;
 	std::vector<Imath::V2f> aUvBuffer;
-	DzMap* pDazUVmap = nullptr;
-	DzPnt2* pRawUvmap = nullptr;
-	
-	float scaleFactor = 1.0f;
+	std::vector<Imath::V2f> aRootUvBuffer;
 
-	pDazUVmap = pFacetMesh->getUVs();
-	if (pDazUVmap != nullptr) pRawUvmap = pDazUVmap->getPnt2ArrayPtr();
-
-	for (int nPolylineIndex=0; nPolylineIndex < nNumLines; nPolylineIndex++)
+	int groom_group_id = groom_id;
+	foreach(DzNode *pNode, aNodeList)
 	{
-		QVariantList* pVertexIndices = new QVariantList();
-		if (getPolylineVertexIndices(pFacetMesh, nPolylineIndex, *pVertexIndices) == false) {
-			QString mesg = QString("ERROR: writeAbcCurve(): failed trying to call getPolylineVertexIndices on nPolyLineIndex #%1").arg(nPolylineIndex);
+		if (isStrandBasedHair(pNode) == false) continue;
+
+		DzNode* pFigureNode = pNode->getSkeleton()->getFollowTarget();
+		if (pFigureNode == nullptr) pFigureNode = pNode->getSkeleton();
+		if (pFigureNode == nullptr) continue;
+
+		int nNumLines = -1;
+		int nNumLineSegments = -1;
+		int nNumLineVertIndexes = -1;
+		int nNumVerts = -1;
+
+		int nNumUVs = -1;
+		int nNumNormals = -1;
+
+		DzFacetMesh* pFacetMesh = qobject_cast<DzFacetMesh*>(pNode->getObject()->getCachedGeom());
+		if (pFacetMesh == nullptr)
+		{
+			QString mesg = QString("ERROR: writeAbcCurve(): failed trying access strand hair geometry for %1, aborting.").arg(pNode->getLabel());
 			dzApp->warning(mesg);
 			printf("%s\n", mesg.toLocal8Bit().data());
 			return false;
 		}
-		for (int i=0; i < pVertexIndices->count(); i++)
+
+		nNumLines = getNumPolylines(pFacetMesh);
+		nNumLineSegments = getNumPolylineSegments(pFacetMesh);
+		nNumLineVertIndexes = getNumPolylineVertexDataIndices(pFacetMesh);
+		nNumVerts = pFacetMesh->getNumVertices();
+
+		nNumUVs = pFacetMesh->getUVs()->getNumValues();
+		nNumNormals = pFacetMesh->getNumNormals();
+
+		printf("DEBUG: %s: numPolyLines: %i, segments: %i, vert_indexes: %i, numVerts: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumLines, nNumLineSegments, nNumLineVertIndexes, nNumVerts);
+		printf("DEBUG2: %s: numUVs: %i, numNormals: %i, group_id: %i\n", pNode->getLabel().toLocal8Bit().constData(), nNumUVs, nNumNormals, groom_group_id);
+
+		DzMap* pDazUVmap = nullptr;
+		DzPnt2* pRawUvmap = nullptr;
+
+		float scaleFactor = 1.0f;
+
+		pDazUVmap = pFacetMesh->getUVs();
+		if (pDazUVmap != nullptr) {
+			pRawUvmap = pDazUVmap->getPnt2ArrayPtr();
+		}
+
+		for (int nPolylineIndex = 0; nPolylineIndex < nNumLines; nPolylineIndex++)
 		{
-			int nVertexIndex = pVertexIndices->at(i).toInt();
-			if (nVertexIndex > nNumVerts) {
-				QString mesg = QString("ERROR: writeAbcCurve(): nVertexIndex larger than num verts: %i").arg(nVertexIndex);
-				dzApp->warning( mesg );
-				printf("%s\n", mesg.toLocal8Bit().data() );
+			DzVec3 oFigureUVvalue;
+			QVariantList* pVertexIndices = new QVariantList();
+			if (getPolylineVertexIndices(pFacetMesh, nPolylineIndex, *pVertexIndices) == false) {
+				QString mesg = QString("ERROR: writeAbcCurve(): failed trying to call getPolylineVertexIndices on nPolyLineIndex #%1").arg(nPolylineIndex);
+				dzApp->warning(mesg);
+				printf("%s\n", mesg.toLocal8Bit().data());
 				return false;
 			}
-			Imath::V3f vDataPoint(
-				pFacetMesh->getVertex(nVertexIndex)[0] * scaleFactor,
-				pFacetMesh->getVertex(nVertexIndex)[1] * scaleFactor,
-				pFacetMesh->getVertex(nVertexIndex)[2] * scaleFactor
-			);
-			aAlembicVertices.push_back(vDataPoint);	
-
-			// UVs
-			if (pRawUvmap != nullptr) {
-				Imath::V2f oUVvalue;
-				oUVvalue[0] = pRawUvmap[nVertexIndex][0];
-				oUVvalue[1] = pRawUvmap[nVertexIndex][1];
-				aUvBuffer.push_back(oUVvalue);
-				if (nVertexIndex % 100 == 0) {
-					printf("DEBUG: [%i] UV= [%f, %f]\n", nVertexIndex, oUVvalue[0], oUVvalue[1]);
+			for (int i = 0; i < pVertexIndices->count(); i++)
+			{
+				int nVertexIndex = pVertexIndices->at(i).toInt();
+				if (nVertexIndex > nNumVerts) {
+					QString mesg = QString("ERROR: writeAbcCurve(): nVertexIndex larger than num verts: %i").arg(nVertexIndex);
+					dzApp->warning(mesg);
+					printf("%s\n", mesg.toLocal8Bit().data());
+					return false;
 				}
-			}
+				DzVec3 vDazPosition = pFacetMesh->getVertex(nVertexIndex);
+				if (bUnrealMode) 
+				{
+					DzVec3 vUnrealPosition(
+						vDazPosition[0],
+						vDazPosition[2],
+						vDazPosition[1]
+					);
+					vDazPosition = vUnrealPosition;
+				}
+				Imath::V3f vDataPoint(
+					vDazPosition[0] * scaleFactor,
+					vDazPosition[1] * scaleFactor,
+					vDazPosition[2] * scaleFactor
+					);
+				aAlembicVertices.push_back(vDataPoint);
 
-		}
-		aPolylineVertexIndices.push_back(pVertexIndices->count());
+				// CALCULATE ROOT UV
+				if (i == 0) {
+					DzGeometry* pGeo = pFigureNode->getObject()->getCurrentShape()->getGeometry();
+					DzVec3 oRootVertex = pFacetMesh->getVertex(nVertexIndex);
+					int nClosestVertexIndex = GetClosestVertexIndex(oRootVertex, pGeo);
+					DzMap* pFigureUVmap = pGeo->getUVs();
+					oFigureUVvalue = pFigureUVmap->getPnt2Vec(nClosestVertexIndex);
+				}
+
+				//// UVs
+				//if (pRawUvmap != nullptr) {
+				//	Imath::V2f oUVvalue;
+				//	DzPnt2 *pRawUvValue = &(pRawUvmap[nVertexIndex]);
+				//	oUVvalue[0] = (*pRawUvValue)[0];
+				//	oUVvalue[1] = (*pRawUvValue)[1];
+
+				//	//// OVERRIDE WITH ROOT UV
+				//	//if (i == 0) {
+				//	//	oUVvalue[0] = oFigureUVvalue[0];
+				//	//	oUVvalue[1] = oFigureUVvalue[1];
+				//	//}
+
+				//	aUvBuffer.push_back(oUVvalue);
+				//	if (nVertexIndex % 100 == 0 || i == 0) {
+				//		printf("DEBUG: [%i] UV= [%f, %f]\n", nVertexIndex, oUVvalue[0], oUVvalue[1]);
+				//	}
+				//}
+
+			}
+			aPolylineVertexIndices.push_back(pVertexIndices->count());
+
+			// add groom_ID to array
+			aGroomGroupIds.push_back(groom_group_id);
+
+			// add groom root UV to curve
+			Imath::V2f array;
+			array[0] = oFigureUVvalue[0];
+			array[1] = oFigureUVvalue[1];
+			aRootUvBuffer.push_back(array);
 
 #if __APPLE__
-//		delete(pVertexIndices);
+			//delete(pVertexIndices);
 #endif
-	}
+		}
 
-//	// UVs
-//	if (nNumUVs == nNumVerts) {
-//		if (pDazUVmap != nullptr)
-//		{
-//			if (pRawUvmap != nullptr)
-//			{
-//				for (int nVertexIndex=0; nVertexIndex < nNumUVs; nVertexIndex++) {
-//					
-//					Imath::V2f oUVvalue(
-//						pRawUvmap[nVertexIndex][0],
-//						pRawUvmap[nVertexIndex][1]
-//					);
-//					aUvBuffer.push_back(oUVvalue);
-//					if (nVertexIndex % 100 == 1) {
-////						printf("DEBUG: [%i] UV= [%f, %f]\n", nVertexIndex, oUVvalue[0], oUVvalue[1]);
-//					}
-//				}
-//			}
-//		}
-//	}
+		// next hair node
+		groom_group_id++;
 
-	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample( Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
-	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
+	} // foreach(DzNode *pNode, aNodeList)
+
+	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample(Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
 	oFrameSample.setType(Alembic::AbcGeom::kLinear);
+	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
 	oFrameSample.setWrap(Alembic::AbcGeom::kNonPeriodic);
 
-	if (aUvBuffer.size() > 0) {
-		printf("DEBUG: adding UVs to %s (UVs: %i)\n", pNode->getLabel().toLocal8Bit().constData(), nNumUVs);
-		Alembic::AbcGeom::OV2fGeomParam::Sample oUvSamples;
-		oUvSamples.setVals(aUvBuffer);
-		oFrameSample.setUVs(oUvSamples);
-	}
-	
-	DzBox3 oDazBoundingBox = pFacetMesh->getBoundingBox();
-	Alembic::AbcGeom::Box3d oHairBounds;
-	for (int i=0; i < 3; i++) {
-		oHairBounds.min[i] = oDazBoundingBox.getMin()[i];
-		oHairBounds.max[i] = oDazBoundingBox.getMax()[i];
-	}
-	oFrameSample.setSelfBounds(oHairBounds);
+	Alembic::AbcGeom::OCompoundProperty oArbGeomParams = oCurveSchema.getArbGeomParams();
+
+	Alembic::AbcGeom::OInt32GeomParam oGroomGroupIdParam(
+		oArbGeomParams,
+		"groom_group_id",
+		false,
+		Alembic::AbcGeom::kUniformScope,
+		1);
+	Alembic::AbcGeom::OInt32GeomParam::Sample oGroomGroupIdSample(Alembic::AbcGeom::Int32ArraySample(aGroomGroupIds), Alembic::AbcGeom::kUniformScope);
+	oGroomGroupIdParam.set(oGroomGroupIdSample);
+
+	Alembic::AbcGeom::OV2fGeomParam oRootUvParam(
+		oArbGeomParams,
+		"groom_root_uv",
+		false,
+		Alembic::AbcGeom::kUniformScope,
+		1);
+	Alembic::AbcGeom::OV2fGeomParam::Sample oRootUvSample(Alembic::AbcGeom::V2fArraySample(aRootUvBuffer), Alembic::AbcGeom::kUniformScope);
+	oRootUvParam.set(oRootUvSample);
+
+	//if (aUvBuffer.size() > 0) {
+	//	printf("DEBUG: adding UVs to %s (UVs: %i)\n", pNode->getLabel().toLocal8Bit().constData(), (int) aUvBuffer.size());
+	//	Alembic::AbcGeom::OV2fGeomParam::Sample oUvSamples;
+	//	oUvSamples.setVals(aUvBuffer);
+	//	oFrameSample.setUVs(oUvSamples);
+	//}
+
+	//DzBox3 oDazBoundingBox = pFacetMesh->getBoundingBox();
+	//Alembic::AbcGeom::Box3d oHairBounds;
+	//for (int i = 0; i < 3; i++) {
+	//	oHairBounds.min[i] = oDazBoundingBox.getMin()[i];
+	//	oHairBounds.max[i] = oDazBoundingBox.getMax()[i];
+	//}
+	//oFrameSample.setSelfBounds(oHairBounds);
 
 	oCurveSchema.set(oFrameSample);
 
@@ -280,20 +383,28 @@ bool DzBlenderAction::writeHair(QString sFilePath, QList<DzNode*> aHairNodesList
 
 	printf("DEBUG: writeHair(%s)\n", sFilePath.toLocal8Bit().data());
 	// Create the Abc file and set the time to match Daz output
-	Alembic::AbcCoreOgawa::WriteArchive AbcWriteArchive;
-	Alembic::Abc::OArchive AbcArchive = Alembic::Abc::OArchive(AbcWriteArchive, sFilePath.toLocal8Bit().data());
-	Alembic::Abc::TimeSamplingPtr TimeSampling = Alembic::Abc::TimeSamplingPtr(new Alembic::Abc::TimeSampling((double)dzScene->getTimeStep() / 4800, 0.0));
+	Alembic::Abc::OArchive AbcArchive(Alembic::AbcCoreOgawa::WriteArchive(), sFilePath.toLocal8Bit().data());
+	Alembic::Abc::TimeSamplingPtr TimeSampling(new Alembic::Abc::TimeSampling());
+	AbcArchive.addTimeSampling(*TimeSampling);
 
-	foreach(DzNode* pHairNode, aHairNodesList)
+	bool bSingleOCurveMode = false;
+
+	int groom_id = 0;
+	if (bSingleOCurveMode)
 	{
-		if (isStrandBasedHair(pHairNode) == false) {
-			continue;
-		}
-
-		writeAbcCurve(pHairNode, AbcArchive, TimeSampling);
-
+		writeAbcCurve(aHairNodesList, AbcArchive, TimeSampling, groom_id);
 	}
-	
+	else
+	{
+		foreach(DzNode * pHairNode, aHairNodesList)
+		{
+			if (isStrandBasedHair(pHairNode) == false) {
+				continue;
+			}
+			writeAbcCurve(DzNodeList() << pHairNode, AbcArchive, TimeSampling, groom_id++);
+		}
+	}
+
 	return true;
 }
 
