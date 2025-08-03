@@ -56,7 +56,7 @@ bool ShowExplorerWindow(QString sFilePath)
 	args << "-e";
 	args << "activate";
 	args << "-e";
-	if (QFileInfo(sFinalFilePath).exists()) {
+	if (QFileInfo(sFilePath).exists()) {
 		args << "select POSIX file \"" + sFilePath + "\"";
 	}
 	else {
