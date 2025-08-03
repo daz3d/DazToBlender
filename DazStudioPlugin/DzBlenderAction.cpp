@@ -171,13 +171,13 @@ bool DzBlenderAction::writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive &AbcArc
 	return true;
 }
 
-bool DzBlenderAction::writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling, int groom_id)
+bool DzBlenderAction::writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArchive &AbcArchive, Alembic::Abc::TimeSamplingPtr &TimeSampling, int *pGroupId)
 {
 	bool bUnrealMode = true;
 	if (aNodeList.isEmpty()) return false;
 
 	DzNode* pNode = aNodeList[0];
-	printf("DEBUG: writeAbcCurve() groom count=%i, pNode[%i]=%s\n", aNodeList.count(), groom_id, pNode->getLabel().toLocal8Bit().data());
+	printf("DEBUG: writeAbcCurve() groom count=%i, pNode[%i]=%s\n", aNodeList.count(), *pGroupId, pNode->getLabel().toLocal8Bit().data());
 	Alembic::AbcGeom::OCurves oCurve(AbcArchive.getTop(), pNode->getLabel().toLocal8Bit().constData(), TimeSampling);
 	Alembic::AbcGeom::OCurvesSchema& oCurveSchema = oCurve.getSchema();
 
@@ -197,7 +197,7 @@ bool DzBlenderAction::writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArc
 	std::vector<Imath::V2f> aUvBuffer;
 	std::vector<Imath::V2f> aRootUvBuffer;
 
-	int groom_group_id = groom_id;
+	int groom_group_id = *pGroupId;
 	foreach(DzNode *pNode, aNodeList)
 	{
 		if (isStrandBasedHair(pNode) == false) continue;
@@ -330,6 +330,9 @@ bool DzBlenderAction::writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArc
 
 	} // foreach(DzNode *pNode, aNodeList)
 
+	// update caller's groom_id variable to last used group_id
+	(*pGroupId) = groom_group_id - 1;
+
 	Alembic::AbcGeom::OCurvesSchema::Sample oFrameSample(Alembic::Abc::P3fArraySample(aAlembicVertices), aPolylineVertexIndices);
 	oFrameSample.setType(Alembic::AbcGeom::kLinear);
 	oFrameSample.setBasis(Alembic::AbcGeom::kNoBasis);
@@ -389,10 +392,10 @@ bool DzBlenderAction::writeHair(QString sFilePath, QList<DzNode*> aHairNodesList
 
 	bool bSingleOCurveMode = false;
 
-	int groom_id = 0;
+	int nGroupId = 0;
 	if (bSingleOCurveMode)
 	{
-		writeAbcCurve(aHairNodesList, AbcArchive, TimeSampling, groom_id);
+		writeAbcCurve(aHairNodesList, AbcArchive, TimeSampling, &nGroupId);
 	}
 	else
 	{
@@ -401,7 +404,8 @@ bool DzBlenderAction::writeHair(QString sFilePath, QList<DzNode*> aHairNodesList
 			if (isStrandBasedHair(pHairNode) == false) {
 				continue;
 			}
-			writeAbcCurve(DzNodeList() << pHairNode, AbcArchive, TimeSampling, groom_id++);
+			writeAbcCurve(DzNodeList() << pHairNode, AbcArchive, TimeSampling, &nGroupId);
+			++nGroupId;
 		}
 	}
 
