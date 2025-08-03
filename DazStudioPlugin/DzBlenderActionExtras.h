@@ -40,3 +40,14 @@ public:
 	void executeAction() override;
 
 };
+
+class DzBlenderActionExtras_05 : public DzAction {
+	Q_OBJECT
+public:
+	DzBlenderActionExtras_05();
+	virtual QString getDefaultMenuPath() const override { return tr("&File/Send To/Bridge Tools"); }
+
+	void executeAction() override;
+
+};
+

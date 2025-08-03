@@ -323,7 +323,10 @@ void DzBlenderActionExtras_03::executeAction()
 {
 	bool m_bCombineStrandHairParts = true;
 	DzNode* m_pSelectedNode = dzScene->getPrimarySelection();
-	if (m_pSelectedNode == nullptr) return;
+	if (m_pSelectedNode == nullptr) {
+		QMessageBox::information(0, tr("ERROR"), tr("Please Select Figure Node"), QMessageBox::Ok);
+		return;
+	}
 
 	m_pSelectedNode = m_pSelectedNode->getSkeleton();
 
@@ -389,6 +392,8 @@ void DzBlenderActionExtras_03::executeAction()
 			}
 		}
 	}
+
+	dzApp->setBusyCursor();
 	if (oUndoTable.count() > 0) {
 		QList<DzNode*> aHairNodesList = oUndoTable.keys();
 		if (m_bCombineStrandHairParts)
@@ -407,6 +412,7 @@ void DzBlenderActionExtras_03::executeAction()
 			}
 		}
 	}
+	dzApp->clearBusyCursor();
 
 	// UNDO
 	foreach(DzNode* pHairNode, oUndoTable.keys())
@@ -430,7 +436,10 @@ void DzBlenderActionExtras_04::executeAction()
 {
 	bool m_bCombineStrandHairParts = false;
 	DzNode* m_pSelectedNode = dzScene->getPrimarySelection();
-	if (m_pSelectedNode == nullptr) return;
+	if (m_pSelectedNode == nullptr) {
+		QMessageBox::information(0, tr("ERROR"), tr("Please Select Figure Node"), QMessageBox::Ok);
+		return;
+	}
 
 	m_pSelectedNode = m_pSelectedNode->getSkeleton();
 
@@ -496,6 +505,7 @@ void DzBlenderActionExtras_04::executeAction()
 			}
 		}
 	}
+	dzApp->setBusyCursor();
 	if (oUndoTable.count() > 0) {
 		QList<DzNode*> aHairNodesList = oUndoTable.keys();
 		if (m_bCombineStrandHairParts)
@@ -514,6 +524,7 @@ void DzBlenderActionExtras_04::executeAction()
 			}
 		}
 	}
+	dzApp->clearBusyCursor();
 
 	// UNDO
 	foreach(DzNode * pHairNode, oUndoTable.keys())
@@ -526,6 +537,15 @@ void DzBlenderActionExtras_04::executeAction()
 	}
 
 	ShowExplorerWindow(sFinalFilePath);
+}
+
+DzBlenderActionExtras_05::DzBlenderActionExtras_05() :
+	DzAction(tr("Placeholder..."), tr("An Extra Blender Action"))
+{
+}
+
+void DzBlenderActionExtras_05::executeAction() {
+
 }
 
 
