@@ -10,11 +10,12 @@
 #include <dzscene.h>
 #include <dzprogress.h>
 
+#include "DzBlenderAction.h"
+
 #ifdef WIN32
 #include <Windows.h>
+#include <shellapi.h>
 #endif
-
-#include "DzBlenderAction.h"
 
 int DzBlenderUtils::ExecuteBlenderScripts(QString sBlenderExecutablePath, QString sCommandlineArguments, QString sWorkingPath, QProcess* thisProcess, DzApp* dzApp, float fTimeoutInSeconds)
 {
