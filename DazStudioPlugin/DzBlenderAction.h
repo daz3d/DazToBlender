@@ -8,8 +8,6 @@
 #include <DzBridgeAction.h>
 #include "DzBlenderDialog.h"
 
-#include <Alembic/Abc/All.h>
-
 class UnitTest_DzBlenderAction;
 
 #include "dzbridge.h"
@@ -34,10 +32,6 @@ public:
 
 	// DB 2024-09-01: Refactored convenience function accessible from Daz Script, C++ users should use DzBlenderUtils::ExecuteBlenderScripts() directly
 	Q_INVOKABLE bool executeBlenderScripts(QString sFilePath, QString sCommandlineArguments);
-
-	bool writeHair(QString sFilePath, QList<DzNode*> aHairNodesList);
-	bool writeAbcMesh(DzNode* pNode, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling);
-	bool writeAbcCurve(QList<DzNode*> aNodeList, Alembic::Abc::OArchive& AbcArchive, Alembic::Abc::TimeSamplingPtr& TimeSampling, int *pGroupId);
 
 	void executeAction() override;
 
