@@ -244,6 +244,10 @@ DzBlenderAction::DzBlenderAction() :
 	m_aKnownIntermediateFileExtensionsList += "blend1";
 	m_aKnownIntermediateFileExtensionsList += "abc";
 
+	// default rig, joint and bind pose behaviors to on for Blender compatibility
+	m_bConvertRigEnabled = true;
+	m_bConvertFbxJointsEnabled = true;
+	m_bBakeMeshesToSingleBindPose = true;
 }
 
 bool DzBlenderAction::createUI()
