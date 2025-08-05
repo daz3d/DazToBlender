@@ -195,26 +195,27 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 			}
 		}
 
-		hideAllStrandBasedHair(parentNode, m_oHideHairUndoTable);
-		// hide scalp
-		foreach(DzNode* pHairNode, m_oHideHairUndoTable.keys())
-		{
-			if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
-				DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
-				// if not directly following figure (parentNode), assume is scalp
-				if (pFollowTarget != parentNode) {
-					pFollowTarget->setVisible(false);
-					if (m_oHideHairUndoTable.contains(pFollowTarget) == false)
-					{
-						DzNode* pParentNode = pFollowTarget->getNodeParent();
-						if (pParentNode) {
-							m_oHideHairUndoTable.insert(pFollowTarget, pParentNode);
-							pParentNode->removeNodeChild(pFollowTarget);					
-						}					
-					}
-				}
-			}
-		}
+		hideAllStrandBasedHair(parentNode, m_undoTable_HideStrandHair);
+
+//		// hide scalp
+//		foreach(DzNode* pHairNode, m_undoTable_HideStrandHair.keys())
+//		{
+//			if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
+//				DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
+//				// if not directly following figure (parentNode), assume is scalp
+//				if (pFollowTarget != parentNode) {
+//					pFollowTarget->setVisible(false);
+//					if (m_undoTable_HideStrandHair.contains(pFollowTarget) == false)
+//					{
+//						DzNode* pParentNode = pFollowTarget->getNodeParent();
+//						if (pParentNode) {
+//							m_undoTable_HideStrandHair.insert(pFollowTarget, pParentNode);
+//							pParentNode->removeNodeChild(pFollowTarget);					
+//						}					
+//					}
+//				}
+//			}
+//		}
 		
 	}
 	
@@ -553,6 +554,8 @@ void DzBlenderAction::writeConfiguration()
 	writer.addMember("Use MaterialX", m_bUseMaterialX);
 	pDtuProgress->step();
 
+	writeStrandHairInfo(writer, m_oStrandHairExportData);
+	
 	if (m_pSelectedNode->inherits("DzFigure")) {
 		DzVec3 vObjectOffset(0, 0, 0);
 		bool result = DZ_BRIDGE_NAMESPACE::DzBridgeTools::CalculateRawOffset(m_pSelectedNode, vObjectOffset);
@@ -608,6 +611,8 @@ void DzBlenderAction::writeConfiguration()
 
 	m_ImageToolsJobsManager->processJobs();
 	m_ImageToolsJobsManager->clearJobs();
+
+	m_oStrandHairExportData.clear();
 
 	writer.finishObject();
 	DTUfile.close();
@@ -928,7 +933,7 @@ bool DzBlenderAction::undoPreProcessScene()
 		return false;
 	}
 	
-	undoHideFollowerMeshes(m_oHideHairUndoTable);
+	undoHideFollowerMeshes(m_undoTable_HideStrandHair);
 		
 	return true;
 }

@@ -60,8 +60,6 @@ protected:
 	 bool m_bGenerateFinalGlb = false;
 	 bool m_bGenerateFinalUsd = false;
 	 bool m_bUseMaterialX = false;
-
-	QMap<DzNode*, DzNode*> m_oHideHairUndoTable;
 	
 	friend class DzBlenderExporter;
 

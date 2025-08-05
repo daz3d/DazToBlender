@@ -397,6 +397,32 @@ class IMP_OT_FBX(bpy.types.Operator):
                                         # assign all vertices to the vertex group
                                         for v in obj.data.vertices:
                                             obj.vertex_groups[0].add([v.index], 1.0, "REPLACE")
+            
+            # DB 2025-08-05: Import Strand-based Hair / Alembic files
+            if "Strand Hair Info" in dtu.dtu_dict and dtu.dtu_dict["Strand Hair Info"] is not None:
+                strand_hair_info_array = dtu.dtu_dict["Strand Hair Info"]
+                for strand_hair_info in strand_hair_info_array:
+                    if strand_hair_info is not None:
+                        # get File
+                        strand_hair_file = strand_hair_info["File"]
+                        if strand_hair_file is not None and os.path.exists(strand_hair_file):
+                            # import alembic file
+                            bpy.ops.wm.alembic_import(filepath=strand_hair_file)
+                        node_info_array = strand_hair_info["Node Info"]
+                        for node_info in node_info_array:
+                            if node_info is not None:
+                                node_name = node_info["Name"]
+                                node_label = node_info["Label"]
+                                parent_name = node_info["Parent"]
+                                if node_name is not None:
+                                    obj = bpy.data.objects.get(node_name)
+                                    if obj is not None:
+                                        if parent_name is not None:
+                                            parent_obj = bpy.data.objects.get(parent_name)
+                                            if parent_obj is None:
+                                                parent_obj = bpy.data.objects.get(parent_name + ".Shape")
+                                            if parent_obj is not None:
+                                                obj.parent = parent_obj
 
             if bpy.context.window_manager.morph_prefix:
                 bpy.ops.rename.morphs('EXEC_DEFAULT')

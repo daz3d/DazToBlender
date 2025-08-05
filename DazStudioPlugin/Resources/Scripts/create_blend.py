@@ -10,7 +10,9 @@ EXAMPLE:
 
     blender.exe --background --python create_blend.py "C:/Users/username/Documents/DAZ 3D/DazToBlender/Export/Genesis8Female.fbx"
 
-Version: 1.30
+Version: 1.31
+Date: 2025-08-05
+- added import_strand_hair()
 Date: 2024-12-26
 - Added support for instance recreation
 - Dtu material deduplication
@@ -227,6 +229,8 @@ def _main(argv):
             if obj.type == 'MESH' and obj.visible_get():
                 obj_list.append(obj)
         atlas, atlas_material, _ = game_readiness_tools.convert_to_atlas(obj_list, intermediate_folder_path, texture_atlas_size, bake_quality, make_uv, enable_gpu_baking)
+
+    blender_tools.import_strand_hair(dtu_dict);
 
     # remove missing or unused images
     print("DEBUG: deleting missing or unused images...")
