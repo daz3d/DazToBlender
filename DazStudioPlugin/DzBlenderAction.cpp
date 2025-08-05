@@ -177,34 +177,13 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 
 	DzBridgeAction::preProcessScene(parentNode);
 
-	QMap<DzNode*, DzNode*> oUndoTable;
-	hideAllStrandBasedHair(parentNode, oUndoTable);
-	// hide scalp
-	foreach(DzNode* pHairNode, oUndoTable.keys())
-	{
-		if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
-			DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
-			// if not directly following figure (parentNode), assume is scalp
-			if (pFollowTarget != parentNode) {
-				pFollowTarget->setVisible(false);
-				if (oUndoTable.contains(pFollowTarget) == false)
-				{
-					DzNode* pParentNode = pFollowTarget->getNodeParent();
-					if (pParentNode) {
-						oUndoTable.insert(pFollowTarget, pParentNode);
-						pParentNode->removeNodeChild(pFollowTarget);					
-					}					
-				}
-			}
-		}
-	}
-	if (oUndoTable.count() > 0) {
-		QList<DzNode*> aHairNodesList = oUndoTable.keys();
+	QList<DzNode*> aHairNodesList = findAllStrandBasedHair();
+	if (aHairNodesList.count() > 0) {
 		if (m_bCombineStrandHairParts)
 		{
 			QString sHairPostfix = QString("_%1.abc").arg("hair");
 			QString sAbcFilename = QString(m_sDestinationFBX).replace(".fbx", sHairPostfix, Qt::CaseInsensitive);
-			writeHair(sAbcFilename, aHairNodesList);
+			writeHair(sAbcFilename, aHairNodesList, "blender");
 		}
 		else
 		{
@@ -212,10 +191,33 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 				if (isStrandBasedHair(pHairNode)==false) continue;
 				QString sHairPostfix = QString("_%1.abc").arg( cleanString(pHairNode->getLabel()) );
 				QString sAbcFilename = QString(m_sDestinationFBX).replace(".fbx", sHairPostfix, Qt::CaseInsensitive);
-				writeHair(sAbcFilename, QList<DzNode*>() << pHairNode );
+				writeHair(sAbcFilename, QList<DzNode*>() << pHairNode , "blender");
 			}
 		}
+
+		hideAllStrandBasedHair(parentNode, m_oHideHairUndoTable);
+		// hide scalp
+		foreach(DzNode* pHairNode, m_oHideHairUndoTable.keys())
+		{
+			if (pHairNode->getSkeleton() && pHairNode->getSkeleton()->getFollowTarget()) {
+				DzNode* pFollowTarget = pHairNode->getSkeleton()->getFollowTarget();
+				// if not directly following figure (parentNode), assume is scalp
+				if (pFollowTarget != parentNode) {
+					pFollowTarget->setVisible(false);
+					if (m_oHideHairUndoTable.contains(pFollowTarget) == false)
+					{
+						DzNode* pParentNode = pFollowTarget->getNodeParent();
+						if (pParentNode) {
+							m_oHideHairUndoTable.insert(pFollowTarget, pParentNode);
+							pParentNode->removeNodeChild(pFollowTarget);					
+						}					
+					}
+				}
+			}
+		}
+		
 	}
+	
 	
 	blenderProgress->finish();
 
@@ -917,6 +919,17 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 		return false;
 	}
 
+	return true;
+}
+
+bool DzBlenderAction::undoPreProcessScene()
+{
+	if (DzBridgeAction::undoPreProcessScene() == false) {
+		return false;
+	}
+	
+	undoHideFollowerMeshes(m_oHideHairUndoTable);
+		
 	return true;
 }
 

@@ -42,7 +42,8 @@ protected:
 
 	 virtual bool preProcessScene(DzNode* parentNode) override;
 	 virtual bool postProcessFbx(QString fbxFilePath) override;
-
+	virtual bool undoPreProcessScene() override;
+	
 	 int m_nPythonExceptionExitCode = 11;  // arbitrary exit code to check for blener python exceptions
 	 int m_nBlenderExitCode = 0;
 	 QString m_sBlenderExecutablePath = "";
@@ -60,6 +61,8 @@ protected:
 	 bool m_bGenerateFinalUsd = false;
 	 bool m_bUseMaterialX = false;
 
+	QMap<DzNode*, DzNode*> m_oHideHairUndoTable;
+	
 	friend class DzBlenderExporter;
 
 #ifdef UNITTEST_DZBRIDGE
