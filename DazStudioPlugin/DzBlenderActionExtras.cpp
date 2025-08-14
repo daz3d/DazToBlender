@@ -372,7 +372,7 @@ void DzBlenderActionExtras_03::executeAction()
 
 	DzNode* parentNode = m_pSelectedNode;
 	QMap<DzNode*, DzNode*> oUndoTable;
-	oBridge.hideAllStrandBasedHair(parentNode, oUndoTable);
+	oBridge.hideStrandBasedHair(parentNode, oUndoTable);
 	// hide scalp
 	foreach(DzNode *pHairNode, oUndoTable.keys())
 	{
@@ -485,7 +485,7 @@ void DzBlenderActionExtras_04::executeAction()
 
 	DzNode* parentNode = m_pSelectedNode;
 	QMap<DzNode*, DzNode*> oUndoTable;
-	oBridge.hideAllStrandBasedHair(parentNode, oUndoTable);
+	oBridge.hideStrandBasedHair(parentNode, oUndoTable);
 	// hide scalp
 	foreach(DzNode * pHairNode, oUndoTable.keys())
 	{

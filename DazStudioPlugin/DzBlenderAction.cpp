@@ -195,7 +195,7 @@ bool DzBlenderAction::preProcessScene(DzNode* parentNode)
 			}
 		}
 
-		hideAllStrandBasedHair(parentNode, m_undoTable_HideStrandHair);
+		hideAllStrandBasedHair();
 
 //		// hide scalp
 //		foreach(DzNode* pHairNode, m_undoTable_HideStrandHair.keys())
@@ -933,8 +933,8 @@ bool DzBlenderAction::undoPreProcessScene()
 		return false;
 	}
 	
-	undoHideFollowerMeshes(m_undoTable_HideStrandHair);
-		
+	undoHideAllStrandBasedHair();
+
 	return true;
 }
 
