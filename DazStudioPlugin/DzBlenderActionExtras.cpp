@@ -540,21 +540,30 @@ void DzBlenderActionExtras_04::executeAction()
 }
 
 DzFbxPoseBinder::DzFbxPoseBinder() :
-	DzAction(tr("Bake Fbx T0 to Bind Pose..."), tr("An Extra Blender Action"))
+	DzAction(tr("Bake Fbx Current to Bind Pose..."), tr("An Extra Blender Action"))
 {
 }
 
 void DzFbxPoseBinder::executeAction()
 {
+	QString sFbxFilePath;
 	// Open a file open dialog
+	sFbxFilePath = QFileDialog::getOpenFileName(0, "Select Fbx File to Bake Bind Pose...");
 	
-
 	// pass filepath string to bindpose baker
+	if (sFbxFilePath.isEmpty()) { return; }
+	
+	if (BakeCurrentToBindPose(sFbxFilePath, true) == false)
+	{
+		QMessageBox::warning(0, tr("Error"),
+			tr("An error occurred while processing the Fbx file:\n\n") + sFbxFilePath, QMessageBox::Ok);
+	}
+	
 }
 
 #include "OpenFBXInterface.h"
 #include "FbxTools.h"
-bool DzFbxPoseBinder::bakeT0BindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile)
+bool DzFbxPoseBinder::BakeCurrentToBindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile)
 {
 	if (QFileInfo(sFbxFilePath).exists() == false) { return false; }
 	
@@ -566,21 +575,60 @@ bool DzFbxPoseBinder::bakeT0BindPose(QString sFbxFilePath, bool bEmbedTexturesIn
 			+ QString("(File: \"%1\") ").arg(sFbxFilePath)
 			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
-//		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
-//			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
 		return false;
 	}
 
+	FbxNode* pRootNode = pScene->GetRootNode();
+	FbxPose* pCurrentPose = FbxPose::Create(openFBX->GetManager(), "CurrentPose");
+	FbxTools::SaveCurrentPose(pScene, pRootNode, pCurrentPose);
+	QList<FbxNode*> aMeshNodeList;
+	FbxTools::GetAllMeshes(pRootNode, aMeshNodeList);
+
+	foreach(FbxNode * pNode, aMeshNodeList)
+	{
+		QString debugName(pNode->GetName());
+		FbxMesh* pMesh = pNode->GetMesh();
+		FbxAMatrix matrix = pNode->EvaluateGlobalTransform();
+		FbxVector4* pVertexBuffer = pMesh->GetControlPoints();
+		if (pVertexBuffer == NULL) continue;
+		FbxTools::BakePoseToVertexBuffer(pVertexBuffer, &matrix, nullptr, pMesh);
+		int numBlendshapes = pMesh->GetDeformerCount(FbxDeformer::eBlendShape);
+		for (int nBlendshapeIndex = 0; nBlendshapeIndex < numBlendshapes; ++nBlendshapeIndex)
+		{
+			FbxBlendShape* pBlendShape = static_cast<FbxBlendShape*>(pMesh->GetDeformer(nBlendshapeIndex, FbxDeformer::eBlendShape));
+			if (pBlendShape == nullptr) continue;
+			int numChannels = pBlendShape->GetBlendShapeChannelCount();
+			for (int nChannelIndex = 0; nChannelIndex < numChannels; ++nChannelIndex)
+			{
+				FbxBlendShapeChannel* pChannel = pBlendShape->GetBlendShapeChannel(nChannelIndex);
+				if (pChannel == nullptr) continue;
+				int numShapes = pChannel->GetTargetShapeCount();
+				for (int nShapeIndex = 0; nShapeIndex < numShapes; ++nShapeIndex)
+				{
+					FbxShape* pTargetShape = pChannel->GetTargetShape(nShapeIndex);
+					if (pTargetShape) 
+					{
+						FbxVector4* pTargetShapeVertexBuffer = pTargetShape->GetControlPoints();
+						if (pTargetShapeVertexBuffer == NULL) continue;
+						FbxTools::BakePoseToVertexBuffer(pTargetShapeVertexBuffer, &matrix, nullptr, pMesh);									
+					}
+				}
+			}
+		}
+	}
 	
+	foreach(FbxNode *pFbxNode, aMeshNodeList)
+	{
+		FbxMesh *pMesh = pFbxNode->GetMesh();
+		FbxTools::BakePoseToBindMatrix(pMesh, pCurrentPose);
+	}
 	
 	if (openFBX->SaveScene(pScene, sFbxFilePath, -1, bEmbedTexturesInOutputFile) == false)
 	{
 		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->SaveScene(): ")
-			+ QString("(File: \"%1\") ").arg(fbxFilePath)
+			+ QString("(File: \"%1\") ").arg(sFbxFilePath)
 			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
-//		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
-//			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
 		return false;
 	}
 

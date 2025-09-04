@@ -41,14 +41,14 @@ public:
 
 };
 
+class QString;
 class DzFbxPoseBinder : public DzAction {
 	Q_OBJECT
 public:
 	DzFbxPoseBinder();
 	virtual QString getDefaultMenuPath() const override { return tr("&File/Send To/Bridge Tools"); }
-	
 	void executeAction() override;
-	bool bakeT0BindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile);
+	Q_INVOKABLE static bool BakeCurrentToBindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile);
 	
 };
 

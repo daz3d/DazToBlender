@@ -41,6 +41,7 @@
 
 #include "ImageTools.h"
 #include "DzBlenderUtils.h"
+#include "BridgeTools.h"
 
 
 
@@ -558,7 +559,7 @@ void DzBlenderAction::writeConfiguration()
 	
 	if (m_pSelectedNode->inherits("DzFigure")) {
 		DzVec3 vObjectOffset(0, 0, 0);
-		bool result = DZ_BRIDGE_NAMESPACE::DzBridgeTools::CalculateRawOffset(m_pSelectedNode, vObjectOffset);
+		bool result = BridgeTools::CalculateRawOffset(m_pSelectedNode, vObjectOffset);
 		writer.startMemberArray("Object Correction Offset", true);
 		writer.addItem(-vObjectOffset.m_x);
 		writer.addItem(-vObjectOffset.m_y);
@@ -890,7 +891,7 @@ bool DzBlenderAction::postProcessFbx(QString fbxFilePath)
 				}
 			}
 
-			FbxTools::FixClusterTranformLinks(pScene, pFbxRootBone, nullptr);
+			FbxTools::ModifyBindPose(pScene, pFbxRootBone, nullptr);
 			// Bake New Bind Pose
 			FbxPose* pNewBindPose = FbxTools::SaveBindMatrixToPose(pScene, "NewBindPose", nullptr, true);
 			FbxTools::ApplyBindPose(pScene, pNewBindPose);
