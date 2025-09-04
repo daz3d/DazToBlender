@@ -87,6 +87,12 @@ endif(WIN32)
 
 set(DAZ_SDK_DIR_DEFAULT "")
 set(DAZ_SDK_CORE_RELATIVE_PATH "lib/${DZ_MIXED_PLATFORM}/${DZ_LIB_PREFIX}dzcore${DZ_LIB_SUFFIX}")
+if (WIN32)
+	set(DAZ_SDK_MEMORY_RELATIVE_PATH "lib/${DZ_MIXED_PLATFORM}/${DZ_LIB_PREFIX}dzsdkmemory${DZ_LIB_SUFFIX}")
+else()
+	set(DAZ_SDK_MEMORY_RELATIVE_PATH  )
+endif()
+
 if(NOT DAZ_SDK_DIR)
 	if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/DAZStudio4.5+ SDK/${DAZ_SDK_CORE_RELATIVE_PATH}")
 		set( DAZ_SDK_DIR_DEFAULT "${CMAKE_CURRENT_LIST_DIR}/DAZStudio4.5+ SDK" )
@@ -125,7 +131,7 @@ if(WIN32)
 endif()
 
 # Set dzcore as import target
-set(DZ_SDK_INCLUDE "${DAZ_SDK_DIR}/include" CACHE FILEPATH "path to daz sdk includes" )
+set(DAZ_SDK_INCLUDE "${DAZ_SDK_DIR}/include" CACHE FILEPATH "path to daz sdk includes" )
 set(DAZ_SDK_LIB "${DAZ_SDK_DIR}/${DAZ_SDK_CORE_RELATIVE_PATH}" CACHE FILEPATH "path to dzcore" )
 if(NOT EXISTS ${DAZ_SDK_LIB})
 	message(FATAL_ERROR "The library dzcore could not be located.  Check the path for DAZ_SDK_DIR.")
@@ -138,7 +144,25 @@ if(WIN32)
 else()
 	set_property(TARGET dzcore APPEND PROPERTY IMPORTED_LOCATION ${DAZ_SDK_LIB})
 endif(WIN32)
-set_property(TARGET dzcore APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${DZ_SDK_INCLUDE}" )
+set_property(TARGET dzcore APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${DAZ_SDK_INCLUDE}" )
+if(WIN32)
+
+# Set dzsdkmemory as import target
+set(DAZ_SDK_MEMORY_LIB "${DAZ_SDK_DIR}/${DAZ_SDK_MEMORY_RELATIVE_PATH}" CACHE FILEPATH "Path to dzsdkmemory library" )
+if(NOT EXISTS ${DAZ_SDK_MEMORY_LIB})
+	message(FATAL_ERROR "The library dzsdkmemory could not be located. Check the path for DAZ_SDK_DIR.")
+	return()
+endif()
+
+add_library( dzsdkmemory SHARED IMPORTED )
+if(WIN32)
+	set_property(TARGET dzsdkmemory APPEND PROPERTY IMPORTED_IMPLIB ${DAZ_SDK_MEMORY_LIB})
+else()
+	set_property(TARGET dzsdkmemory APPEND PROPERTY IMPORTED_LOCATION ${DAZ_SDK_MEMORY_LIB})
+endif(WIN32)
+set_property(TARGET dzsdkmemory APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${DAZ_SDK_INCLUDE}" )
+
+endif(WIN32)
 
 # Set dpc as import target
 set(DAZ_SDK_DPC_EXE "${DAZ_SDK_DIR}/bin/${DZ_MIXED_PLATFORM}/dpc${UTIL_EXT}" CACHE FILEPATH "path to sdk dpc" )

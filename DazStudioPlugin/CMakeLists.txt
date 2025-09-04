@@ -16,6 +16,7 @@ endif()
 if(WIN32)
 	set(OS_SOURCES
 		DzBlenderBridge.rc
+		${DAZ_SDK_INCLUDE}/dzsdkmemorydefines.cpp
 	)
 elseif(APPLE)
 	set(OS_SOURCES "")
@@ -61,6 +62,7 @@ target_include_directories(${DZ_PLUGIN_TGT_NAME}
 
 target_link_libraries(${DZ_PLUGIN_TGT_NAME}
 	PRIVATE
+	dzsdkmemory
 	dzcore
 	dzbridge-static
 	${DZSDK_QT_CORE_TARGET}
