@@ -41,13 +41,23 @@ public:
 
 };
 
-class DzBlenderActionExtras_05 : public DzAction {
+class DzFbxPoseBinder : public DzAction {
 	Q_OBJECT
 public:
-	DzBlenderActionExtras_05();
+	DzFbxPoseBinder();
+	virtual QString getDefaultMenuPath() const override { return tr("&File/Send To/Bridge Tools"); }
+	
+	void executeAction() override;
+	bool bakeT0BindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile);
+	
+};
+
+class DzBlenderActionExtras_XXX : public DzAction {
+	Q_OBJECT
+public:
+	DzBlenderActionExtras_XXX();
 	virtual QString getDefaultMenuPath() const override { return tr("&File/Send To/Bridge Tools"); }
 
 	void executeAction() override;
 
 };
-

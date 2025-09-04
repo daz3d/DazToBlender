@@ -539,15 +539,65 @@ void DzBlenderActionExtras_04::executeAction()
 	ShowExplorerWindow(sFinalFilePath);
 }
 
-DzBlenderActionExtras_05::DzBlenderActionExtras_05() :
+DzFbxPoseBinder::DzFbxPoseBinder() :
+	DzAction(tr("Bake Fbx T0 to Bind Pose..."), tr("An Extra Blender Action"))
+{
+}
+
+void DzFbxPoseBinder::executeAction()
+{
+	// Open a file open dialog
+	
+
+	// pass filepath string to bindpose baker
+}
+
+#include "OpenFBXInterface.h"
+#include "FbxTools.h"
+bool DzFbxPoseBinder::bakeT0BindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile)
+{
+	if (QFileInfo(sFbxFilePath).exists() == false) { return false; }
+	
+	OpenFBXInterface* openFBX = OpenFBXInterface::GetInterface();
+	FbxScene* pScene = openFBX->CreateScene("Base Mesh Scene");
+	if (openFBX->LoadScene(pScene, sFbxFilePath) == false)
+	{
+		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->LoadScene(): ")
+			+ QString("(File: \"%1\") ").arg(sFbxFilePath)
+			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		dzApp->log(sFbxErrorMessage);
+//		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
+//			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
+		return false;
+	}
+
+	
+	
+	if (openFBX->SaveScene(pScene, sFbxFilePath, -1, bEmbedTexturesInOutputFile) == false)
+	{
+		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->SaveScene(): ")
+			+ QString("(File: \"%1\") ").arg(fbxFilePath)
+			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
+		dzApp->log(sFbxErrorMessage);
+//		if (m_nNonInteractiveMode == 0) QMessageBox::warning(0, tr("Error"),
+//			tr("An error occurred while processing the Fbx file:\n\n") + sFbxErrorMessage, QMessageBox::Ok);
+		return false;
+	}
+
+	return true;
+}
+
+
+
+
+DzBlenderActionExtras_XXX::DzBlenderActionExtras_XXX() :
 	DzAction(tr("Placeholder..."), tr("An Extra Blender Action"))
 {
 }
 
-void DzBlenderActionExtras_05::executeAction() {
+void DzBlenderActionExtras_XXX::executeAction() {
 
 }
-
 
 
 #include "moc_DzBlenderActionExtras.cpp"
