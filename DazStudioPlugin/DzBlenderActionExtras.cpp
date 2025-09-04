@@ -553,7 +553,8 @@ void DzFbxPoseBinder::executeAction()
 	// pass filepath string to bindpose baker
 	if (sFbxFilePath.isEmpty()) { return; }
 	
-	if (BakeCurrentToBindPose(sFbxFilePath, true) == false)
+	QString sOutputFilePath = QString(sFbxFilePath).replace(".fbx", "-bakedbindpose.fbx", Qt::CaseInsensitive);
+	if (BakeCurrentToBindPose(sFbxFilePath, sOutputFilePath, true) == false)
 	{
 		QMessageBox::warning(0, tr("Error"),
 			tr("An error occurred while processing the Fbx file:\n\n") + sFbxFilePath, QMessageBox::Ok);
@@ -563,20 +564,22 @@ void DzFbxPoseBinder::executeAction()
 
 #include "OpenFBXInterface.h"
 #include "FbxTools.h"
-bool DzFbxPoseBinder::BakeCurrentToBindPose(QString sFbxFilePath, bool bEmbedTexturesInOutputFile)
+bool DzFbxPoseBinder::BakeCurrentToBindPose(QString sInputFilePath, QString sOutputFilePath, bool bEmbedTexturesInOutputFile)
 {
-	if (QFileInfo(sFbxFilePath).exists() == false) { return false; }
-	
+	if (QFileInfo(sInputFilePath).exists() == false) { return false; }
+
 	OpenFBXInterface* openFBX = OpenFBXInterface::GetInterface();
 	FbxScene* pScene = openFBX->CreateScene("Base Mesh Scene");
-	if (openFBX->LoadScene(pScene, sFbxFilePath) == false)
+	if (openFBX->LoadScene(pScene, sInputFilePath) == false)
 	{
 		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->LoadScene(): ")
-			+ QString("(File: \"%1\") ").arg(sFbxFilePath)
+			+ QString("(File: \"%1\") ").arg(sInputFilePath)
 			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
 		return false;
 	}
+
+	dzApp->setBusyCursor();
 
 	FbxNode* pRootNode = pScene->GetRootNode();
 	FbxPose* pCurrentPose = FbxPose::Create(openFBX->GetManager(), "CurrentPose");
@@ -623,10 +626,12 @@ bool DzFbxPoseBinder::BakeCurrentToBindPose(QString sFbxFilePath, bool bEmbedTex
 		FbxTools::BakePoseToBindMatrix(pMesh, pCurrentPose);
 	}
 	
-	if (openFBX->SaveScene(pScene, sFbxFilePath, -1, bEmbedTexturesInOutputFile) == false)
+	dzApp->clearBusyCursor();
+
+	if (openFBX->SaveScene(pScene, sOutputFilePath, -1, bEmbedTexturesInOutputFile) == false)
 	{
 		QString sFbxErrorMessage = tr("ERROR: DzBridge: openFBX->SaveScene(): ")
-			+ QString("(File: \"%1\") ").arg(sFbxFilePath)
+			+ QString("(File: \"%1\") ").arg(sInputFilePath)
 			+ QString("[%1] %2").arg(openFBX->GetErrorCode()).arg(openFBX->GetErrorString());
 		dzApp->log(sFbxErrorMessage);
 		return false;
