@@ -258,7 +258,7 @@ class DtbShaders:
         ]:
             return "EyeWet"
 
-        elif material_name in ["Pupils", "Trises", "Sclera"]:
+        elif material_name in ["Pupils", "Irises", "Sclera"]:
             return "EyeDry"
 
         elif "Eyelashes" in object_type:
